@@ -236,7 +236,7 @@ export default function HomeAurora() {
           </form>
 
           {/* Trust badges */}
-          <div className="flex items-center justify-center gap-8 mt-8 pt-6 border-t border-border/50">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8 mt-8 pt-6 border-t border-border/50">
             <div className="flex items-center gap-5">
               {[
                 { label: '30 days', desc: 'of content' },

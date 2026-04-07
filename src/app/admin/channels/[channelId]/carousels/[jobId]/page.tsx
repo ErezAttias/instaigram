@@ -269,7 +269,7 @@ export default function AdminCarouselViewerPage() {
       {job.slides.length > 0 && (
         <>
           {/* View toggle + actions bar */}
-          <div className="flex items-center justify-between mb-5">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
             {/* View toggle */}
             <div className="flex items-center bg-surface border border-border rounded-lg p-0.5">
               <button
@@ -295,7 +295,7 @@ export default function AdminCarouselViewerPage() {
             </div>
 
             {/* Action buttons */}
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               {job.status === 'COMPLETE' && !job.approved && (
                 <>
                   {/* Image source toggle — only for slides with a tracked imageSource (real places / celebrities) */}

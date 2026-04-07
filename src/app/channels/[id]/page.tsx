@@ -925,8 +925,25 @@ export default function ChannelDashboard() {
 
   return (
     <div className="animate-fade-up">
-      {/* ─── Mobile: Horizontal Stepper ──────────────────────── */}
+      {/* ─── Mobile: Channel header + Horizontal Stepper ─────── */}
       <div className="lg:hidden mb-6">
+        {/* Compact channel header — desktop sidebar is hidden on mobile */}
+        <div className="flex items-center gap-2 mb-4 flex-wrap">
+          <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold ${statusInfo.color} ${statusInfo.bg}`}>
+            {statusInfo.label}
+          </span>
+          <span className="text-xs font-medium text-muted bg-surface-elevated px-2 py-1 rounded-lg">
+            {MODE_LABELS[channel.nicheMode]}
+          </span>
+          <h1 className="w-full text-xl font-bold tracking-tight leading-tight mt-1">
+            {channel.name === 'Untitled Channel' ? (
+              <span className="text-muted">Untitled</span>
+            ) : channel.name}
+          </h1>
+          {channel.niche && (
+            <p className="text-sm text-muted-light leading-relaxed">{channel.niche}</p>
+          )}
+        </div>
         <HorizontalStepper currentStep={effectiveStep} />
       </div>
 
