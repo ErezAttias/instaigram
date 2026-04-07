@@ -1256,7 +1256,7 @@ export default function ChannelDashboard() {
             </Section>
           ) : (
             <Section delay={120} active={effectiveStep === 1}>
-              <div className="flex items-center justify-between mb-5">
+              <div className="flex flex-col gap-3 mb-5">
                 <div>
                   <h2 className="text-xl font-bold tracking-tight">Content strategy</h2>
                   {strategyOptions.length > 0 && (
@@ -1264,7 +1264,7 @@ export default function ChannelDashboard() {
                   )}
                 </div>
                 {strategyOptions.length > 0 ? (
-                  <GhostButton onClick={handleGenerateStrategy} disabled={actionLoading !== null}>
+                  <GhostButton onClick={handleGenerateStrategy} disabled={actionLoading !== null} className="self-start">
                     Regenerate
                   </GhostButton>
                 ) : (
@@ -1273,6 +1273,7 @@ export default function ChannelDashboard() {
                     disabled={actionLoading !== null || effectiveStep < 1}
                     loading={actionLoading === 'generate-strategy'}
                     loadingText="Generating..."
+                    className="self-start"
                   >
                     Generate options
                   </PrimaryButton>
