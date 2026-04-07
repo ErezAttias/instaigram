@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Opener CTA Mockup</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0a0a0a;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif;
+  }
+
+  .page {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 48px;
+  }
+
+  .page-title {
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: #555;
+  }
+
+  .slides-row {
+    display: flex;
+    gap: 40px;
+    align-items: flex-start;
+  }
+
+  .slide-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .slide-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: #555;
+    font-weight: 600;
+  }
+  .slide-label.proposed { color: #4ade80; }
+
+  /* Slide container — 4:5 Instagram ratio */
+  .slide {
+    width: 340px;
+    height: 425px;
+    border-radius: 12px;
+    overflow: hidden;
+    position: relative;
+    background: #111;
+  }
+  .slide.proposed-border {
+    box-shadow: 0 0 0 2px #4ade80, 0 0 24px rgba(74,222,128,0.08);
+  }
+
+  .slide img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  /* Bottom gradient for text legibility */
+  .slide .overlay {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 50%;
+    background: linear-gradient(to top, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.35) 55%, transparent 100%);
+    pointer-events: none;
+  }
+
+  .text-block {
+    position: absolute;
+    bottom: 28px;
+    left: 22px;
+    right: 22px;
+    z-index: 2;
+  }
+
+  .headline {
+    font-size: 26px;
+    font-weight: 800;
+    color: #fff;
+    line-height: 1.14;
+    letter-spacing: -0.2px;
+  }
+
+  /* CTA row */
+  .cta-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 16px;
+  }
+
+  .cta-text {
+    font-size: 14px;
+    font-weight: 400;
+    color: rgba(255,255,255,0.65);
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  /* Long single arrow line */
+  .cta-arrow {
+    flex: 1;
+    height: 1px;
+    position: relative;
+    overflow: visible;
+  }
+
+  .cta-arrow .line {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(to right, rgba(255,255,255,0.5), rgba(255,255,255,0.25));
+  }
+
+  /* Arrowhead */
+  .cta-arrow .head {
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 0; height: 0;
+    border-top: 4px solid transparent;
+    border-bottom: 4px solid transparent;
+    border-left: 7px solid rgba(255,255,255,0.5);
+  }
+
+  /* Animated glow traveling along the arrow */
+  .cta-arrow .pulse {
+    position: absolute;
+    top: -1px;
+    left: 0;
+    width: 32px;
+    height: 3px;
+    border-radius: 2px;
+    background: linear-gradient(to right, transparent, rgba(255,255,255,0.6), transparent);
+    animation: slideRight 2s ease-in-out infinite;
+  }
+
+  @keyframes slideRight {
+    0%   { left: 0%; opacity: 0; }
+    10%  { opacity: 1; }
+    80%  { opacity: 1; }
+    100% { left: calc(100% - 32px); opacity: 0; }
+  }
+
+  /* Carousel dots indicator */
+  .dots {
+    display: flex;
+    gap: 5px;
+    justify-content: center;
+    margin-top: 14px;
+  }
+  .dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.25);
+  }
+  .dot.active {
+    background: #fff;
+    width: 16px;
+    border-radius: 3px;
+  }
+</style>
+</head>
+<body>
+
+<div class="page">
+  <div class="page-title">Opener Slide — CTA Mockup</div>
+
+  <div class="slides-row">
+
+    <!-- BEFORE -->
+    <div class="slide-wrapper">
+      <div class="slide-label">Current</div>
+      <div class="slide">
+        <img src="output/stacked-test/slide-2-bananas.png" alt="Banana slide">
+        <div class="overlay"></div>
+        <div class="text-block">
+          <div class="headline">Bananas Are Berries,<br>Not Strawberries!</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- AFTER -->
+    <div class="slide-wrapper">
+      <div class="slide-label proposed">Proposed</div>
+      <div class="slide proposed-border">
+        <img src="output/stacked-test/slide-2-bananas.png" alt="Banana slide">
+        <div class="overlay"></div>
+        <div class="text-block">
+          <div class="headline">Bananas Are Berries,<br>Not Strawberries!</div>
+          <div class="cta-row">
+            <span class="cta-text">Swipe to learn why</span>
+            <div class="cta-arrow">
+              <div class="line"></div>
+              <div class="head"></div>
+              <div class="pulse"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="dots">
+        <div class="dot active"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+</body>
+</html>

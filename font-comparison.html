@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Font Comparison — Carousel Body Text</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@700;800;900&family=Source+Serif+4:wght@300;400;500;600&family=Lora:wght@400;500;600&family=Libre+Baskerville:wght@400;700&family=Roboto+Slab:wght@300;400;500&family=Arvo:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #0a0a0a;
+    color: #fff;
+    font-family: 'Inter', system-ui, sans-serif;
+    padding: 40px 20px;
+  }
+
+  h1 {
+    text-align: center;
+    font-size: 28px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    letter-spacing: -0.5px;
+  }
+
+  .subtitle {
+    text-align: center;
+    font-size: 15px;
+    color: #888;
+    margin-bottom: 48px;
+    font-family: 'Inter', sans-serif;
+  }
+
+  .section-label {
+    text-align: center;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: #666;
+    margin-bottom: 32px;
+    margin-top: 56px;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+    gap: 32px;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .card {
+    position: relative;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #1a1a1a;
+    border: 1px solid #2a2a2a;
+    transition: border-color 0.2s;
+  }
+
+  .card:hover {
+    border-color: #444;
+  }
+
+  .card-image {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    background: linear-gradient(180deg,
+      rgba(0,0,0,0) 0%,
+      rgba(0,0,0,0) 35%,
+      rgba(0,0,0,0.55) 60%,
+      rgba(0,0,0,0.88) 80%,
+      rgba(0,0,0,0.95) 100%
+    ),
+    url('https://images.unsplash.com/photo-1447933601403-0c6688de566e?w=800&q=80') center/cover;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: 28px 24px;
+  }
+
+  .slide-counter {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    background: rgba(0,0,0,0.55);
+    border-radius: 999px;
+    padding: 4px 10px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #fff;
+  }
+
+  .slide-title {
+    font-family: 'Inter', sans-serif;
+    font-weight: 800;
+    font-size: 28px;
+    line-height: 1.1;
+    letter-spacing: -0.5px;
+    margin-bottom: 12px;
+    color: #fff;
+  }
+
+  .slide-body {
+    font-size: 15.5px;
+    line-height: 1.55;
+    color: rgba(255,255,255,0.88);
+  }
+
+  .font-label {
+    padding: 16px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid #2a2a2a;
+  }
+
+  .font-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: #fff;
+  }
+
+  .font-meta {
+    font-size: 12px;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .badge {
+    display: inline-block;
+    background: #2563eb;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    margin-left: 8px;
+    vertical-align: middle;
+  }
+
+  /* Font classes */
+  .body-source-serif { font-family: 'Source Serif 4', Georgia, serif; }
+  .body-lora { font-family: 'Lora', Georgia, serif; }
+  .body-libre { font-family: 'Libre Baskerville', Georgia, serif; }
+  .body-roboto-slab { font-family: 'Roboto Slab', Georgia, serif; }
+  .body-arvo { font-family: 'Arvo', Georgia, serif; }
+  .body-inter { font-family: 'Inter', system-ui, sans-serif; }
+
+  .divider {
+    max-width: 1200px;
+    margin: 0 auto;
+    border: none;
+    border-top: 1px solid #222;
+  }
+</style>
+</head>
+<body>
+
+<h1>Carousel Body Font Comparison</h1>
+<p class="subtitle">Lora (serif) vs Roboto Slab (slab-serif) — compared against your current sans-serif baseline.</p>
+
+<div class="grid" style="grid-template-columns: 1fr;">
+  <div class="card" style="max-width:420px; margin:0 auto;">
+    <div class="card-image">
+      <span class="slide-counter">2/6</span>
+      <div class="slide-title">Coffee: 2nd Most<br>Traded Globally</div>
+      <div class="slide-body body-inter">
+        Coffee generates $100 billion yearly because it supports 25 million farmers globally, making it crucial to international trade and rivaling major industries.
+      </div>
+    </div>
+    <div class="font-label">
+      <span class="font-name">Inter (sans-serif) <span style="color:#666;font-weight:400;">— current</span></span>
+      <span class="font-meta">Baseline</span>
+    </div>
+  </div>
+</div>
+
+<hr class="divider" style="margin-top:48px;">
+<p class="section-label">The Two Finalists</p>
+
+<div class="grid" style="grid-template-columns: repeat(2, 1fr); max-width:900px;">
+  <div class="card">
+    <div class="card-image">
+      <span class="slide-counter">2/6</span>
+      <div class="slide-title">Coffee: 2nd Most<br>Traded Globally</div>
+      <div class="slide-body body-lora">
+        Coffee generates $100 billion yearly because it supports 25 million farmers globally, making it crucial to international trade and rivaling major industries.
+      </div>
+    </div>
+    <div class="font-label">
+      <span class="font-name">Lora <span class="badge">Serif</span></span>
+      <span class="font-meta">400</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-image">
+      <span class="slide-counter">2/6</span>
+      <div class="slide-title">Coffee: 2nd Most<br>Traded Globally</div>
+      <div class="slide-body body-roboto-slab" style="font-weight:300;">
+        Coffee generates $100 billion yearly because it supports 25 million farmers globally, making it crucial to international trade and rivaling major industries.
+      </div>
+    </div>
+    <div class="font-label">
+      <span class="font-name">Roboto Slab <span class="badge" style="background:#059669;">Slab</span></span>
+      <span class="font-meta">300</span>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
