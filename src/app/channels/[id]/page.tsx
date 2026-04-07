@@ -1315,7 +1315,7 @@ export default function ChannelDashboard() {
                           )}
                         </div>
                       )}
-                      <div className="flex flex-wrap gap-1.5 pt-1 border-t border-border/50">
+                      <div className="hidden md:flex flex-wrap gap-1.5 pt-1 border-t border-border/50">
                         {strategy.hookTypes.slice(0, 3).map((ht, j) => (
                           <span key={j} className="text-xs font-medium text-muted bg-surface-elevated px-2.5 py-1 rounded">{ht}</span>
                         ))}
