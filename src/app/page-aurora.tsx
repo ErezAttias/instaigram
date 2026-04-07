@@ -129,7 +129,7 @@ export default function HomeAurora() {
       </div>
 
       {/* Content */}
-      <div className="relative z-10 w-full max-w-2xl mx-auto px-6 py-10 lg:py-16">
+      <div className="relative z-10 w-full max-w-2xl mx-auto px-0 py-10 lg:py-16">
         <div className="animate-fade-up text-center">
           {/* Header */}
           <div className="mb-10">
