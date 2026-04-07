@@ -17,7 +17,7 @@ export default function NavBar() {
         </Link>
 
         {/* Desktop nav links */}
-        <div className="hidden sm:flex items-center gap-6">
+        <div className="hidden lg:flex items-center gap-6">
           <Link
             href="/admin"
             className="text-sm font-medium text-muted-light hover:text-foreground transition-colors duration-200"
@@ -37,7 +37,7 @@ export default function NavBar() {
 
         {/* Mobile hamburger */}
         <button
-          className="sm:hidden flex items-center justify-center w-10 h-10 rounded-lg text-muted-light hover:text-foreground hover:bg-surface-hover transition-colors"
+          className="lg:hidden flex items-center justify-center w-10 h-10 rounded-lg text-muted-light hover:text-foreground hover:bg-surface-hover transition-colors"
           onClick={() => setOpen(o => !o)}
           aria-label="Toggle menu"
           aria-expanded={open}
@@ -56,7 +56,7 @@ export default function NavBar() {
 
       {/* Mobile dropdown */}
       {open && (
-        <div className="sm:hidden border-t border-border bg-background">
+        <div className="lg:hidden border-t border-border bg-background">
           <div className="max-w-[1800px] mx-auto px-6 py-3 flex flex-col gap-1">
             <Link
               href="/admin"

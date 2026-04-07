@@ -243,7 +243,7 @@ export default function HomeAurora() {
                 { label: 'AI-powered', desc: 'generation' },
                 { label: 'Ready in', desc: 'minutes' },
               ].map((badge) => (
-                <div key={badge.label} className="flex flex-col">
+                <div key={badge.label} className="flex flex-col shrink-0">
                   <span className="text-sm font-semibold text-foreground">{badge.label}</span>
                   <span className="text-xs text-muted">{badge.desc}</span>
                 </div>

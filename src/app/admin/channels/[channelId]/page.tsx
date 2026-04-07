@@ -227,7 +227,7 @@ export default function ChannelDetailPage() {
   return (
     <div>
       {/* Breadcrumb */}
-      <nav className="flex items-center gap-2 text-xs text-muted mb-6">
+      <nav className="flex items-center flex-wrap gap-2 text-xs text-muted mb-6">
         <Link href="/admin" className="hover:text-foreground transition-colors">Dashboard</Link>
         <span>/</span>
         <span className="text-muted-light">{channel.name}</span>
@@ -236,10 +236,10 @@ export default function ChannelDetailPage() {
       <ChannelProfile channel={channel} onUpdate={handleUpdateProfile} />
 
       {/* Tab navigation */}
-      <div className="flex items-center gap-1 mb-6 border-b border-border">
+      <div className="flex items-center gap-1 mb-6 border-b border-border overflow-x-auto scrollbar-hide">
         <button
           onClick={() => setActiveTab('carousels')}
-          className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px ${
+          className={`shrink-0 px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px ${
             activeTab === 'carousels'
               ? 'border-accent text-foreground'
               : 'border-transparent text-muted hover:text-foreground'
@@ -250,7 +250,7 @@ export default function ChannelDetailPage() {
         </button>
         <button
           onClick={() => setActiveTab('visual')}
-          className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px ${
+          className={`shrink-0 px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px ${
             activeTab === 'visual'
               ? 'border-accent text-foreground'
               : 'border-transparent text-muted hover:text-foreground'
@@ -260,7 +260,7 @@ export default function ChannelDetailPage() {
         </button>
         <button
           onClick={() => setActiveTab('instagram')}
-          className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px flex items-center gap-1.5 ${
+          className={`shrink-0 px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px flex items-center gap-1.5 ${
             activeTab === 'instagram'
               ? 'border-accent text-foreground'
               : 'border-transparent text-muted hover:text-foreground'
@@ -393,7 +393,7 @@ export default function ChannelDetailPage() {
             </div>
           )}
 
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
             <h2 className="text-lg font-semibold text-foreground">
               Carousels
               <span className="text-sm font-normal text-muted ml-2">({carousels.length})</span>
