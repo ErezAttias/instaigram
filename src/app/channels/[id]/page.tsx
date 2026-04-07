@@ -142,29 +142,29 @@ function SidebarStepper({ currentStep }: { currentStep: number }) {
 
 function HorizontalStepper({ currentStep }: { currentStep: number }) {
   return (
-    <div className="flex items-center gap-2 overflow-x-auto pb-1">
+    <div className="flex items-center overflow-hidden">
       {STEP_LABELS.map((label, i) => {
         const done = currentStep > i
         const active = currentStep === i
         return (
-          <div key={label} className="flex items-center gap-2 shrink-0">
+          <div key={label} className={`flex items-center gap-1.5 ${active ? 'flex-shrink-0' : 'shrink'} min-w-0`}>
             <div
               className={`
-                w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold transition-all
+                w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold transition-all shrink-0
                 ${done ? 'bg-accent/15 text-accent' : active ? 'bg-accent text-background' : 'bg-surface-elevated text-muted border border-border'}
               `}
             >
               {done ? (
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M2 6.5L4.5 9L10 3" />
                 </svg>
               ) : (
                 i + 1
               )}
             </div>
-            <span className={`text-sm font-medium ${active ? 'text-foreground' : 'text-muted'}`}>{label}</span>
+            <span className={`text-sm font-medium truncate ${active ? 'text-foreground' : 'text-muted'}`}>{label}</span>
             {i < STEP_LABELS.length - 1 && (
-              <div className={`w-6 h-px ${done ? 'bg-accent/40' : 'bg-border'}`} />
+              <div className={`w-4 shrink-0 h-px mx-1 ${done ? 'bg-accent/40' : 'bg-border'}`} />
             )}
           </div>
         )
@@ -181,18 +181,20 @@ function PrimaryButton({
   loading,
   loadingText,
   children,
+  className,
 }: {
   onClick: () => void
   disabled?: boolean
   loading?: boolean
   loadingText?: string
   children: React.ReactNode
+  className?: string
 }) {
   return (
     <button
       onClick={onClick}
       disabled={disabled || loading}
-      className="px-5 py-2.5 bg-accent hover:bg-accent-hover text-background rounded-xl text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed shadow-[0_0_16px_var(--accent-glow)] hover:shadow-[0_0_24px_var(--accent-glow)] transition-all"
+      className={`px-5 py-2.5 bg-accent hover:bg-accent-hover text-background rounded-xl text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed shadow-[0_0_16px_var(--accent-glow)] hover:shadow-[0_0_24px_var(--accent-glow)] transition-all${className ? ` ${className}` : ''}`}
     >
       {loading ? (
         <span className="flex items-center gap-2">
@@ -209,11 +211,13 @@ function GhostButton({
   disabled,
   children,
   active,
+  className,
 }: {
   onClick: () => void
   disabled?: boolean
   children: React.ReactNode
   active?: boolean
+  className?: string
 }) {
   return (
     <button
@@ -223,7 +227,7 @@ function GhostButton({
         active
           ? 'border-accent/30 bg-accent-dim text-foreground'
           : 'border-border hover:border-accent/30 hover:bg-accent-dim/50'
-      }`}
+      }${className ? ` ${className}` : ''}`}
     >
       {children}
     </button>
@@ -925,28 +929,6 @@ export default function ChannelDashboard() {
 
   return (
     <div className="animate-fade-up">
-      {/* ─── Mobile: Channel header + Horizontal Stepper ─────── */}
-      <div className="lg:hidden mb-6">
-        {/* Compact channel header — desktop sidebar is hidden on mobile */}
-        <div className="flex items-center gap-2 mb-4 flex-wrap">
-          <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold ${statusInfo.color} ${statusInfo.bg}`}>
-            {statusInfo.label}
-          </span>
-          <span className="text-xs font-medium text-muted bg-surface-elevated px-2 py-1 rounded-lg">
-            {MODE_LABELS[channel.nicheMode]}
-          </span>
-          <h1 className="w-full text-xl font-bold tracking-tight leading-tight mt-1">
-            {channel.name === 'Untitled Channel' ? (
-              <span className="text-muted">Untitled</span>
-            ) : channel.name}
-          </h1>
-          {channel.niche && (
-            <p className="text-sm text-muted-light leading-relaxed">{channel.niche}</p>
-          )}
-        </div>
-        <HorizontalStepper currentStep={effectiveStep} />
-      </div>
-
       <div className="flex gap-8 xl:gap-10">
         {/* ─── Sidebar (Desktop) ──────────────────────────────── */}
         <aside className="hidden lg:flex flex-col w-[240px] xl:w-[260px] shrink-0 sticky top-20 self-start pt-2">
@@ -1017,8 +999,8 @@ export default function ChannelDashboard() {
         {/* ─── Main Content ───────────────────────────────────── */}
         <div className="flex-1 min-w-0 space-y-8">
           {/* Mobile header */}
-          <div className="lg:hidden mb-2">
-            <div className="flex items-center gap-2 mb-2">
+          <div className="lg:hidden mb-4">
+            <div className="flex items-center gap-2 mb-2 flex-wrap">
               <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold ${statusInfo.color} ${statusInfo.bg}`}>
                 {statusInfo.label}
               </span>
@@ -1026,7 +1008,7 @@ export default function ChannelDashboard() {
                 {MODE_LABELS[channel.nicheMode]}
               </span>
             </div>
-            <h1 className="text-3xl font-bold tracking-tight">
+            <h1 className="text-2xl font-bold tracking-tight">
               {channel.name === 'Untitled Channel' ? (
                 <span className="text-muted">Untitled</span>
               ) : channel.name}
@@ -1068,8 +1050,8 @@ export default function ChannelDashboard() {
               </div>
             }
           >
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold tracking-tight">{step1Title}</h2>
+            <div className="flex items-start justify-between gap-3 mb-6">
+              <h2 className="text-lg font-bold tracking-tight">{step1Title}</h2>
 
               {isDirectMode && effectiveStep === 0 && niches.length === 0 ? (
                 <div className="flex items-center gap-2">
@@ -1114,22 +1096,24 @@ export default function ChannelDashboard() {
 
             {/* Direct mode: refine choice */}
             {isDirectMode && showDirectRefineChoice && niches.length === 0 && (
-              <div className="mb-6 p-5 bg-background border border-border rounded-xl space-y-4 max-w-xl">
+              <div className="mb-6 space-y-4">
                 <p className="text-sm text-muted-light">
                   Your topic: <span className="text-foreground font-semibold">{directTopicInput || channel.exploreTopic}</span>
                 </p>
-                <div className="flex gap-2">
+                <div className="flex flex-col gap-3">
                   <PrimaryButton
                     onClick={() => handleDirectTopic(false)}
                     disabled={actionLoading !== null}
                     loading={actionLoading === 'direct-topic'}
-                    loadingText="Setting..."
+                    loadingText="Setting up channel..."
+                    className="w-full justify-center py-3"
                   >
                     Use topic as-is
                   </PrimaryButton>
                   <GhostButton
                     onClick={() => handleDirectTopic(true)}
                     disabled={actionLoading !== null}
+                    className="w-full justify-center py-3"
                   >
                     {actionLoading === 'direct-topic' ? '...' : 'Show me sharper angles'}
                   </GhostButton>
