@@ -1830,29 +1830,48 @@ export default function ChannelDashboard() {
                       </div>
                     </div>
                     {/* Pipeline stage indicators */}
-                    <div className="mt-4 grid grid-cols-6 gap-1.5">
-                      {['Hook', 'Facts', 'Copy', 'Quality', 'Render', 'Done'].map((stage, i) => {
-                        const progressMsg = carouselProgress?.message?.toLowerCase() || ''
-                        const stageMap: Record<number, string[]> = {
-                          0: ['hook', 'generating hook'],
-                          1: ['knowledge', 'mining', 'pipeline'],
-                          2: ['compos', 'quality', 'narrative', 'promise'],
-                          3: ['enforcement', 'checking'],
-                          4: ['render'],
-                          5: ['complete', 'finaliz', 'ready'],
-                        }
-                        const isActive = stageMap[i]?.some(k => progressMsg.includes(k))
-                        const isPast = stageMap[i] && Object.entries(stageMap).some(([idx, _]) => Number(idx) > i && stageMap[Number(idx)]?.some(k => progressMsg.includes(k)))
-                        return (
-                          <div key={stage} className="text-center">
-                            <div className={`h-1.5 rounded-full mb-1 transition-all duration-500 ${
-                              isPast ? 'bg-accent' : isActive ? 'bg-accent animate-pulse' : 'bg-border'
-                            }`} />
-                            <span className={`text-xs font-medium ${isPast || isActive ? 'text-accent' : 'text-muted'}`}>{stage}</span>
+                    {(() => {
+                      const STAGES = ['Hook', 'Facts', 'Copy', 'Quality', 'Render', 'Done']
+                      const progressMsg = carouselProgress?.message?.toLowerCase() || ''
+                      const stageMap: Record<number, string[]> = {
+                        0: ['hook', 'generating hook'],
+                        1: ['knowledge', 'mining', 'pipeline'],
+                        2: ['compos', 'quality', 'narrative', 'promise'],
+                        3: ['enforcement', 'checking'],
+                        4: ['render'],
+                        5: ['complete', 'finaliz', 'ready'],
+                      }
+                      const activeIndex = STAGES.findIndex((_, i) => stageMap[i]?.some(k => progressMsg.includes(k)))
+                      const currentIndex = activeIndex >= 0 ? activeIndex : 0
+                      return (
+                        <div className="mt-4 space-y-2">
+                          {/* Segmented progress bar */}
+                          <div className="flex gap-1">
+                            {STAGES.map((_, i) => (
+                              <div
+                                key={i}
+                                className={`flex-1 h-1 rounded-full transition-all duration-500 ${
+                                  i < currentIndex
+                                    ? 'bg-accent'
+                                    : i === currentIndex
+                                    ? 'bg-accent animate-pulse'
+                                    : 'bg-border'
+                                }`}
+                              />
+                            ))}
                           </div>
-                        )
-                      })}
-                    </div>
+                          {/* Single active stage label */}
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-medium text-accent">
+                              {STAGES[currentIndex]}
+                            </span>
+                            <span className="text-xs text-muted">
+                              {currentIndex + 1} / {STAGES.length}
+                            </span>
+                          </div>
+                        </div>
+                      )
+                    })()}
                   </div>
                 )}
 
