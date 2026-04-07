@@ -1351,7 +1351,7 @@ export default function ChannelDashboard() {
             <LockedStep label="Generate posts" delay={180} />
           ) : (
           <Section compact={!isStreamingPosts && completedPosts.length === 0 && !hasPosts} delay={180} active={effectiveStep === 2}>
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-3">
               <div>
                 <h2 className="text-xl font-bold tracking-tight">Generate posts</h2>
                 {hasPosts && !isStreamingPosts && (
