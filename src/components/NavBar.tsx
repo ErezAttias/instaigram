@@ -7,7 +7,7 @@ export default function NavBar() {
   const [open, setOpen] = useState(false);
 
   return (
-    <nav className="border-b border-border sticky top-0 z-50 bg-background backdrop-blur-xl">
+    <nav className="sticky top-0 z-50 backdrop-blur-sm">
       <div className="max-w-[1800px] mx-auto px-6 lg:px-8 h-16 flex items-center justify-between">
         <Link
           href="/"
@@ -30,9 +30,6 @@ export default function NavBar() {
           >
             Create Carousel
           </Link>
-          <span className="text-xs font-medium text-muted tracking-wide uppercase">
-            Content Studio
-          </span>
         </div>
 
         {/* Mobile hamburger */}
@@ -56,7 +53,7 @@ export default function NavBar() {
 
       {/* Mobile dropdown */}
       {open && (
-        <div className="lg:hidden border-t border-border bg-background">
+        <div className="lg:hidden border-t border-border/30 bg-background/10 backdrop-blur-sm">
           <div className="max-w-[1800px] mx-auto px-6 py-3 flex flex-col gap-1">
             <Link
               href="/admin"
@@ -72,9 +69,6 @@ export default function NavBar() {
             >
               Create Carousel
             </Link>
-            <span className="flex items-center h-11 px-3 text-xs font-medium text-muted tracking-wide uppercase">
-              Content Studio
-            </span>
           </div>
         </div>
       )}

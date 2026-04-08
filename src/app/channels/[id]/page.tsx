@@ -934,19 +934,20 @@ export default function ChannelDashboard() {
         <aside className="hidden lg:flex flex-col w-[240px] xl:w-[260px] shrink-0 sticky top-20 self-start pt-2">
           {/* Channel info */}
           <div className="mb-6">
-            <div className="flex items-center gap-2 mb-2">
-              <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold ${statusInfo.color} ${statusInfo.bg}`}>
-                {statusInfo.label}
-              </span>
-              <span className="text-xs font-medium text-muted bg-surface-elevated px-2 py-1 rounded-lg">
-                {MODE_LABELS[channel.nicheMode]}
-              </span>
-            </div>
-            <h1 className="text-2xl font-bold tracking-tight leading-tight mb-1">
-              {channel.name === 'Untitled Channel' ? (
-                <span className="text-muted">Untitled</span>
-              ) : channel.name}
-            </h1>
+            {channel.name === 'Untitled Channel' ? (
+              <div className="mb-1">
+                <p className="text-xs text-muted uppercase tracking-[0.1em] font-semibold mb-1">Channel name</p>
+                <button
+                  onClick={() => setShowNaming(true)}
+                  className="flex items-center gap-2 group"
+                >
+                  <span className="text-xl font-bold tracking-tight text-muted italic border-b border-dashed border-muted/40 leading-tight">Untitled channel</span>
+                  <span className="text-xs font-semibold text-accent opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">+ Name it</span>
+                </button>
+              </div>
+            ) : (
+              <h1 className="text-2xl font-bold tracking-tight leading-tight mb-1">{channel.name}</h1>
+            )}
             {channel.niche && (
               <p className="text-sm text-muted-light leading-relaxed">{channel.niche}</p>
             )}
@@ -999,20 +1000,21 @@ export default function ChannelDashboard() {
         {/* ─── Main Content ───────────────────────────────────── */}
         <div className="flex-1 min-w-0 space-y-8">
           {/* Mobile header */}
-          <div className="lg:hidden mb-4">
-            <div className="flex items-center gap-2 mb-2 flex-wrap">
-              <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold ${statusInfo.color} ${statusInfo.bg}`}>
-                {statusInfo.label}
-              </span>
-              <span className="text-xs font-medium text-muted bg-surface-elevated px-2 py-1 rounded-lg">
-                {MODE_LABELS[channel.nicheMode]}
-              </span>
-            </div>
-            <h1 className="text-2xl font-bold tracking-tight">
-              {channel.name === 'Untitled Channel' ? (
-                <span className="text-muted">Untitled</span>
-              ) : channel.name}
-            </h1>
+          <div className="lg:hidden mb-4 pl-2">
+            {channel.name === 'Untitled Channel' ? (
+              <div>
+                <p className="text-xs text-muted uppercase tracking-[0.1em] font-semibold mb-1">Channel name</p>
+                <button
+                  onClick={() => setShowNaming(true)}
+                  className="flex items-baseline gap-2"
+                >
+                  <span className="text-2xl font-bold tracking-tight text-muted italic border-b border-dashed border-muted/40">Untitled channel</span>
+                  <span className="text-xs font-semibold text-accent whitespace-nowrap">+ Name it</span>
+                </button>
+              </div>
+            ) : (
+              <h1 className="text-2xl font-bold tracking-tight">{channel.name}</h1>
+            )}
           </div>
 
           {/* Error banner */}
@@ -1357,16 +1359,6 @@ export default function ChannelDashboard() {
                 {hasPosts && !isStreamingPosts && (
                   <p className="text-sm text-muted-light mt-1">{channel.posts.length} post{channel.posts.length !== 1 ? 's' : ''} generated</p>
                 )}
-                {isStreamingPosts && carouselProgress && (
-                  <p className="text-sm text-accent font-medium mt-1">
-                    {carouselProgress.message}
-                  </p>
-                )}
-                {isStreamingPosts && !carouselProgress && postStreamProgress && (
-                  <p className="text-sm text-accent font-medium mt-1">
-                    Preparing post...
-                  </p>
-                )}
                 {!isStreamingPosts && !hasPosts && completedPosts.length === 0 && (
                   <p className="text-sm text-muted-light mt-1 max-w-prose">Each post is a full carousel — hooks, copy, quality gates, rendered images, and captions.</p>
                 )}
@@ -1617,12 +1609,12 @@ export default function ChannelDashboard() {
                           <p className="text-base font-semibold text-foreground truncate">{p.title}</p>
                           <p className="text-sm text-muted truncate">{p.hook}</p>
                         </div>
-                        <div className="flex items-center gap-3 shrink-0">
-                          <span className="text-xs font-medium text-muted bg-surface-elevated px-2.5 py-1 rounded-lg">
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className="hidden sm:inline text-xs font-medium text-muted bg-surface-elevated px-2.5 py-1 rounded-lg">
                             {p.slideCount} slides
                           </span>
                           {p.hasImages && (
-                            <span className="text-xs font-medium text-success bg-success-dim px-2.5 py-1 rounded-lg">
+                            <span className="hidden sm:inline text-xs font-medium text-success bg-success-dim px-2.5 py-1 rounded-lg">
                               Images ready
                             </span>
                           )}
@@ -1630,7 +1622,7 @@ export default function ChannelDashboard() {
                             <Link
                               href={`/carousel/${p.carouselJobId}`}
                               onClick={(e) => e.stopPropagation()}
-                              className="text-xs text-accent hover:text-accent-hover font-semibold transition-colors"
+                              className="text-xs text-accent hover:text-accent-hover font-semibold transition-colors whitespace-nowrap"
                             >
                               View carousel
                             </Link>
@@ -1670,7 +1662,7 @@ export default function ChannelDashboard() {
                               <div className="flex items-center gap-2 mb-4">
                                 <button
                                   onClick={() => setPreviewMode(prev => { const n = new Set(prev); n.delete(p.id); return n })}
-                                  className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${!isPreview ? 'bg-accent text-background' : 'bg-surface-elevated text-muted hover:text-foreground border border-border'}`}
+                                  className={`flex-1 sm:flex-none px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${!isPreview ? 'bg-accent text-background' : 'bg-surface-elevated text-muted hover:text-foreground border border-border'}`}
                                 >
                                   Slides
                                 </button>
@@ -1682,13 +1674,13 @@ export default function ChannelDashboard() {
                                     }
                                   }}
                                   disabled={!p.carouselJobId}
-                                  className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${isPreview ? 'bg-accent text-background' : 'bg-surface-elevated text-muted hover:text-foreground border border-border'} disabled:opacity-30 disabled:cursor-not-allowed`}
+                                  className={`flex-1 sm:flex-none px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${isPreview ? 'bg-accent text-background' : 'bg-surface-elevated text-muted hover:text-foreground border border-border'} disabled:opacity-30 disabled:cursor-not-allowed`}
                                 >
                                   Instagram Preview
                                 </button>
                               </div>
 
-                              {effectiveSlides.length === 0 && dbPostSlidesLoading.has(p.id) ? (
+                              {effectiveSlides.length === 0 ? (
                                 <div className="flex items-center gap-3 p-6 bg-surface-elevated rounded-xl">
                                   <span className="w-4 h-4 border-2 border-accent/30 border-t-accent rounded-full animate-spin" />
                                   <span className="text-sm text-muted">Loading slides...</span>
@@ -1714,7 +1706,7 @@ export default function ChannelDashboard() {
                               ) : (
                                 <div className="bg-surface-elevated rounded-xl overflow-hidden">
                                   <div className="px-4 pt-3 pb-2">
-                                    <div className="flex items-center justify-between">
+                                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                                       <span className={`text-xs font-bold tracking-wider uppercase ${
                                         currentSlide?.role === 'OPENER' ? 'text-accent' :
                                         currentSlide?.role === 'CTA' ? 'text-violet' :
@@ -1727,7 +1719,7 @@ export default function ChannelDashboard() {
                                         const regenKey = `${p.id}-${currentSlideIdx}`
                                         const activeMode = regenLoading[regenKey]
                                         return (
-                                          <div className="flex items-center gap-1.5">
+                                          <div className="flex items-center gap-1.5 flex-wrap">
                                             {(['copy', 'image', 'full'] as const).map(mode => (
                                               <button
                                                 key={mode}
@@ -1784,7 +1776,7 @@ export default function ChannelDashboard() {
                                     </button>
                                   </div>
                                   <div className="flex items-center justify-center gap-1.5 pt-[15px] pb-[24px]">
-                                    {p.slides.map((_, si) => (
+                                    {effectiveSlides.map((_, si) => (
                                       <button
                                         key={si}
                                         onClick={() => setSlideViewerIndex(prev => ({ ...prev, [p.id]: si }))}
@@ -1884,7 +1876,7 @@ export default function ChannelDashboard() {
                     >
                       Generate next post
                     </PrimaryButton>
-                    <span className="text-sm text-muted">{(channel.posts.length || 0) + completedPosts.length} total posts</span>
+                    <span className="text-sm text-muted">{(() => { const ids = new Set(completedPosts.map(cp => cp.id)); return channel.posts.filter(p => !ids.has(p.id)).length + completedPosts.length; })()} total posts</span>
                   </div>
                 )}
               </div>

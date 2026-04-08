@@ -610,16 +610,16 @@ function DecisionBar({
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-sm border-t border-border">
-      <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between gap-4">
-        <div className="text-sm">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4">
+        <div className="text-sm flex items-center gap-3 flex-wrap">
           <div>{readinessText}</div>
           {needsReapproval && !approved && (
-            <p className="text-xs text-warning mt-1">Changes made — re-approval required</p>
+            <span className="text-xs text-warning">Changes made — re-approval required</span>
           )}
           {failedCount > 0 && !approved && (
             <button
               onClick={onJumpToIssue}
-              className="text-xs text-danger underline underline-offset-2 hover:text-danger/80 mt-1"
+              className="text-xs text-danger underline underline-offset-2 hover:text-danger/80"
             >
               Jump to first issue
             </button>
@@ -628,7 +628,7 @@ function DecisionBar({
         <button
           onClick={buttonAction}
           disabled={buttonDisabled}
-          className={`py-2.5 px-6 font-semibold rounded-lg text-sm transition-colors whitespace-nowrap ${buttonClass}`}
+          className={`w-full sm:w-auto py-2.5 px-6 font-semibold rounded-lg text-sm transition-colors whitespace-nowrap ${buttonClass}`}
         >
           {isProcessing && (
             <svg className="animate-spin -ml-1 mr-2 h-4 w-4 inline-block" viewBox="0 0 24 24" fill="none">
@@ -821,7 +821,7 @@ function ReviewView({
         )}
 
         {/* Thumbnail filmstrip */}
-        <div className="flex gap-2 justify-center mt-6 px-4 overflow-x-auto max-w-full scrollbar-hide">
+        <div className="flex gap-2 mt-6 px-4 overflow-x-auto max-w-full scrollbar-hide">
           {job.slides.map((slide, i) => {
             const status = getSlideDisplayStatus(slide, false);
             const isActive = i === selectedSlide;

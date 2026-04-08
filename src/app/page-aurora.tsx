@@ -129,17 +129,11 @@ export default function HomeAurora() {
       </div>
 
       {/* Content */}
-      <div className="relative z-10 w-full max-w-2xl mx-auto px-0 py-10 lg:py-16">
+      <div className="relative z-10 w-full max-w-2xl mx-auto px-0 pt-2.5 pb-10 lg:pt-4 lg:pb-16">
         <div className="animate-fade-up text-center">
           {/* Header */}
           <div className="mb-10">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-accent/20 bg-accent/[0.06] backdrop-blur-sm mb-6">
-              <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
-              <span className="text-xs font-semibold text-accent uppercase tracking-[0.12em]">
-                New channel
-              </span>
-            </div>
-            <h1 className="text-3xl sm:text-4xl lg:text-[2.75rem] font-bold tracking-tight leading-[1.1] mb-4">
+            <h1 className="text-[2.5rem] sm:text-4xl lg:text-[2.75rem] font-bold tracking-tight leading-[1.1] mb-4">
               Create your <br className="sm:hidden" />
               <span className="bg-gradient-to-r from-accent via-amber-300 to-accent bg-clip-text text-transparent">
                 content channel
