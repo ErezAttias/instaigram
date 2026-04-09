@@ -111,7 +111,7 @@ function SidebarStepper({ currentStep }: { currentStep: number }) {
               <div
                 className={`
                   w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold flex-none transition-all duration-300
-                  ${done ? 'bg-accent/15 text-accent' : active ? 'bg-accent text-background shadow-[0_0_20px_var(--accent-glow)]' : 'bg-surface-elevated text-muted border border-border'}
+                  ${done ? 'bg-success/15 text-success' : active ? 'bg-accent text-background shadow-[0_0_20px_var(--accent-glow)]' : 'bg-surface-elevated text-muted border border-border'}
                 `}
               >
                 {done ? (
@@ -151,7 +151,7 @@ function HorizontalStepper({ currentStep }: { currentStep: number }) {
             <div
               className={`
                 w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold transition-all shrink-0
-                ${done ? 'bg-accent/15 text-accent' : active ? 'bg-accent text-background' : 'bg-surface-elevated text-muted border border-border'}
+                ${done ? 'bg-success/15 text-success' : active ? 'bg-accent text-background' : 'bg-surface-elevated text-muted border border-border'}
               `}
             >
               {done ? (
@@ -1038,8 +1038,8 @@ export default function ChannelDashboard() {
             defaultCollapsed={effectiveStep > 0 && niches.length > 0 && niches.some(n => n.selected)}
             collapsedSummary={
               <div className="flex items-center gap-3">
-                <div className="w-7 h-7 rounded-full bg-accent/15 flex items-center justify-center shrink-0">
-                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-accent">
+                <div className="w-7 h-7 rounded-full bg-success/15 flex items-center justify-center shrink-0">
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-success">
                     <path d="M2.5 7.5L5.5 10.5L11.5 3.5" />
                   </svg>
                 </div>
@@ -1144,7 +1144,7 @@ export default function ChannelDashboard() {
                   </div>
                 ) : (
                   /* Multiple niches — horizontal scroll */
-                  <div className="relative group/scroll">
+                  <div className="relative group/scroll -mx-2 px-2 py-2 -my-2">
                   {canScrollLeft && (
                     <button
                       onClick={() => nicheScrollRef.current?.scrollBy({ left: -320, behavior: 'smooth' })}
@@ -1163,7 +1163,7 @@ export default function ChannelDashboard() {
                       ›
                     </button>
                   )}
-                  <div ref={nicheScrollRef} className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x -mx-2 px-2">
+                  <div ref={nicheScrollRef} className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x">
                     {niches.map((niche, i) => (
                       <button
                         key={niche.id}
@@ -1172,8 +1172,8 @@ export default function ChannelDashboard() {
                         className={`
                           animate-fade-up snap-start shrink-0 w-[300px] lg:w-[320px] text-left border rounded-2xl p-5 transition-all duration-200 flex flex-col disabled:opacity-100
                           ${niche.selected
-                            ? 'border-accent/40 bg-accent-dim shadow-[0_0_30px_var(--accent-glow)]'
-                            : 'border-border bg-background hover:border-accent/40 hover:bg-accent-dim/30 hover:shadow-[0_0_20px_var(--accent-glow)]'
+                            ? 'border-accent/40 bg-accent-dim'
+                            : 'border-border bg-background hover:border-accent/40 hover:bg-accent-dim/30'
                           }
                         `}
                         style={{ animationDelay: `${i * 60}ms` }}
@@ -1184,9 +1184,16 @@ export default function ChannelDashboard() {
                             <span className="text-xs font-semibold text-accent bg-accent/10 px-2.5 py-1 rounded-lg shrink-0">Selected</span>
                           )}
                         </div>
-                        <p className="text-sm text-muted-light leading-relaxed mb-4 flex-1">{niche.description}</p>
-                        <p className="text-xs text-muted leading-relaxed">{niche.rationale}</p>
+                        <p className="text-sm text-muted-light leading-relaxed flex-1">{niche.description}</p>
                       </button>
+                    ))}
+                  </div>
+                  <div className="flex justify-center gap-1.5 pt-3">
+                    {niches.map((niche) => (
+                      <div
+                        key={niche.id}
+                        className={`w-1.5 h-1.5 rounded-full transition-colors duration-200 ${niche.selected ? 'bg-accent' : 'bg-border'}`}
+                      />
                     ))}
                   </div>
                   </div>
@@ -1195,7 +1202,7 @@ export default function ChannelDashboard() {
                 {/* Regenerate intents */}
                 {effectiveStep === 0 && niches.length > 1 && (
                   <div className="flex flex-wrap items-center gap-2 pt-3">
-                    <span className="text-xs font-medium text-muted mr-1">More:</span>
+                    <span className="text-xs font-medium text-muted mr-1">Regenerate:</span>
                     {REGENERATE_INTENTS.map((intent) => (
                       <GhostButton
                         key={intent.value}
@@ -1226,8 +1233,8 @@ export default function ChannelDashboard() {
               defaultCollapsed={effectiveStep > 1}
               collapsedSummary={
                 <div className="flex items-center gap-3">
-                  <div className="w-7 h-7 rounded-full bg-accent/15 flex items-center justify-center shrink-0">
-                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-accent">
+                  <div className="w-7 h-7 rounded-full bg-success/15 flex items-center justify-center shrink-0">
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-success">
                       <path d="M2.5 7.5L5.5 10.5L11.5 3.5" />
                     </svg>
                   </div>
@@ -1265,11 +1272,7 @@ export default function ChannelDashboard() {
                     <p className="text-sm text-muted-light mt-1">Pick the direction that fits your channel best.</p>
                   )}
                 </div>
-                {strategyOptions.length > 0 ? (
-                  <GhostButton onClick={handleGenerateStrategy} disabled={actionLoading !== null} className="self-start">
-                    Regenerate
-                  </GhostButton>
-                ) : (
+                {strategyOptions.length === 0 && (
                   <PrimaryButton
                     onClick={handleGenerateStrategy}
                     disabled={actionLoading !== null || effectiveStep < 1}
@@ -1290,14 +1293,17 @@ export default function ChannelDashboard() {
                       key={i}
                       onClick={() => handleSelectStrategy(strategy)}
                       disabled={actionLoading === 'approve-strategy'}
-                      className="animate-fade-up text-left border border-border bg-background rounded-2xl p-6 transition-all duration-200 hover:border-accent/40 hover:bg-accent-dim/30 hover:shadow-[0_0_20px_var(--accent-glow)] disabled:opacity-40 flex flex-col gap-4"
+                      className="animate-fade-up text-left border border-border bg-background rounded-2xl p-6 transition-all duration-200 hover:border-accent/40 hover:bg-accent-dim/30 disabled:opacity-40 flex flex-col gap-4"
                       style={{ animationDelay: `${i * 80}ms` }}
                     >
                       <p className="text-base font-semibold text-foreground leading-snug">{strategy.contentIntent}</p>
                       <div className="flex flex-wrap gap-1.5">
                         <span className="text-xs font-medium text-muted-light bg-surface-elevated border border-border px-2 py-0.5 rounded-lg">{strategy.tone}</span>
                       </div>
-                      <p className="text-sm text-muted-light leading-relaxed flex-1">The target audience are {strategy.audience.replace(/^The target audience are\s*/i, '')}</p>
+                      <p className="text-sm text-muted-light leading-relaxed flex-1">
+                        <span className="font-medium text-muted">Target audience: </span>
+                        {strategy.audience.replace(/^(The target audience (are|is)\s*|Target audience:\s*)/i, '')}
+                      </p>
                       {(strategy.engagementPotential || strategy.contentDifficulty || strategy.audienceSize) && (
                         <div className="flex flex-wrap gap-1.5">
                           {strategy.engagementPotential && strategy.engagementPotential >= 7 && (
@@ -1317,16 +1323,20 @@ export default function ChannelDashboard() {
                           )}
                         </div>
                       )}
-                      <div className="hidden md:flex flex-wrap gap-1.5 pt-1 border-t border-border/50">
-                        {strategy.hookTypes.slice(0, 3).map((ht, j) => (
-                          <span key={j} className="text-xs font-medium text-muted bg-surface-elevated px-2.5 py-1 rounded">{ht}</span>
-                        ))}
-                        {strategy.hookTypes.length > 3 && (
-                          <span className="text-xs text-muted">+{strategy.hookTypes.length - 3}</span>
-                        )}
-                      </div>
+                      {actionLoading !== 'approve-strategy' && (
+                        <p className="text-xs text-muted/50 text-center pt-1">Tap to select</p>
+                      )}
                     </button>
                   ))}
+                </div>
+              )}
+
+              {/* Regenerate options button — anchored below cards */}
+              {strategyOptions.length > 0 && (
+                <div className="flex justify-center pt-4">
+                  <GhostButton onClick={handleGenerateStrategy} disabled={actionLoading !== null}>
+                    Regenerate options
+                  </GhostButton>
                 </div>
               )}
 
@@ -1405,16 +1415,13 @@ export default function ChannelDashboard() {
                           className="w-full text-left flex items-center gap-4 p-4 transition-all group"
                         >
                           <div className="w-10 h-10 rounded-xl bg-accent-dim flex items-center justify-center shrink-0">
-                            <span className="text-sm font-bold text-accent">#{p.dayIndex}</span>
+                            <span className="text-sm font-bold text-accent">#{p.dayIndex + 1}</span>
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="text-base font-semibold text-foreground truncate">{p.title}</p>
                             <p className="text-sm text-muted truncate">{p.hook}</p>
                           </div>
                           <div className="flex items-center gap-3 shrink-0">
-                            {p.carouselJobId && (
-                              <span className="text-xs font-medium text-success bg-success-dim px-2.5 py-1 rounded-lg">Carousel</span>
-                            )}
                             <Link
                               href={p.carouselJobId ? `/carousel/${p.carouselJobId}` : `/channels/${channelId}/posts/${p.id}`}
                               onClick={(e) => e.stopPropagation()}
@@ -1436,7 +1443,7 @@ export default function ChannelDashboard() {
                           const isPreview = previewMode.has(p.id)
                           const captionData = dbPostCaptions[p.id]
                           const slideImages = slides?.filter(s => s.imageUrl).map(s => s.imageUrl!) ?? []
-                          const fallbackCaption = `${p.hook}\n\n${p.title}`
+                          const fallbackCaption = p.hook
                           const captionText = captionData?.caption || fallbackCaption
                           const hashtagText = captionData?.hashtags?.length
                             ? captionData.hashtags.map(h => h.startsWith('#') ? h : `#${h}`).join(' ')
@@ -1603,7 +1610,7 @@ export default function ChannelDashboard() {
                         className="w-full text-left flex items-center gap-4 p-4 transition-all group"
                       >
                         <div className="w-10 h-10 rounded-xl bg-accent-dim flex items-center justify-center shrink-0">
-                          <span className="text-sm font-bold text-accent">#{p.dayIndex}</span>
+                          <span className="text-sm font-bold text-accent">#{p.dayIndex + 1}</span>
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-base font-semibold text-foreground truncate">{p.title}</p>
@@ -1649,7 +1656,7 @@ export default function ChannelDashboard() {
                         const isPreview = previewMode.has(p.id)
                         const captionData = dbPostCaptions[p.id]
                         const slideImages = carouselSlides?.filter(s => s.imageUrl).map(s => s.imageUrl!) ?? []
-                        const fallbackCaption = `${p.hook}\n\n${p.title}`
+                        const fallbackCaption = p.hook
                         const captionText = captionData?.caption || fallbackCaption
                         const hashtagText = captionData?.hashtags?.length
                           ? captionData.hashtags.map(h => h.startsWith('#') ? h : `#${h}`).join(' ')
@@ -1929,7 +1936,7 @@ export default function ChannelDashboard() {
                       key={i}
                       onClick={() => handleSetName(suggestion.name)}
                       disabled={actionLoading === 'set-name'}
-                      className="group text-left border border-border bg-background rounded-2xl p-5 transition-all duration-200 hover:border-accent/30 hover:bg-accent-dim/50 hover:shadow-[0_0_20px_var(--accent-glow)] disabled:opacity-40 animate-fade-up max-w-xs"
+                      className="group text-left border border-border bg-background rounded-2xl p-5 transition-all duration-200 hover:border-accent/30 hover:bg-accent-dim/50 disabled:opacity-40 animate-fade-up max-w-xs"
                       style={{ animationDelay: `${i * 50}ms` }}
                     >
                       <div className="flex items-center justify-between gap-3 mb-1.5">

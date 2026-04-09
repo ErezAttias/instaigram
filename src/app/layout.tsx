@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import NavBar from "@/components/NavBar";
+import { ThemeProvider } from "@/components/ThemeProvider";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -24,14 +25,20 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        {/* Anti-flash: apply stored theme class before React hydrates */}
+        <script dangerouslySetInnerHTML={{ __html: `(function(){var t=localStorage.getItem('theme')||'dark';document.documentElement.classList.add(t);})();` }} />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground min-h-dvh`}
       >
-        <NavBar />
-        <main className="max-w-[1800px] mx-auto px-4 lg:px-8 py-6 lg:py-10">
-          {children}
-        </main>
+        <ThemeProvider>
+          <NavBar />
+          <main className="max-w-[1800px] mx-auto px-4 lg:px-8 py-6 lg:py-10">
+            {children}
+          </main>
+        </ThemeProvider>
       </body>
     </html>
   );

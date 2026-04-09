@@ -323,7 +323,13 @@ async function renderSlideImage(
     // Always render OPENER with layout-first composition (same as FACT slides).
     // This gives consistent visual design across the entire carousel —
     // same layout, same UI, no dark gradient overlays.
-    const subject = conceptHint || slide.topicEntity || topic;
+
+    // Resolve the most concrete visual subject available.
+    // Priority: explicit hint → OPENER's own topicEntity → first FACT topicEntity
+    // → extractVisualSubject(topic). Avoids passing raw question-form titles like
+    // "Why The Whispering Statue Remains Unsolved" to Gemini, which causes VISUAL_MISSING.
+    const factEntity = allSlides?.find(s => s.role === 'FACT' && s.topicEntity)?.topicEntity ?? null;
+    const subject = conceptHint || slide.topicEntity || factEntity || extractVisualSubject(topic);
 
     // ── Wikipedia path for OPENER slides ─────────────────────────
     // Attempted by default for celebrity/band topics (same as FACT slides) — Gemini
@@ -395,7 +401,7 @@ async function renderSlideImage(
       },
       imageGen,
     );
-    if (!result.image || result.visualMissing) {
+    if (!result.image) {
       throw new Error(`OPENER render returned no usable image (visualMissing: ${result.visualMissing}, source: ${result.imageSource}, error: ${result.error || 'none'})`);
     }
     return {

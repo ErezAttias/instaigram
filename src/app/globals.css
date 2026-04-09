@@ -36,6 +36,20 @@
   --hook-hidden-truth: #60a5fa;
 }
 
+.light {
+  --background: #fafafa;
+  --foreground: #111113;
+  --surface: #f0f0f3;
+  --surface-elevated: #e8e8ec;
+  --surface-hover: #e0e0e5;
+  --border: rgba(0, 0, 0, 0.08);
+  --border-hover: rgba(0, 0, 0, 0.15);
+  --muted: #6b6b7a;
+  --muted-light: #8a8a99;
+  --success: #059669;
+  --success-dim: rgba(5, 150, 105, 0.12);
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -126,6 +140,19 @@ html {
 
 .scrollbar-thin::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.12);
+}
+
+.light ::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.12);
+}
+.light ::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.2);
+}
+.light .scrollbar-thin::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.08);
+}
+.light .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.15);
 }
 
 /* Hide scrollbar but keep scroll functionality */

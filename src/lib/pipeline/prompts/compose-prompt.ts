@@ -458,7 +458,7 @@ Return exactly this JSON structure:
       "containsNumber": false,
       "concretenessScore": 1-5,
       "noveltyScore": 1-5,
-      "topicEntity": "string or null",
+      "topicEntity": "string — the most concrete, photographable visual subject of this carousel (e.g., 'ancient Roman statue', 'whispering statue', 'great white shark'). Must be a noun phrase, never a question or sentence. Never null for OPENER.",
       "factRefs": []
     },
     {

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import ThemeToggle from './ThemeToggle';
 
 export default function NavBar() {
   const [open, setOpen] = useState(false);
@@ -16,7 +17,7 @@ export default function NavBar() {
           InstAIgram
         </Link>
 
-        {/* Desktop nav links */}
+        {/* Desktop nav links + theme toggle */}
         <div className="hidden lg:flex items-center gap-6">
           <Link
             href="/admin"
@@ -30,25 +31,29 @@ export default function NavBar() {
           >
             Create Carousel
           </Link>
+          <ThemeToggle />
         </div>
 
-        {/* Mobile hamburger */}
-        <button
-          className="lg:hidden flex items-center justify-center w-10 h-10 rounded-lg text-muted-light hover:text-foreground hover:bg-surface-hover transition-colors"
-          onClick={() => setOpen(o => !o)}
-          aria-label="Toggle menu"
-          aria-expanded={open}
-        >
-          {open ? (
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          ) : (
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-          )}
-        </button>
+        {/* Mobile: theme toggle + hamburger */}
+        <div className="lg:hidden flex items-center gap-1">
+          <ThemeToggle />
+          <button
+            className="flex items-center justify-center w-10 h-10 rounded-lg text-muted-light hover:text-foreground hover:bg-surface-hover transition-colors"
+            onClick={() => setOpen(o => !o)}
+            aria-label="Toggle menu"
+            aria-expanded={open}
+          >
+            {open ? (
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            ) : (
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            )}
+          </button>
+        </div>
       </div>
 
       {/* Mobile dropdown */}
