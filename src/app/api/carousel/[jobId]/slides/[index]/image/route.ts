@@ -43,7 +43,7 @@ export async function GET(
       return NextResponse.json({ error: 'Invalid image format' }, { status: 500 });
     }
 
-    return new NextResponse(buffer, {
+    return new NextResponse(buffer as unknown as BodyInit, {
       headers: {
         'Content-Type': mime,
         'Content-Length': buffer.length.toString(),

@@ -50,7 +50,7 @@ export async function GET(_req: NextRequest, { params }: RouteContext) {
     // Non-fatal
   }
 
-  return new NextResponse(buffer, {
+  return new NextResponse(buffer as unknown as BodyInit, {
     headers: {
       'Content-Type': mime,
       'Cache-Control': 'public, max-age=86400, immutable',
