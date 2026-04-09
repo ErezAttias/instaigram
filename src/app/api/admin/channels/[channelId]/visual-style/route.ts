@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getChannelVisualStyle, upsertChannelVisualStyle } from '@/lib/services/admin-service';
 import type { ChannelVisualStyleContext } from '@/lib/visual/visual-style';
+import { TITLE_FONTS, BODY_FONTS } from '@/lib/visual/font-pairings-data';
 
 type RouteContext = { params: Promise<{ channelId: string }> };
 
@@ -28,6 +29,14 @@ export async function PUT(req: NextRequest, { params }: RouteContext) {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
+  // Validate font IDs
+  if (body.titleFontId !== undefined && !TITLE_FONTS.some(f => f.id === body.titleFontId)) {
+    return NextResponse.json({ error: 'Invalid titleFontId' }, { status: 400 });
+  }
+  if (body.bodyFontId !== undefined && !BODY_FONTS.some(f => f.id === body.bodyFontId)) {
+    return NextResponse.json({ error: 'Invalid bodyFontId' }, { status: 400 });
+  }
+
   // Validate color fields
   const colorFields = ['headlineColor', 'emphasisColor', 'bodyColor'] as const;
   for (const field of colorFields) {
@@ -48,6 +57,24 @@ export async function PUT(req: NextRequest, { params }: RouteContext) {
       return NextResponse.json({ error: 'logoSizePx must be between 40 and 120' }, { status: 400 });
     }
     body.logoSizePx = size;
+  }
+
+  // Validate t1FontSizePx range
+  if (body.t1FontSizePx !== undefined) {
+    const size = Number(body.t1FontSizePx);
+    if (isNaN(size) || size < 40 || size > 100) {
+      return NextResponse.json({ error: 't1FontSizePx must be between 40 and 100' }, { status: 400 });
+    }
+    body.t1FontSizePx = size;
+  }
+
+  // Validate t2FontSizePx range
+  if (body.t2FontSizePx !== undefined) {
+    const size = Number(body.t2FontSizePx);
+    if (isNaN(size) || size < 20 || size > 56) {
+      return NextResponse.json({ error: 't2FontSizePx must be between 20 and 56' }, { status: 400 });
+    }
+    body.t2FontSizePx = size;
   }
 
   // Validate logoBase64 — must be a non-empty string (raw base64, no data URI)

@@ -1,46 +1,237 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
+import { useTheme } from '@/components/ThemeProvider'
 
 const Aurora = dynamic(() => import('@/components/Aurora'), { ssr: false })
 
-type NicheMode = 'DISCOVER' | 'EXPLORE' | 'DIRECT'
+// ---------------------------------------------------------------------------
+// Instagram gradient constant
+// ---------------------------------------------------------------------------
 
-const MODE_OPTIONS: { value: NicheMode; label: string; description: string; icon: React.ReactNode }[] = [
+const IG_GRADIENT = 'linear-gradient(135deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888)'
+
+// ---------------------------------------------------------------------------
+// Example carousel data
+// ---------------------------------------------------------------------------
+
+type SlideData = { headline: string; body: string }
+type CarouselData = {
+  id: string
+  topic: string
+  username: string
+  avatarGradient: string
+  imageUrls: string[]
+  likeCount: string
+  slides: SlideData[]
+  headlineFont?: string
+  headlineStyle?: React.CSSProperties
+}
+
+const EXAMPLE_CAROUSELS: CarouselData[] = [
   {
-    value: 'DISCOVER',
-    label: 'Discover niche ideas for me',
-    description: 'No idea yet — let AI suggest high-opportunity niches from scratch',
-    icon: (
-      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-        <path d="M10 2l2.4 4.8L18 7.6l-4 3.9.9 5.5-4.9-2.6L5.1 17l.9-5.5-4-3.9 5.6-.8L10 2z" />
-      </svg>
-    ),
+    id: 'sharks',
+    topic: 'Ocean Facts',
+    username: 'ocean.facts',
+    headlineFont: "'Montserrat', system-ui, sans-serif",
+    avatarGradient: 'linear-gradient(135deg, #0ea5e9, #0284c7)',
+
+    imageUrls: [
+      'https://images.unsplash.com/photo-1560275619-4cc5fa59d3ae?w=600&q=80',
+      'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=600&q=80',
+      'https://images.unsplash.com/photo-1519046904884-53103b34b206?w=600&q=80',
+    ],
+    likeCount: '4,821',
+    slides: [
+      { headline: '5 Secrets Sharks Are Hiding', body: 'The ocean\'s apex predators have secrets hiding in plain sight.' },
+      { headline: 'They Can Detect One Drop of Blood in an Olympic Pool', body: 'An electroreception system no technology has replicated.' },
+      { headline: 'Most Sharks Live 20–30 Years', body: 'The Greenland shark? Over 400. Science is still catching up.' },
+    ],
   },
   {
-    value: 'EXPLORE',
-    label: 'Explore within a topic',
-    description: 'You have a broad interest area — AI will find sharp angles within it',
-    icon: (
-      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-        <circle cx="8.5" cy="8.5" r="5.5" />
-        <path d="M12.5 12.5L17 17" />
-      </svg>
-    ),
+    id: 'habits',
+    topic: 'Productivity',
+    username: 'dailyproductivity',
+    headlineFont: "'Playfair Display', Georgia, serif",
+    headlineStyle: { fontWeight: 700, letterSpacing: '0.01em' },
+    avatarGradient: 'linear-gradient(135deg, #8b5cf6, #6d28d9)',
+    imageUrls: [
+      'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600&q=80',
+      'https://images.unsplash.com/photo-1499750310107-5fef28a66643?w=600&q=80',
+      'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=600&q=80',
+    ],
+    likeCount: '12,047',
+    slides: [
+      { headline: '5 Morning Habits of Top Performers', body: 'The first 60 minutes determine the rest of your day.' },
+      { headline: 'They Protect the First Hour', body: '92% of high earners don\'t check their phone until after their morning routine.' },
+      { headline: 'Movement Before Screens', body: 'Even 10 minutes of walking spikes BDNF — the brain\'s growth hormone.' },
+    ],
   },
   {
-    value: 'DIRECT',
-    label: 'I already know my topic',
-    description: 'Go straight to content generation — optionally refine your topic first',
-    icon: (
-      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-        <path d="M4 10h12M12 6l4 4-4 4" />
-      </svg>
-    ),
+    id: 'coffee',
+    topic: 'Coffee',
+    username: 'coffeegeek',
+    headlineFont: "'Roboto Slab', Georgia, serif",
+    headlineStyle: { fontWeight: 900, letterSpacing: '0.02em' },
+    avatarGradient: 'linear-gradient(135deg, #d97706, #92400e)',
+    imageUrls: [
+      'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=600&q=80',
+      'https://images.unsplash.com/photo-1442512595331-e89e73853f31?w=600&q=80',
+      'https://images.unsplash.com/photo-1511920170033-f8396924c348?w=600&q=80',
+    ],
+    likeCount: '7,392',
+    slides: [
+      { headline: 'Why Your Coffee Tastes Bitter', body: 'It\'s almost never the beans. It\'s your extraction.' },
+      { headline: 'Over-Extracted = Bitter Every Time', body: 'Too hot, too long — sugars burn first, harsh acids linger last.' },
+      { headline: 'The 93°C Rule', body: 'Drop 3 degrees from boiling and most bitterness disappears. Try it tomorrow.' },
+    ],
   },
 ]
+
+// ---------------------------------------------------------------------------
+// ExampleCarousel component — styled as a real Instagram post
+// ---------------------------------------------------------------------------
+
+function ExampleCarousel({ carousel, isLight }: { carousel: CarouselData; isLight: boolean }) {
+  const [active, setActive] = useState(0)
+
+  const slide = carousel.slides[active]
+  const imageUrl = carousel.imageUrls[active] ?? carousel.imageUrls[0]
+
+  const cardBg = isLight ? 'bg-white' : 'bg-black'
+  const headerBg = isLight ? 'bg-white/95' : 'bg-black/90'
+  const footerBg = isLight ? 'bg-white/95' : 'bg-black/90'
+  const textColor = isLight ? 'text-gray-900' : 'text-white'
+  const mutedColor = isLight ? 'text-gray-500' : 'text-white/70'
+  const iconStroke = isLight ? '#111113' : 'white'
+  const borderStyle = isLight ? '0 2px 16px rgba(0,0,0,0.10)' : '0 8px 32px rgba(0,0,0,0.5)'
+  const cardBorder = isLight ? 'border border-black/8' : 'border border-white/10'
+
+  return (
+    <div
+      data-tilt-card
+      className="snap-center shrink-0 w-[72vw] sm:w-auto"
+      style={{
+        aspectRatio: '9/14',
+        transition: 'transform 0.35s cubic-bezier(0.03, 0.98, 0.52, 0.99)',
+        willChange: 'transform',
+      }}
+    >
+    <div
+      className={`relative flex flex-col rounded-2xl overflow-hidden w-full h-full ${cardBg} ${cardBorder}`}
+      style={{ boxShadow: borderStyle }}
+    >
+      {/* ── Instagram post header ── */}
+      <div className={`flex items-center gap-2 px-3 py-2.5 ${headerBg} backdrop-blur-sm shrink-0`}>
+        {/* Avatar with IG gradient ring */}
+        <div className="p-[2px] rounded-full shrink-0" style={{ background: IG_GRADIENT }}>
+          <div
+            className={`w-7 h-7 rounded-full border-2 ${isLight ? 'border-white' : 'border-black'}`}
+            style={{ background: carousel.avatarGradient }}
+          />
+        </div>
+        <div className="flex-1 min-w-0">
+          <span className={`${textColor} text-[11px] font-semibold leading-none`}>@{carousel.username}</span>
+        </div>
+        {/* Three-dot menu */}
+        <div className="flex gap-[3px] shrink-0">
+          {[0,1,2].map(i => <div key={i} className={`w-[3px] h-[3px] rounded-full ${isLight ? 'bg-black/40' : 'bg-white/60'}`} />)}
+        </div>
+      </div>
+
+      {/* ── Photo area ── */}
+      <div className="relative flex-1 overflow-hidden">
+        {/* Photo */}
+        <img
+          src={imageUrl}
+          alt={slide.headline}
+          className="w-full h-full object-cover"
+        />
+
+        {/* Dark gradient overlay — heavy at bottom like opener slide */}
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{ background: 'linear-gradient(to bottom, transparent 20%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0.82) 75%, rgba(0,0,0,0.95) 100%)' }}
+        />
+
+        {/* Tap areas for prev/next */}
+        <button
+          onClick={() => setActive(a => Math.max(0, a - 1))}
+          className="absolute inset-y-0 left-0 w-1/3 z-10"
+          aria-label="Previous slide"
+        />
+        <button
+          onClick={() => setActive(a => Math.min(carousel.slides.length - 1, a + 1))}
+          className="absolute inset-y-0 right-0 w-1/3 z-10"
+          aria-label="Next slide"
+        />
+
+        {/* Text overlay — opener style with large headline */}
+        <div className="absolute bottom-0 inset-x-0 px-4 pb-8 pt-16 z-10">
+          <h3
+            className="text-white font-bold text-[20px] leading-snug tracking-tight"
+            style={{ ...(carousel.headlineFont ? { fontFamily: carousel.headlineFont } : {}), ...carousel.headlineStyle }}
+          >{slide.headline}</h3>
+        </div>
+
+        {/* Dot indicators */}
+        <div className="absolute bottom-3 inset-x-0 flex justify-center gap-1.5 z-20 pointer-events-none">
+          {carousel.slides.map((_, i) => (
+            <div
+              key={i}
+              className="rounded-full transition-all duration-300"
+              style={{
+                width: i === active ? 16 : 6,
+                height: 6,
+                background: i === active ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.35)',
+              }}
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* ── Instagram action bar ── */}
+      <div className={`${footerBg} backdrop-blur-sm px-3 pt-2 pb-2.5 shrink-0`}>
+        {/* Action icons */}
+        <div className="flex items-center mb-1.5">
+          <div className="flex gap-3 flex-1">
+            {/* Heart */}
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={iconStroke} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="opacity-80">
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+            </svg>
+            {/* Comment */}
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={iconStroke} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="opacity-80">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+            </svg>
+            {/* Share */}
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={iconStroke} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="opacity-80">
+              <line x1="22" y1="2" x2="11" y2="13" />
+              <polygon points="22 2 15 22 11 13 2 9 22 2" />
+            </svg>
+          </div>
+          {/* Bookmark */}
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={iconStroke} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="opacity-80">
+            <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+          </svg>
+        </div>
+        {/* Like count */}
+        <p className={`${textColor} text-[11px] font-semibold leading-none`}>{carousel.likeCount} likes</p>
+        {/* Caption preview */}
+        <p className={`${mutedColor} text-[10px] mt-1 leading-snug truncate`}>
+          <span className={`${textColor} font-semibold`}>@{carousel.username}</span>{' '}
+          {slide.headline}
+        </p>
+      </div>
+    </div>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Loading steps
+// ---------------------------------------------------------------------------
 
 const LOADING_STEPS = [
   'Creating channel...',
@@ -49,26 +240,54 @@ const LOADING_STEPS = [
   'Almost done...',
 ]
 
-function getCtaLabel(mode: NicheMode, topic: string): string {
-  switch (mode) {
-    case 'DISCOVER':
-      return 'Discover niches for me'
-    case 'EXPLORE':
-      return topic.trim() ? `Explore "${topic.trim()}"` : 'Explore topic'
-    case 'DIRECT':
-      return topic.trim() ? `Start with "${topic.trim()}"` : 'Start creating'
-  }
-}
+// ---------------------------------------------------------------------------
+// Main page
+// ---------------------------------------------------------------------------
 
 export default function HomeAurora() {
   const router = useRouter()
-  const [nicheMode, setNicheMode] = useState<NicheMode>('DISCOVER')
-  const [topic, setTopic] = useState('')
+  const { theme } = useTheme()
+  const isLight = theme === 'light'
+  const cardsContainerRef = useRef<HTMLDivElement>(null)
+  const tiltFrameRef = useRef<number | null>(null)
+
+  const handleCardsTilt = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    const clientX = e.clientX
+    const clientY = e.clientY
+    if (tiltFrameRef.current !== null) cancelAnimationFrame(tiltFrameRef.current)
+    tiltFrameRef.current = requestAnimationFrame(() => {
+      const container = cardsContainerRef.current
+      if (!container) return
+      container.querySelectorAll<HTMLDivElement>('[data-tilt-card]').forEach(card => {
+        const rect = card.getBoundingClientRect()
+        const cx = rect.left + rect.width / 2
+        const cy = rect.top + rect.height / 2
+        const dx = clientX - cx
+        const dy = clientY - cy
+        const distance = Math.sqrt(dx * dx + dy * dy)
+        const influenceRadius = Math.sqrt((rect.width / 2) ** 2 + (rect.height / 2) ** 2) * 2
+        const falloff = Math.max(0, 1 - distance / influenceRadius)
+        const rotateX = -(dy / (rect.height / 2)) * 10 * falloff
+        const rotateY = (dx / (rect.width / 2)) * 10 * falloff
+        const scale = 1 + 0.02 * falloff
+        card.style.transform = `perspective(900px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(${scale},${scale},${scale})`
+      })
+    })
+  }, [])
+
+  const handleCardsLeave = useCallback(() => {
+    if (tiltFrameRef.current !== null) cancelAnimationFrame(tiltFrameRef.current)
+    cardsContainerRef.current?.querySelectorAll<HTMLDivElement>('[data-tilt-card]').forEach(card => {
+      card.style.transform = 'perspective(900px) rotateX(0deg) rotateY(0deg) scale3d(1,1,1)'
+    })
+  }, [])
+
+  const [topicInput, setTopicInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [loadingStep, setLoadingStep] = useState(0)
+  const [loadingSource, setLoadingSource] = useState<'direct' | 'discover' | null>(null)
   const [error, setError] = useState('')
-
-  const showTopicInput = nicheMode === 'EXPLORE' || nicheMode === 'DIRECT'
+  const [inputFocused, setInputFocused] = useState(false)
 
   useEffect(() => {
     if (!loading) {
@@ -81,183 +300,229 @@ export default function HomeAurora() {
     return () => clearInterval(interval)
   }, [loading])
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    if (showTopicInput && !topic.trim()) {
-      setError(nicheMode === 'EXPLORE' ? 'Enter a broad topic to explore' : 'Enter your topic')
-      return
-    }
-
+  async function createChannel(body: Record<string, string>) {
     setLoading(true)
     setError('')
-
     try {
       const res = await fetch('/api/channels', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          nicheMode,
-          ...(nicheMode === 'EXPLORE' && { exploreTopic: topic.trim() }),
-          ...(nicheMode === 'DIRECT' && { directTopic: topic.trim() }),
-        }),
+        body: JSON.stringify(body),
       })
-
       if (!res.ok) {
         const data = await res.json()
         throw new Error(data.error || 'Failed to create channel')
       }
-
       const channel = await res.json()
       router.push(`/channels/${channel.id}`)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
-    } finally {
       setLoading(false)
+      setLoadingSource(null)
     }
   }
 
+  function handleGetStarted(e: React.FormEvent) {
+    e.preventDefault()
+    const topic = topicInput.trim()
+    if (!topic) return
+    const words = topic.split(/\s+/)
+    const nicheMode = words.length <= 2 ? 'EXPLORE' : 'DIRECT'
+    const body = nicheMode === 'EXPLORE'
+      ? { nicheMode, exploreTopic: topic }
+      : { nicheMode, directTopic: topic }
+    setLoadingSource('direct')
+    createChannel(body as unknown as Record<string, string>)
+  }
+
+  function handleDiscover() {
+    setLoadingSource('discover')
+    createChannel({ nicheMode: 'DISCOVER' })
+  }
+
   return (
-    <div className="relative min-h-[calc(100vh-8rem)] flex items-center justify-center">
-      {/* Aurora background — fixed fullscreen */}
+    <div className="relative">
+      {/* Background — Aurora in dark mode, CSS gradient in light mode */}
       <div className="fixed inset-0 z-0 overflow-hidden">
-        <Aurora
-          colorStops={['#0a1628', '#1a2d50', '#0a1628']}
-          amplitude={1.2}
-          blend={0.7}
-          speed={0.5}
-        />
+        {isLight ? (
+          <div
+            className="w-full h-full"
+            style={{
+              background: 'radial-gradient(ellipse 80% 50% at 50% -10%, rgba(240,148,51,0.12) 0%, rgba(188,24,136,0.08) 40%, transparent 70%), #fafafa',
+            }}
+          />
+        ) : (
+          <Aurora
+            colorStops={['#0a0518', '#1a0828', '#2e0818']}
+            amplitude={1.2}
+            blend={0.7}
+            speed={0.5}
+          />
+        )}
       </div>
 
       {/* Content */}
-      <div className="relative z-10 w-full max-w-2xl mx-auto px-0 pt-2.5 pb-10 lg:pt-4 lg:pb-16">
-        <div className="animate-fade-up text-center">
-          {/* Header */}
-          <div className="mb-10">
-            <h1 className="text-[2.5rem] sm:text-4xl lg:text-[2.75rem] font-bold tracking-tight leading-[1.1] mb-4">
-              Create your <br className="sm:hidden" />
-              <span className="bg-gradient-to-r from-accent via-amber-300 to-accent bg-clip-text text-transparent">
+      <div className="relative z-10 min-h-screen flex flex-col">
+
+        {/* ── Section 1: Hero text + Form ─────────────────────────────────── */}
+        <section className="pt-4 pb-8 px-4 sm:px-6 text-center">
+          <div className="max-w-4xl mx-auto animate-fade-up">
+            <h1 className="text-[2.4rem] sm:text-5xl lg:text-[3.5rem] font-bold tracking-tight leading-[1.1] mb-3">
+              Create your{' '}
+              <span
+                className="bg-clip-text text-transparent"
+                style={{ backgroundImage: IG_GRADIENT }}
+              >
                 content channel
               </span>
             </h1>
-            <p className="text-muted-light text-base leading-relaxed">
+            <p className="text-foreground/75 text-base leading-relaxed mb-8">
               Your next 30 days of scroll-stopping carousels, ready in minutes.
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5 text-left">
-            {/* Niche Mode Selection */}
-            <div className="animate-fade-up stagger-1">
-              <label className="block text-xs font-semibold text-muted uppercase tracking-[0.12em] mb-3 text-center">
-                How do you want to start?
-              </label>
-              <div className="space-y-2.5" role="radiogroup" aria-label="How do you want to start?">
-                {MODE_OPTIONS.map((opt) => (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    role="radio"
-                    aria-checked={nicheMode === opt.value}
-                    onClick={() => {
-                      setNicheMode(opt.value)
-                      if (opt.value === 'DISCOVER') setTopic('')
-                    }}
-                    className={`
-                      w-full text-left px-5 py-4 rounded-2xl border transition-all duration-200 flex items-start gap-4 group backdrop-blur-md
-                      focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background outline-none
-                      ${nicheMode === opt.value
-                        ? 'border-accent/40 bg-accent/[0.08] shadow-[0_0_24px_var(--accent-glow)]'
-                        : 'border-border bg-surface/50 hover:border-border-hover hover:bg-surface-elevated/50'
-                      }
-                    `}
-                  >
-                    <span className={`mt-0.5 shrink-0 transition-colors ${nicheMode === opt.value ? 'text-accent' : 'text-muted group-hover:text-muted-light'}`}>
-                      {opt.icon}
-                    </span>
-                    <div>
-                      <p className={`text-[15px] font-semibold ${nicheMode === opt.value ? 'text-foreground' : 'text-muted-light'}`}>
-                        {opt.label}
-                      </p>
-                      <p className="text-sm text-muted mt-0.5 leading-relaxed">{opt.description}</p>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
+          {/* Form — immediately under headline, centre-stage */}
+          <div className="max-w-xl mx-auto w-full">
+            <form onSubmit={handleGetStarted}>
 
-            {/* Topic Input (Explore / Direct) */}
-            {showTopicInput && (
-              <div className="animate-fade-up">
-                <label htmlFor="topic" className="block text-xs font-semibold text-muted uppercase tracking-[0.12em] mb-3 text-center">
-                  {nicheMode === 'EXPLORE' ? 'Broad topic or interest area' : 'Your topic'}
-                </label>
-                <input
-                  id="topic"
-                  type="text"
-                  value={topic}
-                  onChange={(e) => setTopic(e.target.value)}
-                  placeholder={
-                    nicheMode === 'EXPLORE'
-                      ? 'e.g. AI, football, stoicism, luxury'
-                      : 'e.g. AI tools for creators'
-                  }
-                  className="w-full px-5 py-3.5 bg-surface/80 backdrop-blur-md border border-border rounded-xl text-foreground placeholder-muted text-base hover:border-border-hover"
-                />
-              </div>
-            )}
-
-            {error && (
-              <div className="animate-scale-in px-5 py-3.5 bg-danger-dim border border-danger/20 rounded-xl">
-                <p className="text-sm text-danger font-medium">{error}</p>
-              </div>
-            )}
-
-            <div className="animate-fade-up stagger-2 pt-1">
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full py-4 px-5 bg-accent hover:bg-accent-hover text-background font-bold rounded-2xl text-base disabled:opacity-40 disabled:cursor-not-allowed shadow-[0_0_24px_var(--accent-glow)] hover:shadow-[0_0_36px_var(--accent-glow)] transition-all"
+              {/* Integrated pill: input + button as one unit */}
+              <div
+                className="p-[2px] rounded-2xl transition-all duration-300"
+                style={{
+                  background: IG_GRADIENT,
+                  boxShadow: inputFocused
+                    ? '0 0 48px rgba(188,24,136,0.45), 0 0 80px rgba(220,39,67,0.2)'
+                    : isLight
+                      ? '0 4px 24px rgba(188,24,136,0.2), 0 1px 4px rgba(0,0,0,0.06)'
+                      : '0 0 32px rgba(188,24,136,0.3), 0 0 60px rgba(220,39,67,0.1)',
+                }}
               >
-                {loading ? (
-                  <span className="flex items-center justify-center gap-2.5">
-                    <span className="w-4.5 h-4.5 border-2 border-background/30 border-t-background rounded-full animate-spin" />
-                    {LOADING_STEPS[loadingStep]}
-                  </span>
-                ) : (
-                  getCtaLabel(nicheMode, topic)
-                )}
-              </button>
-            </div>
-          </form>
+                <div className={`flex flex-col sm:flex-row sm:items-center gap-2 p-2 rounded-[14px] ${isLight ? 'bg-white' : 'bg-[#0e0c1a]'}`}>
+                  <input
+                    id="topic"
+                    type="text"
+                    value={topicInput}
+                    onChange={(e) => setTopicInput(e.target.value)}
+                    onFocus={() => setInputFocused(true)}
+                    onBlur={() => setInputFocused(false)}
+                    placeholder="e.g. coffee, AI tools, fitness for busy parents..."
+                    autoComplete="off"
+                    className="pill-input flex-1 px-3 py-3 bg-transparent text-foreground placeholder-muted text-[17px] focus:outline-none"
+                  />
+                  <button
+                    type="submit"
+                    disabled={loading || !topicInput.trim()}
+                    className="w-full sm:w-auto shrink-0 px-5 py-3 text-white font-bold rounded-xl text-sm disabled:opacity-40 disabled:cursor-not-allowed transition-all hover:opacity-90 active:scale-[0.97] whitespace-nowrap"
+                    style={{ background: IG_GRADIENT }}
+                  >
+                    {loading && loadingSource === 'direct' ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        {LOADING_STEPS[loadingStep]}
+                      </span>
+                    ) : (
+                      'Get Started →'
+                    )}
+                  </button>
+                </div>
+              </div>
 
-          {/* Trust badges */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8 mt-8 pt-6 border-t border-border/50">
-            <div className="flex items-center gap-5">
+              {error && (
+                <div className="mt-3 animate-scale-in px-5 py-3.5 bg-danger-dim border border-danger/20 rounded-xl">
+                  <p className="text-sm text-danger font-medium">{error}</p>
+                </div>
+              )}
+
+              {/* Secondary CTA — text-link style */}
+              <div className="text-center mt-4">
+                <button
+                  type="button"
+                  onClick={handleDiscover}
+                  disabled={loading}
+                  className="text-sm text-muted hover:text-foreground font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  {loading && loadingSource === 'discover' ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <span className="w-3.5 h-3.5 border-2 border-muted/30 border-t-muted-light rounded-full animate-spin" />
+                      Finding your niche...
+                    </span>
+                  ) : (
+                    'Not sure what to post? Find my niche →'
+                  )}
+                </button>
+              </div>
+            </form>
+
+            {/* Trust badges */}
+            <div className="flex flex-nowrap items-center justify-center gap-x-3 mt-8 pt-6 border-t border-border/50">
+              {/* Social proof — anchors first */}
+              <div className="flex items-center gap-2 shrink-0">
+                <div className="flex -space-x-1">
+                  {['bg-gradient-to-br from-orange-400 to-rose-500', 'bg-gradient-to-br from-blue-400 to-violet-500', 'bg-gradient-to-br from-emerald-400 to-teal-500'].map((bg, i) => (
+                    <div
+                      key={i}
+                      className={`w-[18px] h-[18px] rounded-full ${bg} border-2 border-background`}
+                    />
+                  ))}
+                </div>
+                <span className="text-xs text-muted whitespace-nowrap">
+                  <span className="text-foreground font-semibold">500+</span> channels
+                </span>
+              </div>
+
+              <div className="w-px h-4 bg-border/50 shrink-0" />
+
+              {/* Feature badges */}
               {[
-                { label: '30 days', desc: 'of content' },
-                { label: 'AI-powered', desc: 'generation' },
-                { label: 'Ready in', desc: 'minutes' },
+                {
+                  label: '30 posts/month',
+                  icon: (
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#e6683c" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                      <circle cx="12" cy="13" r="4" />
+                    </svg>
+                  ),
+                },
+                {
+                  label: 'AI-powered',
+                  icon: (
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#cc2366" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                    </svg>
+                  ),
+                },
+                {
+                  label: 'Ready in minutes',
+                  icon: (
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#bc1888" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="10" />
+                      <path d="M12 6v6l4 2" />
+                    </svg>
+                  ),
+                },
               ].map((badge) => (
-                <div key={badge.label} className="flex flex-col shrink-0">
-                  <span className="text-sm font-semibold text-foreground">{badge.label}</span>
-                  <span className="text-xs text-muted">{badge.desc}</span>
+                <div key={badge.label} className="flex items-center gap-1.5 shrink-0">
+                  <span className="shrink-0">{badge.icon}</span>
+                  <span className="text-xs font-medium text-muted whitespace-nowrap">{badge.label}</span>
                 </div>
               ))}
             </div>
-            <div className="flex items-center gap-2.5">
-              <div className="flex -space-x-1.5">
-                {['bg-gradient-to-br from-orange-400 to-rose-500', 'bg-gradient-to-br from-blue-400 to-violet-500', 'bg-gradient-to-br from-emerald-400 to-teal-500'].map((bg, i) => (
-                  <div
-                    key={i}
-                    className={`w-5 h-5 rounded-full ${bg} border-[1.5px] border-background`}
-                  />
-                ))}
-              </div>
-              <span className="text-xs text-muted">
-                <span className="text-foreground font-medium">500+</span> creators already onboard
-              </span>
-            </div>
           </div>
-        </div>
+        </section>
+
+        {/* ── Section 2: Preview carousels — social proof below the fold ── */}
+        <section className="pb-16 px-4 sm:px-6">
+          <div className="max-w-3xl mx-auto">
+            <p className="text-xs text-muted text-center mb-4 uppercase tracking-widest font-medium opacity-60">Example channels</p>
+            {/* Cards — horizontal scroll on mobile, 3-col grid on desktop */}
+            <div ref={cardsContainerRef} onMouseMove={handleCardsTilt} onMouseLeave={handleCardsLeave} className="flex sm:grid sm:grid-cols-3 gap-4 overflow-x-auto sm:overflow-visible snap-x snap-mandatory py-8 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-hide opacity-80">
+              {EXAMPLE_CAROUSELS.map((carousel) => (
+                <ExampleCarousel key={carousel.id} carousel={carousel} isLight={isLight} />
+              ))}
+            </div>
+            <p className="sm:hidden text-xs text-muted text-center mt-3">swipe to explore →</p>
+          </div>
+        </section>
       </div>
     </div>
   )

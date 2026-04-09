@@ -151,11 +151,27 @@ export const GeneratedContentStrategy = z.object({
 });
 
 export const GeneratedContentStrategyOptions = z.object({
+  channelTone: z.string().min(1),
+  channelAudience: z.string().min(1),
   strategies: z.array(GeneratedContentStrategy).min(2).max(4),
+});
+
+/** Stored shape when content pillars are approved (new multi-pillar model) */
+export const ContentPillarsData = z.object({
+  channelTone: z.string().min(1),
+  channelAudience: z.string().min(1),
+  pillars: z.array(GeneratedContentStrategy).min(1).max(5),
 });
 
 export const ApproveContentStrategyInput = z.object({
   contentStrategy: GeneratedContentStrategy,
+});
+
+/** New: approve multiple pillars at once */
+export const ApproveContentPillarsInput = z.object({
+  pillars: z.array(GeneratedContentStrategy).min(1).max(5),
+  channelTone: z.string().optional(),
+  channelAudience: z.string().optional(),
 });
 
 export const GenerateBatchPostsInput = z.object({
@@ -615,4 +631,6 @@ export type ValidatedFactHooks = z.infer<typeof ValidatedFactHooks>;
 export type GeneratedContentStrategy = z.infer<typeof GeneratedContentStrategy>;
 export type GeneratedContentStrategyOptions = z.infer<typeof GeneratedContentStrategyOptions>;
 export type ApproveContentStrategyInput = z.infer<typeof ApproveContentStrategyInput>;
+export type ApproveContentPillarsInput = z.infer<typeof ApproveContentPillarsInput>;
+export type ContentPillarsData = z.infer<typeof ContentPillarsData>;
 export type GenerateBatchPostsInput = z.infer<typeof GenerateBatchPostsInput>;

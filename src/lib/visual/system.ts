@@ -25,7 +25,7 @@ export const COLOR_PALETTE = {
   /** Primary text — pure white for headlines, maximum contrast */
   textPrimary: '#FFFFFF',
   /** Secondary text — light gray for body/support text */
-  textSecondary: '#B0B0B0',
+  textSecondary: '#D0D0D0',
   /** Emphasis text — white with full opacity for headline words */
   textEmphasis: '#FFFFFF',
 

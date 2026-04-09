@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import type { ChannelVisualStyleContext } from '@/lib/visual/visual-style';
-import { FONT_PAIRINGS } from '@/lib/visual/font-pairings-data';
+import { TITLE_FONTS, BODY_FONTS } from '@/lib/visual/font-pairings-data';
 
 interface SlidePreviewProps {
   style: ChannelVisualStyleContext;
@@ -12,27 +12,33 @@ const PREVIEW_WIDTH = 320;
 const PREVIEW_HEIGHT = Math.round(PREVIEW_WIDTH * (1350 / 1080));
 
 export function SlidePreview({ style }: SlidePreviewProps) {
-  const pairing = FONT_PAIRINGS.find(p => p.id === style.fontPairingId) ?? FONT_PAIRINGS[0];
+  const titleFont = TITLE_FONTS.find(f => f.id === style.titleFontId) ?? TITLE_FONTS[0];
+  const bodyFont = BODY_FONTS.find(f => f.id === style.bodyFontId) ?? BODY_FONTS[0];
 
-  // Inject Google Fonts link dynamically
+  // Inject Google Fonts links for title and body fonts
   useEffect(() => {
-    const query = pairing.googleFontsFamily;
-    const id = `gf-${pairing.id}`;
-    if (!document.getElementById(id)) {
-      const link = document.createElement('link');
-      link.id = id;
-      link.rel = 'stylesheet';
-      link.href = `https://fonts.googleapis.com/css2?family=${query}&display=swap`;
-      document.head.appendChild(link);
-    }
-  }, [pairing]);
+    const fontsToLoad = [
+      { id: titleFont.id, query: titleFont.googleFontsFamily },
+      { id: bodyFont.id, query: bodyFont.googleFontsFamily },
+    ];
+    fontsToLoad.forEach(({ id, query }) => {
+      if (!query) return;
+      const linkId = `gf-preview-${id}`;
+      if (!document.getElementById(linkId)) {
+        const link = document.createElement('link');
+        link.id = linkId;
+        link.rel = 'stylesheet';
+        link.href = `https://fonts.googleapis.com/css2?family=${query}&display=swap`;
+        document.head.appendChild(link);
+      }
+    });
+  }, [titleFont, bodyFont]);
 
-  const displayFamily = style.monoFont
-    ? `'${pairing.display.family}', sans-serif`
-    : `'${pairing.display.family}', sans-serif`;
-  const bodyFamily = style.monoFont
-    ? `'${pairing.display.family}', sans-serif`
-    : `'${pairing.body.family}', serif`;
+  const displayFamily = `'${titleFont.family}', sans-serif`;
+  const bodyFamily = style.singleFont
+    ? `'${titleFont.family}', sans-serif`
+    : `'${bodyFont.family}', serif`;
+  const bodyWeight = style.singleFont ? titleFont.singleBodyWeight : bodyFont.weight;
 
   const t1Color = style.headlineColor ?? '#FFFFFF';
   const emphasisColor = style.emphasisColor ?? '#00A8FF';
@@ -115,13 +121,13 @@ export function SlidePreview({ style }: SlidePreviewProps) {
             />
           )}
 
-          {/* Headline — 2 lines, 72px on real slide */}
+          {/* Headline — 2 lines, t1FontSizePx on real slide */}
           <div
             style={{
               position: 'relative',
               fontFamily: displayFamily,
-              fontWeight: pairing.display.weight,
-              fontSize: Math.round(72 * scale),
+              fontWeight: titleFont.weight,
+              fontSize: Math.round((style.t1FontSizePx ?? 72) * scale),
               lineHeight: 1.15,
               color: t1Color,
               letterSpacing: '-0.5px',
@@ -132,13 +138,13 @@ export function SlidePreview({ style }: SlidePreviewProps) {
             <div>about <span style={{ color: emphasisColor }}>this fact</span></div>
           </div>
 
-          {/* Body — 3 lines, 36px on real slide */}
+          {/* Body — 3 lines, t2FontSizePx on real slide */}
           <div
             style={{
               position: 'relative',
               fontFamily: bodyFamily,
-              fontWeight: 400,
-              fontSize: Math.round(36 * scale),
+              fontWeight: bodyWeight,
+              fontSize: Math.round((style.t2FontSizePx ?? 36) * scale),
               lineHeight: 1.5,
               color: t2Color,
             }}

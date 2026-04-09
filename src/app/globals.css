@@ -1,6 +1,7 @@
 @import "tailwindcss";
 
 :root {
+  --font-heading: var(--font-bricolage);
   --background: #09090b;
   --foreground: #f0eeeb;
   --surface: #131316;
@@ -8,10 +9,10 @@
   --surface-hover: #222228;
   --border: rgba(255, 255, 255, 0.07);
   --border-hover: rgba(255, 255, 255, 0.14);
-  --accent: #f0a030;
-  --accent-dim: rgba(240, 160, 48, 0.12);
-  --accent-hover: #f5b44a;
-  --accent-glow: rgba(240, 160, 48, 0.25);
+  --accent: #e1306c;
+  --accent-dim: rgba(225, 48, 108, 0.12);
+  --accent-hover: #f04080;
+  --accent-glow: rgba(225, 48, 108, 0.28);
   --violet: #8b5cf6;
   --violet-dim: rgba(139, 92, 246, 0.12);
   --muted: #858590;
@@ -74,6 +75,11 @@
   --color-warning-dim: var(--warning-dim);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-heading: var(--font-bricolage);
+}
+
+h1, h2 {
+  font-family: var(--font-bricolage), system-ui, sans-serif;
 }
 
 body {
@@ -85,6 +91,7 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
 
 /* Grain overlay for texture */
 body::after {
@@ -266,9 +273,43 @@ input:focus, select:focus, textarea:focus {
   outline: none !important;
 }
 
-/* Button base transition */
+/* Pill search input — wrapper handles the focus glow, input itself stays clean */
+input.pill-input:focus {
+  border-color: transparent !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+/* Instagram gradient — primary CTA button */
+.ig-btn {
+  background: linear-gradient(135deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
+  color: white !important;
+  box-shadow: 0 2px 14px rgba(220, 39, 67, 0.22);
+}
+.ig-btn:hover:not(:disabled) {
+  opacity: 0.88;
+  box-shadow: 0 4px 20px rgba(220, 39, 67, 0.35);
+}
+.ig-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Button base — always apply weight + transition */
 button {
+  font-weight: 600 !important;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Pill border-radius only for buttons that don't already declare a rounded-* class */
+button:not([class*="rounded-"]) {
+  border-radius: 9999px !important;
+}
+
+/* Pill padding only for the same set (and excluding icon-only sizes) */
+button:not([class*="rounded-"]):not([class~="p-1"]):not([class~="p-2"]):not([class~="p-0.5"]):not([class~="p-1.5"]) {
+  padding-left: 1.625rem !important;
+  padding-right: 1.625rem !important;
 }
 
 button:active:not(:disabled) {

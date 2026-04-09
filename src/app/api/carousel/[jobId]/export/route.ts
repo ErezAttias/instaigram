@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCarouselJob } from '@/lib/services/standalone-carousel-service';
+import { resolveImageUrl } from '@/app/api/carousel/[jobId]/thumbnail/route';
 
 /**
  * GET /api/carousel/[jobId]/export — Export approved carousel as ZIP.
@@ -45,11 +46,12 @@ export async function GET(
     archive.pipe(passThrough);
 
     for (const slide of job.slides) {
-      if (slide.imageUrl && slide.imageUrl.startsWith('data:image/png;base64,')) {
-        const base64Data = slide.imageUrl.replace('data:image/png;base64,', '');
-        const buffer = Buffer.from(base64Data, 'base64');
-        const filename = `slide_${String(slide.slideIndex + 1).padStart(2, '0')}_${slide.role.toLowerCase()}.png`;
-        archive.append(buffer, { name: filename });
+      if (slide.imageUrl) {
+        const { buffer } = await resolveImageUrl(slide.imageUrl);
+        if (buffer) {
+          const filename = `slide_${String(slide.slideIndex + 1).padStart(2, '0')}_${slide.role.toLowerCase()}.png`;
+          archive.append(buffer, { name: filename });
+        }
       }
     }
 

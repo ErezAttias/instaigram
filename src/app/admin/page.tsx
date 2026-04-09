@@ -38,7 +38,8 @@ export default function AdminDashboard() {
         </div>
         <Link
           href="/admin/channels/new"
-          className="px-4 py-2.5 bg-accent text-background text-sm font-medium rounded-lg hover:bg-accent-hover transition-colors"
+          className="px-[26px] py-2.5 text-white text-sm font-semibold rounded-full transition-opacity hover:opacity-90"
+          style={{ background: 'linear-gradient(135deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888)' }}
         >
           New Channel
         </Link>

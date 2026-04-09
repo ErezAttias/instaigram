@@ -18,7 +18,7 @@ import { ProviderFailedError } from '../ai/retry';
 import { analyzeImageZones, type ZoneAnalysisResult } from './zone-analyzer';
 import { generateLayoutFirstImage, CANVAS, IMAGE_REGION, TEXT_BAR } from './layout-compositor';
 import { type ChannelVisualStyleContext, DEFAULT_VISUAL_STYLE } from './visual-style';
-import { getFontPairing, buildFontStyleBlock } from './font-pairings';
+import { getTitleFont, getBodyFont, buildFontStyleBlock } from './font-pairings';
 import { buildLogoCompositeInput } from './logo-compositor';
 
 // ─── Input / Output Types ────────────────────────────────────────
@@ -79,8 +79,8 @@ function buildSwipeCtaSvg(
 ): string {
   const ctaText = 'Swipe to learn why';
   const fontSize = 36; // match T2 font size
-  const textColor = '#B0B0B0'; // match T2 color
-  const lineColor = 'rgba(176,176,176,0.5)';
+  const textColor = '#D0D0D0'; // match T2 color
+  const lineColor = 'rgba(208,208,208,0.5)';
 
   // Estimate text width (~0.45em per char for Roboto Slab at regular weight)
   const textWidth = ctaText.length * fontSize * 0.45;
@@ -225,18 +225,19 @@ function buildTextZoneSvg(
 
     console.log(`[Layout] Headline bounds vs canvas bounds: line="${line.slice(0, 30)}..." left=${Math.round(leftEdge)} right=${Math.round(rightEdge)} canvas=0-${canvasWidth} textX=${Math.round(textX)}→${Math.round(lineTextX)}`);
 
-    const pairing = getFontPairing(style.fontPairingId);
-    const displayFontFamily = `'${pairing.display.family}', sans-serif`;
-    const bodyFontFamily = style.monoFont
-      ? `'${pairing.display.family}', sans-serif`
-      : `'${pairing.body.family}', serif`;
+    const titleFont = getTitleFont(style.titleFontId);
+    const bodyFont = getBodyFont(style.bodyFontId);
+    const displayFontFamily = `'${titleFont.family}', sans-serif`;
+    const bodyFontFamily = style.singleFont
+      ? `'${titleFont.family}', sans-serif`
+      : `'${bodyFont.family}', ${bodyFont.generic ?? 'serif'}`;
 
     if (instruction.zone === 'headline') {
       // Apply emphasis coloring to headline
       const emphasisColor = style.emphasisColor ?? colors.emphasis ?? COLOR_PALETTE.accentPrimary;
       const baseColor = style.headlineColor ?? instruction.color;
-      const spans = buildEmphasisSpans(line, baseColor, emphasisColor, fontSize, pairing.display.weight);
-      return `<text x="${lineTextX}" y="${yOffset}" text-anchor="${anchor}" font-size="${fontSize}" font-weight="${pairing.display.weight}" letter-spacing="${letterSpacing}" font-family="${displayFontFamily}" ${transform === 'uppercase' ? 'text-transform="uppercase"' : ''}>${spans}</text>`;
+      const spans = buildEmphasisSpans(line, baseColor, emphasisColor, fontSize, titleFont.weight);
+      return `<text x="${lineTextX}" y="${yOffset}" text-anchor="${anchor}" font-size="${fontSize}" font-weight="${titleFont.weight}" letter-spacing="${letterSpacing}" font-family="${displayFontFamily}" ${transform === 'uppercase' ? 'text-transform="uppercase"' : ''}>${spans}</text>`;
     }
 
     const fill = style.bodyColor ?? instruction.color;
@@ -260,8 +261,9 @@ function buildOverlaySvg(
 
   // Build strong dark gradient overlays — top and bottom — for crisp text readability
   // Strengthened: near-black at edges to guarantee white text is always readable
-  const pairing = getFontPairing(style.fontPairingId);
-  const fontStyleBlock = buildFontStyleBlock(pairing, style.monoFont);
+  const titleFont = getTitleFont(style.titleFontId);
+  const bodyFont = getBodyFont(style.bodyFontId);
+  const fontStyleBlock = buildFontStyleBlock(titleFont, bodyFont, style.singleFont);
   const gradientOverlay = `
     <defs>
       ${fontStyleBlock}
@@ -569,20 +571,21 @@ async function renderOpenerLayoutFirst(
   const title = input.displayTitle;
   const support = input.displaySupport;
 
-  const pairing = getFontPairing(style.fontPairingId);
-  const displayFontFamily = `'${pairing.display.family}', sans-serif`;
-  const bodyFontFamily = style.monoFont
-    ? `'${pairing.display.family}', sans-serif`
-    : `'${pairing.body.family}', serif`;
+  const titleFont = getTitleFont(style.titleFontId);
+  const bodyFont = getBodyFont(style.bodyFontId);
+  const displayFontFamily = `'${titleFont.family}', sans-serif`;
+  const bodyFontFamily = style.singleFont
+    ? `'${titleFont.family}', sans-serif`
+    : `'${bodyFont.family}', ${bodyFont.generic ?? 'serif'}`;
   const t1Color = style.headlineColor ?? '#FFFFFF';
-  const t2Color = style.bodyColor ?? '#B0B0B0';
+  const t2Color = style.bodyColor ?? '#D0D0D0';
   const emphasisColor = style.emphasisColor ?? COLOR_PALETTE.accentPrimary;
 
   const TEXT_PAD = 65;
-  const t1Size = 72;
-  const t1Weight = pairing.display.weight;
+  const t1Size = style.t1FontSizePx ?? 72;
+  const t1Weight = titleFont.weight;
   const t1LineHeight = 1.15;
-  const t2Size = 36;
+  const t2Size = style.t2FontSizePx ?? 36;
   const t2Weight = 400;
   const t2LineHeight = 1.5;
 
@@ -653,7 +656,7 @@ async function renderOpenerLayoutFirst(
   textElements.push(swipeCtaSvg);
 
   // Full-canvas gradient overlay — same as FACT slides
-  const fontStyleBlock = buildFontStyleBlock(pairing, style.monoFont);
+  const fontStyleBlock = buildFontStyleBlock(titleFont, bodyFont, style.singleFont);
   const gradientOverlay = `
     <defs>
       ${fontStyleBlock}

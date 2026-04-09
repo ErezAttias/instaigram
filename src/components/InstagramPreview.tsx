@@ -192,22 +192,30 @@ export default function InstagramPreview({
 
             {/* Navigation arrows */}
             {isMultiSlide && currentSlide > 0 && (
-              <button
+              <div
+                role="button"
+                tabIndex={0}
                 className="ig-nav-btn ig-nav-left"
+                style={{ width: 30, height: 30, borderRadius: '50%', background: 'rgba(255,255,255,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#262626', boxShadow: '0 2px 8px rgba(0,0,0,0.15)', cursor: 'pointer' }}
                 onClick={prev}
+                onKeyDown={(e) => e.key === 'Enter' && prev()}
                 aria-label="Previous slide"
               >
                 <ChevronLeftIcon />
-              </button>
+              </div>
             )}
             {isMultiSlide && currentSlide < totalSlides - 1 && (
-              <button
+              <div
+                role="button"
+                tabIndex={0}
                 className="ig-nav-btn ig-nav-right"
+                style={{ width: 30, height: 30, borderRadius: '50%', background: 'rgba(255,255,255,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#262626', boxShadow: '0 2px 8px rgba(0,0,0,0.15)', cursor: 'pointer' }}
                 onClick={next}
+                onKeyDown={(e) => e.key === 'Enter' && next()}
                 aria-label="Next slide"
               >
                 <ChevronRightIcon />
-              </button>
+              </div>
             )}
 
             {/* Slide counter (top right) */}
@@ -310,11 +318,23 @@ export default function InstagramPreview({
             {isMultiSlide && (
               <div className="ig-dots-row">
                 {slides.map((_, i) => (
-                  <button
+                  <div
                     key={i}
-                    className={`ig-dot ${i === currentSlide ? 'ig-dot-active' : ''}`}
+                    role="button"
+                    tabIndex={0}
                     onClick={() => goTo(i)}
+                    onKeyDown={(e) => e.key === 'Enter' && goTo(i)}
                     aria-label={`Go to slide ${i + 1}`}
+                    style={{
+                      width: 6,
+                      height: 6,
+                      borderRadius: '50%',
+                      flexShrink: 0,
+                      cursor: 'pointer',
+                      background: i === currentSlide ? 'var(--ig-dot-active, #0095f6)' : 'var(--ig-dot, #a8a8a8)',
+                      transform: i === currentSlide ? 'scale(1.15)' : 'scale(1)',
+                      transition: 'background-color 0.2s ease, transform 0.2s ease',
+                    }}
                   />
                 ))}
               </div>

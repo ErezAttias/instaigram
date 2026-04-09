@@ -244,12 +244,14 @@ export async function getPosts(channelId: string) {
     include: {
       slides: { orderBy: { slideIndex: 'asc' } },
       caption: true,
+      carouselJob: { select: { status: true } },
     },
   });
 
   // Ensure every V2 slide has display fields (defensive fallback)
   return posts.map(post => ({
     ...post,
+    carouselJobStatus: post.carouselJob?.status ?? null,
     slides: post.slides.map(slide => {
       if (slide.headline && !slide.displayTitle) {
         return {
@@ -261,4 +263,23 @@ export async function getPosts(channelId: string) {
       return slide;
     }),
   }));
+}
+
+export async function deletePost(postId: string) {
+  return prisma.$transaction(async (tx) => {
+    const post = await tx.post.findUnique({
+      where: { id: postId },
+      select: { carouselJobId: true },
+    });
+
+    // Delete carousel job and its slides first (carousel slides are children of carouselJob)
+    if (post?.carouselJobId) {
+      await tx.carouselJob.delete({ where: { id: post.carouselJobId } });
+    }
+
+    // Delete post children, then the post itself
+    await tx.slide.deleteMany({ where: { postId } });
+    await tx.caption.deleteMany({ where: { postId } });
+    await tx.post.delete({ where: { id: postId } });
+  });
 }

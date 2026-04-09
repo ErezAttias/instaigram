@@ -47,8 +47,8 @@ export const TYPOGRAPHY: Record<string, TypographyStyle> = {
   body: {
     role: 'body',
     fontSize: 36,
-    fontWeight: 400,
-    lineHeight: 1.6,
+    fontWeight: 500,
+    lineHeight: 1.3,
     letterSpacing: 0,
     textTransform: 'none',
     color: COLOR_PALETTE.textSecondary,

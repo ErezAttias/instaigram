@@ -46,7 +46,7 @@ export function ChannelGrid({ channels, onDelete }: { channels: Channel[]; onDel
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map((channel, i) => (
-            <div key={channel.id} className={`animate-fade-up stagger-${Math.min(i + 1, 8)}`}>
+            <div key={channel.id} className={`animate-fade-up stagger-${Math.min(i + 1, 8)} h-full`}>
               <ChannelCard {...channel} onDelete={onDelete} />
             </div>
           ))}

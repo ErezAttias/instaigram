@@ -1,10 +1,17 @@
 'use client'
 
+const IG_GRADIENT = 'linear-gradient(135deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888)'
+const IG_GLOW = '0 0 20px rgba(220,39,67,0.35)'
+
 import { useEffect, useState, useCallback, useRef, useLayoutEffect } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import InstagramPreview from '@/components/InstagramPreview'
 import '@/components/instagram-preview.css'
+import { TITLE_FONTS, BODY_FONTS, getTitleFont } from '@/lib/visual/font-pairings-data'
+import type { ChannelVisualStyleContext } from '@/lib/visual/visual-style'
+import { DEFAULT_VISUAL_STYLE } from '@/lib/visual/visual-style'
+import { SlidePreview } from '@/components/admin/visual/SlidePreview'
 
 interface NicheOption {
   id: string
@@ -26,6 +33,7 @@ interface Post {
   type: string
   status: string
   carouselJobId: string | null
+  carouselJobStatus: string | null
 }
 
 interface ContentStrategy {
@@ -39,13 +47,19 @@ interface ContentStrategy {
   audienceSize?: number
 }
 
+interface ContentPillarsData {
+  channelTone: string
+  channelAudience: string
+  pillars: ContentStrategy[]
+}
+
 interface Channel {
   id: string
   name: string
   niche: string | null
   nicheMode: 'DISCOVER' | 'EXPLORE' | 'DIRECT'
   exploreTopic: string | null
-  contentStrategy: ContentStrategy | null
+  contentStrategy: ContentStrategy | ContentPillarsData | null
   status: string
   nicheOptions: NicheOption[]
   posts: Post[]
@@ -70,12 +84,12 @@ const REGENERATE_INTENTS: { value: RegenerateIntent; label: string }[] = [
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
   DRAFT: { label: 'Draft', color: 'text-muted-light', bg: 'bg-surface-elevated' },
-  NICHE_SELECTED: { label: 'Niche selected', color: 'text-accent', bg: 'bg-accent-dim' },
+  NICHE_SELECTED: { label: 'Niche selected', color: 'text-[#6b9fcc]', bg: 'bg-[#3d6fa8]/10' },
   STRATEGY_DEFINED: { label: 'Strategy defined', color: 'text-violet', bg: 'bg-violet-dim' },
   NAMED: { label: 'Named', color: 'text-violet', bg: 'bg-violet-dim' },
   HOOKS_GENERATED: { label: 'Hooks ready', color: 'text-[#60a5fa]', bg: 'bg-[rgba(96,165,250,0.1)]' },
-  CONTENT_GENERATED: { label: 'Content ready', color: 'text-success', bg: 'bg-success-dim' },
-  COMPLETE: { label: 'Complete', color: 'text-success', bg: 'bg-success-dim' },
+  CONTENT_GENERATED: { label: 'Content ready', color: 'text-[#6b9fcc]', bg: 'bg-[#3d6fa8]/10' },
+  COMPLETE: { label: 'Complete', color: 'text-[#6b9fcc]', bg: 'bg-[#3d6fa8]/10' },
 }
 
 const MODE_LABELS: Record<string, string> = {
@@ -104,15 +118,13 @@ function SidebarStepper({ currentStep }: { currentStep: number }) {
           <div key={label}>
             {i > 0 && (
               <div className="w-8 flex justify-center">
-                <div className={`w-px h-3 ${connectorDone ? 'bg-accent/40' : 'bg-border'}`} />
+                <div className={`w-px h-3 ${connectorDone ? 'bg-[#3d6fa8]/40' : 'bg-border'}`} />
               </div>
             )}
             <div className="flex items-center gap-3">
               <div
-                className={`
-                  w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold flex-none transition-all duration-300
-                  ${done ? 'bg-success/15 text-success' : active ? 'bg-accent text-background shadow-[0_0_20px_var(--accent-glow)]' : 'bg-surface-elevated text-muted border border-border'}
-                `}
+                className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold flex-none transition-all duration-300 ${done ? 'bg-[#3d6fa8]/15 text-[#6b9fcc]' : active ? 'text-white' : 'bg-surface-elevated text-muted border border-border'}`}
+                style={active ? { background: IG_GRADIENT, boxShadow: IG_GLOW } : undefined}
               >
                 {done ? (
                   <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -128,7 +140,7 @@ function SidebarStepper({ currentStep }: { currentStep: number }) {
             </div>
             {i < STEP_LABELS.length - 1 && (
               <div className="w-8 flex justify-center">
-                <div className={`w-px h-3 ${done ? 'bg-accent/40' : 'bg-border'}`} />
+                <div className={`w-px h-3 ${done ? 'bg-[#3d6fa8]/40' : 'bg-border'}`} />
               </div>
             )}
           </div>
@@ -149,10 +161,8 @@ function HorizontalStepper({ currentStep }: { currentStep: number }) {
         return (
           <div key={label} className={`flex items-center gap-1.5 ${active ? 'flex-shrink-0' : 'shrink'} min-w-0`}>
             <div
-              className={`
-                w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold transition-all shrink-0
-                ${done ? 'bg-success/15 text-success' : active ? 'bg-accent text-background' : 'bg-surface-elevated text-muted border border-border'}
-              `}
+              className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold transition-all shrink-0 ${done ? 'bg-[#3d6fa8]/15 text-[#6b9fcc]' : active ? 'text-white' : 'bg-surface-elevated text-muted border border-border'}`}
+              style={active ? { background: IG_GRADIENT } : undefined}
             >
               {done ? (
                 <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -164,7 +174,7 @@ function HorizontalStepper({ currentStep }: { currentStep: number }) {
             </div>
             <span className={`text-sm font-medium truncate ${active ? 'text-foreground' : 'text-muted'}`}>{label}</span>
             {i < STEP_LABELS.length - 1 && (
-              <div className={`w-4 shrink-0 h-px mx-1 ${done ? 'bg-accent/40' : 'bg-border'}`} />
+              <div className={`w-4 shrink-0 h-px mx-1 ${done ? 'bg-[#3d6fa8]/40' : 'bg-border'}`} />
             )}
           </div>
         )
@@ -194,7 +204,8 @@ function PrimaryButton({
     <button
       onClick={onClick}
       disabled={disabled || loading}
-      className={`px-5 py-2.5 bg-accent hover:bg-accent-hover text-background rounded-xl text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed shadow-[0_0_16px_var(--accent-glow)] hover:shadow-[0_0_24px_var(--accent-glow)] transition-all${className ? ` ${className}` : ''}`}
+      className={`px-5 py-2.5 text-white rounded-full text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed transition-all hover:opacity-90 active:scale-[0.98]${className ? ` ${className}` : ''}`}
+      style={{ background: IG_GRADIENT, boxShadow: IG_GLOW }}
     >
       {loading ? (
         <span className="flex items-center gap-2">
@@ -223,10 +234,10 @@ function GhostButton({
     <button
       onClick={onClick}
       disabled={disabled}
-      className={`px-4 py-2 border rounded-xl text-sm font-medium transition-all duration-200 disabled:opacity-40 ${
+      className={`px-4 py-2 border rounded-xl text-sm font-semibold transition-all duration-200 disabled:opacity-40 ${
         active
-          ? 'border-accent/30 bg-accent-dim text-foreground'
-          : 'border-border hover:border-accent/30 hover:bg-accent-dim/50'
+          ? 'border-[#3d6fa8]/30 bg-[#3d6fa8]/10 text-foreground'
+          : 'border-border hover:border-[#3d6fa8]/25 hover:bg-[#3d6fa8]/8'
       }${className ? ` ${className}` : ''}`}
     >
       {children}
@@ -268,7 +279,7 @@ function Section({
         completed
           ? 'border-border/60 bg-surface/70 opacity-80 hover:opacity-100 hover:border-border-hover'
           : active
-            ? 'border-border bg-surface hover:border-border-hover border-l-2 border-l-accent'
+            ? 'border-border bg-surface hover:border-border-hover'
             : 'border-border bg-surface hover:border-border-hover'
       } ${collapsed ? 'px-6 py-4 lg:px-8' : compact ? 'p-5' : 'p-6 lg:p-8'} relative`}
       style={delay ? { animationDelay: `${delay}ms` } : undefined}
@@ -334,13 +345,18 @@ export default function ChannelDashboard() {
   const [expandedPosts, setExpandedPosts] = useState<Set<string>>(new Set())
   const [slideViewerIndex, setSlideViewerIndex] = useState<Record<string, number>>({})
   const [dbPostSlides, setDbPostSlides] = useState<Record<string, Array<{ slideIndex: number; role: string; headline: string | null; body: string | null; displayTitle: string | null; displaySupport: string | null; imageUrl: string | null }>>>({})
-  const [dbPostCaptions, setDbPostCaptions] = useState<Record<string, { caption: string | null; hashtags: string[] }>>({})
+  const [dbPostCaptions, setDbPostCaptions] = useState<Record<string, { caption: string | null; article: string | null; hashtags: string[] }>>({})
   const [dbPostSlidesLoading, setDbPostSlidesLoading] = useState<Set<string>>(new Set())
   const [previewMode, setPreviewMode] = useState<Set<string>>(new Set())
-  const [regenLoading, setRegenLoading] = useState<Record<string, string | null>>({}) // postId -> mode ('copy'|'image'|'full') or null
+  const [regenLoading, setRegenLoading] = useState<Record<string, string | null>>({})
+  const [restyleLoading, setRestyleLoading] = useState<Set<string>>(new Set()) // postId -> mode ('copy'|'image'|'full') or null
 
   // ─── Content Strategy state ─────────────────────────────────
   const [strategyOptions, setStrategyOptions] = useState<ContentStrategy[]>([])
+  const [channelTone, setChannelTone] = useState<string>('')
+  const [channelAudience, setChannelAudience] = useState<string>('')
+  // Indices of selected pillars — all selected by default when options load
+  const [selectedPillarIndices, setSelectedPillarIndices] = useState<Set<number>>(new Set())
   // Legacy single-strategy compat (kept for auto-approve flow)
   const [generatedStrategy, setGeneratedStrategy] = useState<ContentStrategy | null>(null)
   const [editingStrategy, setEditingStrategy] = useState<ContentStrategy | null>(null)
@@ -366,11 +382,20 @@ export default function ChannelDashboard() {
   const postAbortRef = useRef<AbortController | null>(null)
   const carouselPollRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
+  // Derived: which carousel job is currently pipeline-rendering (null when idle)
+  const generatingCarouselJobId = isStreamingPosts ? (carouselProgress?.carouselJobId ?? null) : null
+
   // ─── Optional naming state ──────────────────────────────────
   const [showNaming, setShowNaming] = useState(false)
   const [nameSuggestions, setNameSuggestions] = useState<NameSuggestion[]>([])
   const [customName, setCustomName] = useState('')
   const [selectedNameStyle, setSelectedNameStyle] = useState<NameStyle | null>(null)
+
+  // ─── Visual style state ──────────────────────────────────────
+  const [visualStyle, setVisualStyle] = useState<ChannelVisualStyleContext>(DEFAULT_VISUAL_STYLE)
+  const [showStyleEditor, setShowStyleEditor] = useState(false)
+  const [styleSaving, setStyleSaving] = useState(false)
+  const [styleSaveNotice, setStyleSaveNotice] = useState<string | null>(null)
 
   const fetchChannel = useCallback(async () => {
     try {
@@ -392,6 +417,119 @@ export default function ChannelDashboard() {
     fetchChannel()
   }, [fetchChannel])
 
+  const fetchVisualStyle = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/admin/channels/${channelId}/visual-style`)
+      if (!res.ok) return
+      const data = await res.json()
+      setVisualStyle(data)
+    } catch { /* keep defaults */ }
+  }, [channelId])
+
+  useEffect(() => {
+    fetchVisualStyle()
+  }, [fetchVisualStyle])
+
+  async function handleSaveVisualStyle() {
+    setStyleSaving(true)
+    try {
+      const res = await fetch(`/api/admin/channels/${channelId}/visual-style`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(visualStyle),
+      })
+      if (!res.ok) throw new Error('Failed to save style')
+      const titleFont = getTitleFont(visualStyle.titleFontId)
+      setStyleSaveNotice(`Slide style updated · New posts will use ${titleFont.label}`)
+      setTimeout(() => setStyleSaveNotice(null), 4000)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to save style')
+    } finally {
+      setStyleSaving(false)
+    }
+  }
+
+  async function handleRestyleAllSlides(postId: string, carouselJobId: string) {
+    setRestyleLoading(prev => new Set(prev).add(postId))
+    try {
+      const res = await fetch(`/api/carousel/${carouselJobId}/restyle-all`, { method: 'POST' })
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.error || 'Failed to restyle slides')
+      }
+      // Reload slides so the new images show
+      await fetchCarouselSlides(postId, carouselJobId)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Restyle failed')
+    } finally {
+      setRestyleLoading(prev => { const n = new Set(prev); n.delete(postId); return n })
+    }
+  }
+
+  const [retryLoading, setRetryLoading] = useState<Set<string>>(new Set())
+  const [retryProgress, setRetryProgress] = useState<Record<string, { message: string; pct: number }>>({})
+
+  async function handleRetryCarousel(postId: string, carouselJobId: string) {
+    setRetryLoading(prev => new Set(prev).add(postId))
+    setRetryProgress(prev => ({ ...prev, [postId]: { message: 'Starting…', pct: 0 } }))
+
+    // Open SSE stream to show live progress while the generation runs
+    const es = new EventSource(`/api/carousel/${carouselJobId}/status`)
+    es.onmessage = (e) => {
+      try {
+        const data = JSON.parse(e.data)
+        setRetryProgress(prev => ({
+          ...prev,
+          [postId]: { message: data.message || data.step || 'Working…', pct: data.pct ?? 0 },
+        }))
+      } catch {}
+    }
+
+    try {
+      const res = await fetch(`/api/carousel/${carouselJobId}/regenerate-full`, { method: 'POST' })
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.error || 'Retry failed')
+      }
+      // Mark job as COMPLETE in local state so the Failed badge clears
+      setChannel(prev => {
+        if (!prev) return prev
+        return {
+          ...prev,
+          posts: prev.posts.map(p =>
+            p.id === postId ? { ...p, carouselJobStatus: 'COMPLETE' } : p
+          ),
+        }
+      })
+      // Clear any previously cached slides and reload fresh ones
+      setDbPostSlides(prev => { const n = { ...prev }; delete n[postId]; return n })
+      await fetchCarouselSlides(postId, carouselJobId)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Retry failed')
+    } finally {
+      es.close()
+      setRetryLoading(prev => { const n = new Set(prev); n.delete(postId); return n })
+      setRetryProgress(prev => { const n = { ...prev }; delete n[postId]; return n })
+    }
+  }
+
+  const [deletingPostId, setDeletingPostId] = useState<string | null>(null)
+
+  async function handleDeletePost(postId: string) {
+    if (!confirm('Delete this post and its carousel? This cannot be undone.')) return
+    setDeletingPostId(postId)
+    try {
+      const res = await fetch(`/api/posts/${postId}`, { method: 'DELETE' })
+      if (!res.ok) throw new Error('Failed to delete post')
+      // Remove from local state
+      setChannel(prev => prev ? { ...prev, posts: prev.posts.filter(p => p.id !== postId) } : prev)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Delete failed')
+    } finally {
+      setDeletingPostId(null)
+    }
+  }
+
   // Auto-start niche discovery for DISCOVER mode (no idle "Generate niches" click needed)
   const autoStartedRef = useRef(false)
   const nicheScrollRef = useRef<HTMLDivElement>(null)
@@ -408,6 +546,8 @@ export default function ChannelDashboard() {
   useEffect(() => {
     const el = nicheScrollRef.current
     if (!el) return
+    // Reset to start whenever niches change (new batch loaded)
+    el.scrollLeft = 0
     updateScrollArrows()
     el.addEventListener('scroll', updateScrollArrows, { passive: true })
     const ro = new ResizeObserver(updateScrollArrows)
@@ -524,6 +664,9 @@ export default function ChannelDashboard() {
     setActionLoading('generate-strategy')
     setError('')
     setStrategyOptions([])
+    setChannelTone('')
+    setChannelAudience('')
+    setSelectedPillarIndices(new Set())
     setGeneratedStrategy(null)
     setIsEditingStrategy(false)
     try {
@@ -536,13 +679,17 @@ export default function ChannelDashboard() {
         throw new Error(data.error || 'Failed to generate strategy')
       }
       const result = await res.json()
-      // New: returns array of strategies
+      let strategies: ContentStrategy[] = []
       if (result.strategies && Array.isArray(result.strategies)) {
-        setStrategyOptions(result.strategies)
+        strategies = result.strategies
       } else if (result.strategy) {
-        // Legacy fallback
-        setStrategyOptions([result.strategy])
+        strategies = [result.strategy]
       }
+      setStrategyOptions(strategies)
+      // Pre-select all pillars
+      setSelectedPillarIndices(new Set(strategies.map((_, i) => i)))
+      if (result.channelTone) setChannelTone(result.channelTone)
+      if (result.channelAudience) setChannelAudience(result.channelAudience)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Strategy generation failed')
     } finally {
@@ -550,6 +697,55 @@ export default function ChannelDashboard() {
     }
   }
 
+  function handleTogglePillar(index: number) {
+    setSelectedPillarIndices(prev => {
+      const next = new Set(prev)
+      if (next.has(index)) {
+        // Keep at least 1 selected
+        if (next.size > 1) next.delete(index)
+      } else {
+        next.add(index)
+      }
+      return next
+    })
+  }
+
+  async function handleApprovePillars() {
+    const selectedPillars = strategyOptions.filter((_, i) => selectedPillarIndices.has(i))
+    if (selectedPillars.length === 0) return
+    setActionLoading('approve-strategy')
+    setError('')
+    try {
+      const res = await fetch(`/api/channels/${channelId}/approve-content-strategy`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          pillars: selectedPillars,
+          channelTone: channelTone || undefined,
+          channelAudience: channelAudience || undefined,
+        }),
+      })
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.error || 'Failed to approve strategy')
+      }
+      setStrategyOptions([])
+      setSelectedPillarIndices(new Set())
+      setGeneratedStrategy(null)
+      setEditingStrategy(null)
+      setIsEditingStrategy(false)
+      await fetchChannel()
+      setActionLoading(null)
+      // Auto-advance: start generating first post after strategy is approved
+      setTimeout(() => handleGenerateBatch(), 100)
+      return
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to approve strategy')
+      setActionLoading(null)
+    }
+  }
+
+  // Legacy compat
   async function handleSelectStrategy(strategy: ContentStrategy) {
     setActionLoading('approve-strategy')
     setError('')
@@ -569,8 +765,6 @@ export default function ChannelDashboard() {
       setIsEditingStrategy(false)
       await fetchChannel()
       setActionLoading(null)
-      // Auto-advance: start generating first post after strategy is approved
-      // Use setTimeout to ensure state updates have flushed before starting
       setTimeout(() => handleGenerateBatch(), 100)
       return
     } catch (err) {
@@ -579,7 +773,6 @@ export default function ChannelDashboard() {
     }
   }
 
-  // Legacy compat
   async function handleApproveStrategy() {
     const strategy = isEditingStrategy ? editingStrategy : generatedStrategy
     if (!strategy) return
@@ -844,7 +1037,7 @@ export default function ChannelDashboard() {
         }))
         setDbPostCaptions(prev => ({
           ...prev,
-          [postId]: { caption: data.caption || null, hashtags: data.hashtags || [] },
+          [postId]: { caption: data.caption || null, article: data.article || null, hashtags: data.hashtags || [] },
         }))
       }
     } catch {
@@ -927,6 +1120,20 @@ export default function ChannelDashboard() {
   const hasStrategy = !!channel.contentStrategy
   const hasPosts = channel.posts.length > 0
 
+  // Normalize channel.contentStrategy to pillars format for display
+  const approvedPillars: ContentStrategy[] = (() => {
+    const cs = channel.contentStrategy
+    if (!cs) return []
+    if ('pillars' in cs && Array.isArray(cs.pillars)) return cs.pillars
+    return [cs as ContentStrategy]
+  })()
+  const approvedChannelTone: string = (() => {
+    const cs = channel.contentStrategy
+    if (!cs) return ''
+    if ('channelTone' in cs) return (cs as ContentPillarsData).channelTone
+    return (cs as ContentStrategy).tone
+  })()
+
   return (
     <div className="animate-fade-up">
       <div className="flex gap-8 xl:gap-10">
@@ -942,7 +1149,7 @@ export default function ChannelDashboard() {
                   className="flex items-center gap-2 group"
                 >
                   <span className="text-xl font-bold tracking-tight text-muted italic border-b border-dashed border-muted/40 leading-tight">Untitled channel</span>
-                  <span className="text-xs font-semibold text-accent opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">+ Name it</span>
+                  <span className="text-xs font-semibold text-[#6b9fcc] opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">+ Name it</span>
                 </button>
               </div>
             ) : (
@@ -957,12 +1164,12 @@ export default function ChannelDashboard() {
           <SidebarStepper currentStep={effectiveStep} />
 
           {/* Bottom links */}
-          <div className="mt-8 pt-6 border-t border-border space-y-2">
+          <div className="mt-8 pt-6 border-t border-border space-y-1">
             {hasPosts && (
               <>
                 <Link
                   href={`/channels/${channelId}/posts`}
-                  className="flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-muted-light hover:text-foreground hover:bg-surface-elevated rounded-xl transition-all"
+                  className="flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-muted-light hover:text-foreground hover:bg-surface-elevated rounded-xl transition-all w-full"
                 >
                   <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                     <rect x="2" y="2" width="12" height="12" rx="2" />
@@ -972,7 +1179,7 @@ export default function ChannelDashboard() {
                 </Link>
                 <Link
                   href={`/channels/${channelId}/validation`}
-                  className="flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-muted-light hover:text-foreground hover:bg-surface-elevated rounded-xl transition-all"
+                  className="flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-muted-light hover:text-foreground hover:bg-surface-elevated rounded-xl transition-all w-full"
                 >
                   <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M13.5 4.5L6 12L2.5 8.5" />
@@ -985,7 +1192,7 @@ export default function ChannelDashboard() {
             {hasStrategy && (
               <button
                 onClick={() => setShowNaming(!showNaming)}
-                className="flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-muted-light hover:text-foreground hover:bg-surface-elevated rounded-xl transition-all w-full text-left"
+                className={`flex items-center gap-2 px-3 py-2.5 text-sm font-medium rounded-xl transition-all w-full text-left ${showNaming ? 'bg-surface-elevated text-foreground' : 'text-muted-light hover:text-foreground hover:bg-surface-elevated'}`}
               >
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M3 13h2l8-8-2-2-8 8v2z" />
@@ -994,6 +1201,20 @@ export default function ChannelDashboard() {
                 {channel.name !== 'Untitled Channel' ? 'Rename channel' : 'Name channel'}
               </button>
             )}
+            {/* Visual style — always accessible */}
+            <button
+              onClick={() => setShowStyleEditor(!showStyleEditor)}
+              className={`flex items-center gap-2 px-3 py-2.5 text-sm font-medium rounded-xl transition-all w-full text-left ${showStyleEditor ? 'bg-surface-elevated text-foreground' : 'text-muted-light hover:text-foreground hover:bg-surface-elevated'}`}
+            >
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="8" cy="8" r="5.5" />
+                <circle cx="5" cy="6" r="1" fill="currentColor" stroke="none" />
+                <circle cx="8" cy="4.5" r="1" fill="currentColor" stroke="none" />
+                <circle cx="11" cy="6" r="1" fill="currentColor" stroke="none" />
+              </svg>
+              <span className="whitespace-nowrap">Slide style</span>
+              <span className="ml-auto text-xs text-muted truncate min-w-0">{getTitleFont(visualStyle.titleFontId).label}</span>
+            </button>
           </div>
         </aside>
 
@@ -1009,7 +1230,7 @@ export default function ChannelDashboard() {
                   className="flex items-baseline gap-2"
                 >
                   <span className="text-2xl font-bold tracking-tight text-muted italic border-b border-dashed border-muted/40">Untitled channel</span>
-                  <span className="text-xs font-semibold text-accent whitespace-nowrap">+ Name it</span>
+                  <span className="text-xs font-semibold text-[#6b9fcc] whitespace-nowrap">+ Name it</span>
                 </button>
               </div>
             ) : (
@@ -1038,8 +1259,8 @@ export default function ChannelDashboard() {
             defaultCollapsed={effectiveStep > 0 && niches.length > 0 && niches.some(n => n.selected)}
             collapsedSummary={
               <div className="flex items-center gap-3">
-                <div className="w-7 h-7 rounded-full bg-success/15 flex items-center justify-center shrink-0">
-                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-success">
+                <div className="w-7 h-7 rounded-full bg-[#3d6fa8]/15 flex items-center justify-center shrink-0">
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[#6b9fcc]">
                     <path d="M2.5 7.5L5.5 10.5L11.5 3.5" />
                   </svg>
                 </div>
@@ -1073,8 +1294,8 @@ export default function ChannelDashboard() {
                 </div>
               ) : niches.length === 0 && actionLoading === 'generate-niches' ? (
                 /* Auto-generating — show spinner only, no button */
-                <span className="flex items-center gap-2 text-sm text-accent font-medium">
-                  <span className="w-4 h-4 border-2 border-accent/30 border-t-accent rounded-full animate-spin" />
+                <span className="flex items-center gap-2 text-sm text-[#6b9fcc] font-medium">
+                  <span className="w-4 h-4 border-2 border-[#3d6fa8]/30 border-t-[#6b9fcc] rounded-full animate-spin" />
                   Discovering...
                 </span>
               ) : niches.length > 0 && effectiveStep > 0 ? (
@@ -1128,14 +1349,14 @@ export default function ChannelDashboard() {
               <div>
                 {/* Single niche (Direct mode) — inline banner */}
                 {niches.length === 1 ? (
-                  <div className={`animate-fade-up border rounded-2xl p-5 ${niches[0].selected ? 'border-accent/30 bg-accent-dim/50' : 'border-border bg-background'}`}>
+                  <div className={`animate-fade-up border rounded-2xl p-5 ${niches[0].selected ? 'border-[#3d6fa8]/40 bg-[#3d6fa8]/10' : 'border-border bg-background'}`}>
                     <div className="flex items-start justify-between gap-4 mb-3">
                       <div className="flex-1 min-w-0">
                         <h3 className="text-base font-semibold mb-1">{niches[0].title}</h3>
                         <p className="text-sm text-muted-light leading-relaxed max-w-prose">{niches[0].description}</p>
                       </div>
                       {niches[0].selected && (
-                        <span className="text-xs font-semibold text-accent bg-accent/10 px-2.5 py-1 rounded-lg shrink-0">Selected</span>
+                        <span className="text-xs font-semibold text-white px-2.5 py-1 rounded-lg shrink-0" style={{ background: 'linear-gradient(135deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888)' }}>Selected</span>
                       )}
                     </div>
                     {niches[0].rationale && (
@@ -1172,8 +1393,8 @@ export default function ChannelDashboard() {
                         className={`
                           animate-fade-up snap-start shrink-0 w-[300px] lg:w-[320px] text-left border rounded-2xl p-5 transition-all duration-200 flex flex-col disabled:opacity-100
                           ${niche.selected
-                            ? 'border-accent/40 bg-accent-dim'
-                            : 'border-border bg-background hover:border-accent/40 hover:bg-accent-dim/30'
+                            ? 'border-[#3d6fa8]/40 bg-[#3d6fa8]/10'
+                            : 'border-border bg-background hover:border-[#3d6fa8]/25 hover:bg-[#3d6fa8]/8'
                           }
                         `}
                         style={{ animationDelay: `${i * 60}ms` }}
@@ -1181,7 +1402,7 @@ export default function ChannelDashboard() {
                         <div className="flex items-center justify-between gap-2 mb-2">
                           <h3 className="text-base font-semibold leading-tight">{niche.title}</h3>
                           {niche.selected && (
-                            <span className="text-xs font-semibold text-accent bg-accent/10 px-2.5 py-1 rounded-lg shrink-0">Selected</span>
+                            <span className="text-xs font-semibold text-white px-2.5 py-1 rounded-lg shrink-0" style={{ background: IG_GRADIENT }}>Selected</span>
                           )}
                         </div>
                         <p className="text-sm text-muted-light leading-relaxed flex-1">{niche.description}</p>
@@ -1192,7 +1413,7 @@ export default function ChannelDashboard() {
                     {niches.map((niche) => (
                       <div
                         key={niche.id}
-                        className={`w-1.5 h-1.5 rounded-full transition-colors duration-200 ${niche.selected ? 'bg-accent' : 'bg-border'}`}
+                        className={`w-1.5 h-1.5 rounded-full transition-colors duration-200 ${niche.selected ? 'bg-[#3d6fa8]' : 'bg-border'}`}
                       />
                     ))}
                   </div>
@@ -1233,16 +1454,14 @@ export default function ChannelDashboard() {
               defaultCollapsed={effectiveStep > 1}
               collapsedSummary={
                 <div className="flex items-center gap-3">
-                  <div className="w-7 h-7 rounded-full bg-success/15 flex items-center justify-center shrink-0">
-                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-success">
+                  <div className="w-7 h-7 rounded-full bg-[#3d6fa8]/15 flex items-center justify-center shrink-0">
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[#6b9fcc]">
                       <path d="M2.5 7.5L5.5 10.5L11.5 3.5" />
                     </svg>
                   </div>
                   <div className="min-w-0">
                     <span className="text-sm font-semibold text-muted-light">Content Strategy</span>
-                    {channel.contentStrategy && (
-                      <span className="text-sm text-muted ml-2">— {channel.contentStrategy.contentIntent}</span>
-                    )}
+                    <span className="text-sm text-muted ml-2">— {approvedPillars.length} pillar{approvedPillars.length !== 1 ? 's' : ''} · {approvedChannelTone}</span>
                   </div>
                 </div>
               }
@@ -1253,12 +1472,18 @@ export default function ChannelDashboard() {
                   Redefine
                 </GhostButton>
               </div>
-              {channel.contentStrategy && (
-                <div className="space-y-2">
-                  <p className="text-sm text-foreground font-medium">{channel.contentStrategy.contentIntent}</p>
+              {approvedPillars.length > 0 && (
+                <div className="space-y-3">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-xs font-medium text-accent bg-accent-dim px-2.5 py-1 rounded-lg">{channel.contentStrategy.tone}</span>
-                    <span className="text-xs font-medium text-muted-light bg-surface-elevated px-2.5 py-1 rounded-lg border border-border">{channel.contentStrategy.audience}</span>
+                    <span className="text-xs font-medium text-[#6b9fcc] bg-[#3d6fa8]/10 px-2.5 py-1 rounded-lg">{approvedChannelTone}</span>
+                    <span className="text-xs font-medium text-muted-light bg-surface-elevated px-2.5 py-1 rounded-lg border border-border">{approvedPillars.length} content pillars</span>
+                  </div>
+                  <div className="space-y-1.5">
+                    {approvedPillars.map((p, i) => (
+                      <p key={i} className="text-sm text-muted-light leading-snug">
+                        <span className="text-muted font-medium">#{i + 1}</span> {p.contentIntent}
+                      </p>
+                    ))}
                   </div>
                 </div>
               )}
@@ -1269,7 +1494,7 @@ export default function ChannelDashboard() {
                 <div>
                   <h2 className="text-xl font-bold tracking-tight">Content strategy</h2>
                   {strategyOptions.length > 0 && (
-                    <p className="text-sm text-muted-light mt-1">Pick the direction that fits your channel best.</p>
+                    <p className="text-sm text-muted-light mt-1">All 3 pillars are active — deselect any you don&apos;t want.</p>
                   )}
                 </div>
                 {strategyOptions.length === 0 && (
@@ -1280,23 +1505,39 @@ export default function ChannelDashboard() {
                     loadingText="Generating..."
                     className="self-start"
                   >
-                    Generate options
+                    Generate pillars
                   </PrimaryButton>
                 )}
               </div>
 
-              {/* Strategy option cards */}
+              {/* Pillar cards — all selected by default, tap to toggle */}
               {strategyOptions.length > 0 && (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {strategyOptions.map((strategy, i) => (
+                  {strategyOptions.map((strategy, i) => {
+                    const isSelected = selectedPillarIndices.has(i)
+                    return (
                     <button
                       key={i}
-                      onClick={() => handleSelectStrategy(strategy)}
+                      onClick={() => handleTogglePillar(i)}
                       disabled={actionLoading === 'approve-strategy'}
-                      className="animate-fade-up text-left border border-border bg-background rounded-2xl p-6 transition-all duration-200 hover:border-accent/40 hover:bg-accent-dim/30 disabled:opacity-40 flex flex-col gap-4"
+                      className={`animate-fade-up text-left rounded-2xl p-6 transition-all duration-200 disabled:opacity-40 flex flex-col gap-4 relative ${
+                        isSelected
+                          ? 'border-2 border-[#3d6fa8]/50 bg-[#3d6fa8]/10'
+                          : 'border border-border bg-background hover:border-[#3d6fa8]/25 hover:bg-[#3d6fa8]/8'
+                      }`}
                       style={{ animationDelay: `${i * 80}ms` }}
                     >
-                      <p className="text-base font-semibold text-foreground leading-snug">{strategy.contentIntent}</p>
+                      {/* Checkmark */}
+                      <div
+                        className={`absolute top-4 right-4 w-5 h-5 rounded-full flex items-center justify-center transition-all duration-150 ${isSelected ? 'bg-[#3d6fa8] text-white' : 'border border-border bg-background'}`}
+                      >
+                        {isSelected && (
+                          <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M1.5 5.5L4 8L8.5 2" />
+                          </svg>
+                        )}
+                      </div>
+                      <p className="text-base font-semibold text-foreground leading-snug pr-7">{strategy.contentIntent}</p>
                       <div className="flex flex-wrap gap-1.5">
                         <span className="text-xs font-medium text-muted-light bg-surface-elevated border border-border px-2 py-0.5 rounded-lg">{strategy.tone}</span>
                       </div>
@@ -1323,20 +1564,26 @@ export default function ChannelDashboard() {
                           )}
                         </div>
                       )}
-                      {actionLoading !== 'approve-strategy' && (
-                        <p className="text-xs text-muted/50 text-center pt-1">Tap to select</p>
-                      )}
                     </button>
-                  ))}
+                    )
+                  })}
                 </div>
               )}
 
-              {/* Regenerate options button — anchored below cards */}
+              {/* CTA + Regenerate — anchored below cards */}
               {strategyOptions.length > 0 && (
-                <div className="flex justify-center pt-4">
+                <div className="flex items-center justify-between pt-4">
                   <GhostButton onClick={handleGenerateStrategy} disabled={actionLoading !== null}>
-                    Regenerate options
+                    Regenerate pillars
                   </GhostButton>
+                  <PrimaryButton
+                    onClick={handleApprovePillars}
+                    disabled={actionLoading !== null || selectedPillarIndices.size === 0}
+                    loading={actionLoading === 'approve-strategy'}
+                    loadingText="Saving..."
+                  >
+                    Set my pillars ({selectedPillarIndices.size})
+                  </PrimaryButton>
                 </div>
               )}
 
@@ -1357,6 +1604,149 @@ export default function ChannelDashboard() {
           )}
 
           {/* ═══════════════════════════════════════════════════════
+              Slide Style — always accessible after channel exists
+              ═══════════════════════════════════════════════════════ */}
+          {showStyleEditor && (
+            <Section delay={175}>
+              <div className="flex items-start justify-between gap-3 mb-6">
+                <div>
+                  <h2 className="text-xl font-bold tracking-tight">Slide style</h2>
+                  <p className="text-sm text-muted-light mt-1">Applies to new posts. Existing carousel images are unchanged.</p>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <PrimaryButton
+                    onClick={handleSaveVisualStyle}
+                    loading={styleSaving}
+                    loadingText="Saving..."
+                    disabled={styleSaving}
+                  >
+                    Save style
+                  </PrimaryButton>
+                  <GhostButton onClick={() => setShowStyleEditor(false)} disabled={false}>
+                    Close
+                  </GhostButton>
+                </div>
+              </div>
+
+              {/* Two-column: controls + live preview */}
+              <div className="flex flex-col lg:flex-row gap-8">
+                {/* Controls */}
+                <div className="flex-1 space-y-6">
+                  {/* Fonts */}
+                  <div className="space-y-4">
+                    <h3 className="text-sm font-semibold text-foreground">Fonts</h3>
+
+                    {/* Title font picker */}
+                    <div>
+                      <p className="text-xs font-medium text-muted mb-2">Title font</p>
+                      <div className="flex flex-wrap gap-2">
+                        {TITLE_FONTS.map(font => (
+                          <button
+                            key={font.id}
+                            onClick={() => setVisualStyle(prev => ({ ...prev, titleFontId: font.id }))}
+                            className={`px-3 py-2 rounded-lg border text-sm transition-colors cursor-pointer ${
+                              visualStyle.titleFontId === font.id
+                                ? 'border-[#3d6fa8]/60 bg-[#3d6fa8]/10 text-[#6b9fcc]'
+                                : 'border-border bg-surface text-foreground hover:border-border-hover'
+                            }`}
+                            style={{ fontFamily: `'${font.family}', sans-serif`, fontWeight: font.weight }}
+                          >
+                            {font.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={visualStyle.singleFont}
+                        onChange={e => setVisualStyle(prev => ({ ...prev, singleFont: e.target.checked }))}
+                        className="accent-[#3d6fa8]"
+                      />
+                      <span className="text-sm text-muted">Single font (use title font for body text)</span>
+                    </label>
+
+                    {/* Paragraph font picker */}
+                    <div>
+                      <p className={`text-xs font-medium mb-2 ${visualStyle.singleFont ? 'text-muted/50' : 'text-muted'}`}>Paragraph font</p>
+                      <div className="flex flex-wrap gap-2">
+                        {BODY_FONTS.map(font => (
+                          <button
+                            key={font.id}
+                            onClick={() => !visualStyle.singleFont && setVisualStyle(prev => ({ ...prev, bodyFontId: font.id }))}
+                            disabled={visualStyle.singleFont}
+                            className={`px-3 py-2 rounded-lg border text-sm transition-colors ${
+                              visualStyle.bodyFontId === font.id && !visualStyle.singleFont
+                                ? 'border-[#3d6fa8]/60 bg-[#3d6fa8]/10 text-[#6b9fcc] cursor-pointer'
+                                : visualStyle.singleFont
+                                ? 'border-border/40 bg-surface/50 text-muted/40 cursor-not-allowed'
+                                : 'border-border bg-surface text-foreground hover:border-border-hover cursor-pointer'
+                            }`}
+                            style={{ fontFamily: `'${font.family}', sans-serif`, fontWeight: font.weight }}
+                          >
+                            {font.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <hr className="border-border" />
+
+                  {/* Text Colors */}
+                  <div>
+                    <h3 className="text-sm font-semibold text-foreground mb-3">Text Colors</h3>
+                    <div className="space-y-3">
+                      {([
+                        { key: 'headlineColor', label: 'Headline', placeholder: '#FFFFFF' },
+                        { key: 'emphasisColor', label: 'Emphasis', placeholder: '#00A8FF' },
+                        { key: 'bodyColor', label: 'Body', placeholder: '#B0B0B0' },
+                      ] as const).map(({ key, label, placeholder }) => (
+                        <div key={key} className="flex items-center gap-3">
+                          <span className="text-sm text-muted w-24 shrink-0">{label}</span>
+                          <div className="flex items-center gap-2 flex-1">
+                            <input
+                              type="color"
+                              value={visualStyle[key] ?? '#FFFFFF'}
+                              onChange={e => setVisualStyle(prev => ({ ...prev, [key]: e.target.value }))}
+                              className="w-8 h-8 rounded cursor-pointer border border-border bg-transparent"
+                            />
+                            <input
+                              type="text"
+                              value={visualStyle[key] ?? ''}
+                              placeholder={placeholder}
+                              onChange={e => {
+                                const v = e.target.value.trim()
+                                setVisualStyle(prev => ({ ...prev, [key]: v === '' ? null : v }))
+                              }}
+                              className="flex-1 bg-surface border border-border rounded-lg px-2 py-1.5 text-sm text-foreground font-mono placeholder:text-muted focus:border-[#3d6fa8]/50 outline-none"
+                            />
+                            {visualStyle[key] && (
+                              <button
+                                onClick={() => setVisualStyle(prev => ({ ...prev, [key]: null }))}
+                                className="text-muted hover:text-foreground text-xs px-1"
+                                title="Reset to default"
+                              >
+                                ✕
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Live preview — sticky on desktop */}
+                <div className="lg:sticky lg:top-24 lg:self-start">
+                  <SlidePreview style={visualStyle} />
+                </div>
+              </div>
+            </Section>
+          )}
+
+          {/* ═══════════════════════════════════════════════════════
               Step 3: Generate Posts — Batches of 3
               ═══════════════════════════════════════════════════════ */}
           {effectiveStep < 2 ? (
@@ -1364,33 +1754,37 @@ export default function ChannelDashboard() {
           ) : (
           <Section compact={!isStreamingPosts && completedPosts.length === 0 && !hasPosts} delay={180} active={effectiveStep === 2}>
             <div className="flex flex-col gap-3">
-              <div>
-                <h2 className="text-xl font-bold tracking-tight">Generate posts</h2>
-                {hasPosts && !isStreamingPosts && (
-                  <p className="text-sm text-muted-light mt-1">{channel.posts.length} post{channel.posts.length !== 1 ? 's' : ''} generated</p>
-                )}
-                {!isStreamingPosts && !hasPosts && completedPosts.length === 0 && (
-                  <p className="text-sm text-muted-light mt-1 max-w-prose">Each post is a full carousel — hooks, copy, quality gates, rendered images, and captions.</p>
-                )}
-              </div>
-              <div className="flex items-center gap-2">
-                {isStreamingPosts && (
-                  <button
-                    onClick={handleStopPostGeneration}
-                    className="px-4 py-2.5 bg-danger-dim hover:bg-danger/20 text-danger border border-danger/20 rounded-xl text-sm font-semibold transition-all"
-                  >
-                    Stop
-                  </button>
-                )}
-                <PrimaryButton
-                  onClick={handleGenerateBatch}
-                  disabled={actionLoading !== null || isStreamingPosts || !hasStrategy}
-                  loading={isStreamingPosts}
-                  loadingText="Generating..."
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h2 className="text-xl font-bold tracking-tight">Generate posts</h2>
+                  {hasPosts && !isStreamingPosts && (
+                    <p className="text-sm text-muted-light mt-1">{channel.posts.length} post{channel.posts.length !== 1 ? 's' : ''} generated</p>
+                  )}
+                  {!isStreamingPosts && !hasPosts && completedPosts.length === 0 && (
+                    <p className="text-sm text-muted-light mt-1 max-w-prose">Each post is a full carousel — hooks, copy, quality gates, rendered images, and captions.</p>
+                  )}
+                </div>
+                <button
+                  onClick={() => { setShowStyleEditor(true); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-muted border border-border rounded-lg hover:text-[#6b9fcc] hover:border-[#3d6fa8]/30 transition-all shrink-0"
                 >
-                  {hasPosts ? 'Generate next post' : 'Generate first post'}
-                </PrimaryButton>
+                  <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="8" cy="8" r="5.5" />
+                    <circle cx="5" cy="6" r="1" fill="currentColor" stroke="none" />
+                    <circle cx="8" cy="4.5" r="1" fill="currentColor" stroke="none" />
+                    <circle cx="11" cy="6" r="1" fill="currentColor" stroke="none" />
+                  </svg>
+                  Edit style
+                </button>
               </div>
+              {styleSaveNotice && (
+                <div className="flex items-center gap-2 text-xs text-[#6b9fcc] animate-fade-up">
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M2 6.5L4.5 9L10 3" />
+                  </svg>
+                  {styleSaveNotice}
+                </div>
+              )}
             </div>
 
             {/* Existing posts from DB (always visible — excludes posts currently in completedPosts to avoid duplicates) */}
@@ -1408,27 +1802,102 @@ export default function ChannelDashboard() {
                     const currentSlideIdx = slideViewerIndex[p.id] ?? 0
                     const currentSlide = slides?.[currentSlideIdx]
 
+                    // A carousel is "stuck" if it exists, isn't COMPLETE, and isn't the one currently generating
+                    const isStuck = !!p.carouselJobId
+                      && p.carouselJobStatus !== 'COMPLETE'
+                      && p.carouselJobId !== generatingCarouselJobId
+
                     return (
                       <div key={p.id} className={`bg-background border border-border rounded-2xl overflow-hidden transition-all ${isExpanded ? 'border-border-hover' : 'hover:border-border-hover hover:bg-surface-elevated/50'}`}>
-                        <button
+                        <div
                           onClick={() => togglePostExpanded(p.id, p.carouselJobId)}
-                          className="w-full text-left flex items-center gap-4 p-4 transition-all group"
+                          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') togglePostExpanded(p.id, p.carouselJobId); }}
+                          role="button"
+                          tabIndex={0}
+                          className="w-full text-left flex items-center gap-4 p-4 transition-all group cursor-pointer"
                         >
-                          <div className="w-10 h-10 rounded-xl bg-accent-dim flex items-center justify-center shrink-0">
-                            <span className="text-sm font-bold text-accent">#{p.dayIndex + 1}</span>
+                          <div className="w-10 h-10 rounded-xl bg-[#3d6fa8]/10 flex items-center justify-center shrink-0">
+                            <span className="text-sm font-bold text-[#6b9fcc]">#{p.dayIndex + 1}</span>
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="text-base font-semibold text-foreground truncate">{p.title}</p>
                             <p className="text-sm text-muted truncate">{p.hook}</p>
                           </div>
                           <div className="flex items-center gap-3 shrink-0">
-                            <Link
-                              href={p.carouselJobId ? `/carousel/${p.carouselJobId}` : `/channels/${channelId}/posts/${p.id}`}
-                              onClick={(e) => e.stopPropagation()}
-                              className="text-xs text-accent hover:text-accent-hover font-semibold transition-colors"
+                            {/* Failed / stuck badge */}
+                            {isStuck && !retryLoading.has(p.id) && (
+                              <span className="text-xs font-medium text-red-400 bg-red-500/10 border border-red-500/20 rounded-full px-2 py-0.5">
+                                Failed
+                              </span>
+                            )}
+
+                            {/* Restyle (healthy) or Retry (stuck) */}
+                            {p.carouselJobId && !isStuck && (
+                              <button
+                                onClick={(e) => { e.stopPropagation(); handleRestyleAllSlides(p.id, p.carouselJobId!) }}
+                                disabled={restyleLoading.has(p.id) || p.carouselJobId === generatingCarouselJobId}
+                                className="flex items-center gap-1.5 text-xs text-muted hover:text-[#6b9fcc] font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                                title="Re-render all slides with current saved style"
+                              >
+                                {restyleLoading.has(p.id) ? (
+                                  <span className="w-3 h-3 border border-[#3d6fa8]/30 border-t-[#6b9fcc] rounded-full animate-spin" />
+                                ) : (
+                                  <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                                    <circle cx="8" cy="8" r="5.5" />
+                                    <circle cx="5" cy="6" r="1" fill="currentColor" stroke="none" />
+                                    <circle cx="8" cy="4.5" r="1" fill="currentColor" stroke="none" />
+                                    <circle cx="11" cy="6" r="1" fill="currentColor" stroke="none" />
+                                  </svg>
+                                )}
+                                {restyleLoading.has(p.id) ? 'Restyling...' : 'Restyle'}
+                              </button>
+                            )}
+                            {isStuck && (
+                              <button
+                                onClick={(e) => { e.stopPropagation(); handleRetryCarousel(p.id, p.carouselJobId!) }}
+                                disabled={retryLoading.has(p.id)}
+                                className="flex items-center gap-1.5 text-xs text-red-400 hover:text-red-300 font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                                title="Retry carousel generation"
+                              >
+                                {retryLoading.has(p.id) ? (
+                                  <span className="w-3 h-3 border border-red-400/30 border-t-red-400 rounded-full animate-spin" />
+                                ) : (
+                                  <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M2 8a6 6 0 1 0 1.5-4" />
+                                    <path d="M2 4v4h4" />
+                                  </svg>
+                                )}
+                                {retryLoading.has(p.id) ? 'Retrying...' : 'Retry'}
+                              </button>
+                            )}
+
+                            {/* View carousel link — hidden for stuck jobs */}
+                            {!isStuck && (
+                              <Link
+                                href={p.carouselJobId ? `/carousel/${p.carouselJobId}` : `/channels/${channelId}/posts/${p.id}`}
+                                onClick={(e) => e.stopPropagation()}
+                                className="text-xs text-[#6b9fcc] hover:text-[#8bb8e0] font-semibold transition-colors"
+                              >
+                                View carousel
+                              </Link>
+                            )}
+
+                            {/* Delete button */}
+                            <button
+                              onClick={(e) => { e.stopPropagation(); handleDeletePost(p.id) }}
+                              disabled={deletingPostId === p.id}
+                              className="flex items-center text-muted hover:text-red-400 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                              title="Delete post"
                             >
-                              View carousel
-                            </Link>
+                              {deletingPostId === p.id ? (
+                                <span className="w-3.5 h-3.5 border border-red-400/30 border-t-red-400 rounded-full animate-spin" />
+                              ) : (
+                                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                                  <path d="M2 4h12M5 4V2h6v2M6 7v5M10 7v5M3 4l1 9a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1l1-9" />
+                                </svg>
+                              )}
+                            </button>
+
                             <svg
                               width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"
                               className={`text-muted transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
@@ -1436,7 +1905,23 @@ export default function ChannelDashboard() {
                               <path d="M4 6l4 4 4-4" />
                             </svg>
                           </div>
-                        </button>
+                        </div>
+
+                        {/* Retry progress bar */}
+                        {retryLoading.has(p.id) && retryProgress[p.id] && (
+                          <div className="px-4 pb-3">
+                            <div className="flex items-center justify-between mb-1.5">
+                              <span className="text-xs text-muted">{retryProgress[p.id].message}</span>
+                              <span className="text-xs text-muted tabular-nums">{retryProgress[p.id].pct}%</span>
+                            </div>
+                            <div className="h-1 w-full bg-border rounded-full overflow-hidden">
+                              <div
+                                className="h-full bg-gradient-to-r from-[#e8612c] to-[#e8612c]/70 rounded-full transition-all duration-500"
+                                style={{ width: `${Math.max(retryProgress[p.id].pct, 4)}%` }}
+                              />
+                            </div>
+                          </div>
+                        )}
 
                         {/* Expanded inline slide viewer — inside the card */}
                         {isExpanded && (() => {
@@ -1444,7 +1929,7 @@ export default function ChannelDashboard() {
                           const captionData = dbPostCaptions[p.id]
                           const slideImages = slides?.filter(s => s.imageUrl).map(s => s.imageUrl!) ?? []
                           const fallbackCaption = p.hook
-                          const captionText = captionData?.caption || fallbackCaption
+                          const captionText = captionData?.caption || captionData?.article || fallbackCaption
                           const hashtagText = captionData?.hashtags?.length
                             ? captionData.hashtags.map(h => h.startsWith('#') ? h : `#${h}`).join(' ')
                             : `#${(channel.niche || 'history').replace(/\s+/g, '').toLowerCase()} #facts #didyouknow #education`
@@ -1454,7 +1939,7 @@ export default function ChannelDashboard() {
                               <div className="border-t border-border pt-4">
                                 {isLoadingSlides ? (
                                   <div className="flex items-center gap-3 p-6 bg-surface-elevated rounded-xl">
-                                    <span className="w-4 h-4 border-2 border-accent/30 border-t-accent rounded-full animate-spin" />
+                                    <span className="w-4 h-4 border-2 border-[#3d6fa8]/30 border-t-[#6b9fcc] rounded-full animate-spin" />
                                     <span className="text-sm text-muted">Loading slides...</span>
                                   </div>
                                 ) : slides && slides.length > 0 ? (
@@ -1463,15 +1948,17 @@ export default function ChannelDashboard() {
                                     <div className="flex items-center gap-2 mb-4">
                                       <button
                                         onClick={() => setPreviewMode(prev => { const n = new Set(prev); n.delete(p.id); return n })}
-                                        className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${!isPreview ? 'bg-accent text-background' : 'bg-surface-elevated text-muted hover:text-foreground border border-border'}`}
+                                        className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${!isPreview ? 'bg-[#3d6fa8] text-white' : 'bg-surface-elevated text-muted hover:text-foreground border border-border'}`}
                                       >
-                                        Slides
+                                        <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="4" height="10" rx="1"/><rect x="9" y="3" width="5" height="10" rx="1"/></svg>
+                                        Review slides
                                       </button>
                                       <button
                                         onClick={() => setPreviewMode(prev => new Set(prev).add(p.id))}
                                         disabled={slideImages.length === 0}
-                                        className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${isPreview ? 'bg-accent text-background' : 'bg-surface-elevated text-muted hover:text-foreground border border-border'} disabled:opacity-30 disabled:cursor-not-allowed`}
+                                        className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${isPreview ? 'bg-[#3d6fa8] text-white' : 'bg-surface-elevated text-muted hover:text-foreground border border-border'} disabled:opacity-30 disabled:cursor-not-allowed`}
                                       >
+                                        <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M1 8s3-5 7-5 7 5 7 5-3 5-7 5-7-5-7-5z"/><circle cx="8" cy="8" r="2"/></svg>
                                         Instagram Preview
                                       </button>
                                     </div>
@@ -1495,11 +1982,7 @@ export default function ChannelDashboard() {
                                       <div className="bg-surface-elevated rounded-xl overflow-hidden">
                                         <div className="px-4 pt-3 pb-2">
                                           <div className="flex items-center justify-between">
-                                            <span className={`text-xs font-bold tracking-wider uppercase ${
-                                              currentSlide?.role === 'OPENER' ? 'text-accent' :
-                                              currentSlide?.role === 'CTA' ? 'text-violet' :
-                                              'text-muted'
-                                            }`}>
+                                            <span className="text-xs font-medium tracking-wider uppercase text-muted">
                                               {currentSlide?.role} — Slide {currentSlideIdx + 1} of {slides.length}
                                             </span>
                                             {/* Regeneration buttons */}
@@ -1512,16 +1995,16 @@ export default function ChannelDashboard() {
                                                     <button
                                                       key={mode}
                                                       onClick={() => handleRegenerateSlide(p.id, p.carouselJobId!, currentSlideIdx, mode)}
-                                                      disabled={!!activeMode}
-                                                      className="px-2 py-1 text-[11px] font-medium rounded-md border border-border bg-background hover:bg-surface-elevated hover:border-border-hover disabled:opacity-40 disabled:cursor-not-allowed transition-all text-muted hover:text-foreground"
+                                                      disabled={!!activeMode || p.carouselJobId === generatingCarouselJobId}
+                                                      className="px-2 py-1 text-[11px] font-semibold rounded-md border border-border bg-background hover:bg-surface-elevated hover:border-border-hover disabled:opacity-40 disabled:cursor-not-allowed transition-all text-muted hover:text-foreground"
                                                     >
                                                       {activeMode === mode ? (
                                                         <span className="flex items-center gap-1">
-                                                          <span className="w-3 h-3 border border-accent/30 border-t-accent rounded-full animate-spin" />
-                                                          {mode === 'copy' ? 'Rewriting...' : mode === 'image' ? 'Rendering...' : 'Regenerating...'}
+                                                          <span className="w-3 h-3 border border-[#3d6fa8]/30 border-t-[#6b9fcc] rounded-full animate-spin" />
+                                                          {mode === 'copy' ? 'Rewriting...' : mode === 'image' ? 'Rendering...' : 'Regen both...'}
                                                         </span>
                                                       ) : (
-                                                        mode === 'copy' ? 'Regen text' : mode === 'image' ? 'Regen image' : 'Regen slide'
+                                                        mode === 'copy' ? 'Regen text' : mode === 'image' ? 'Regen image' : 'Regen both'
                                                       )}
                                                     </button>
                                                   ))}
@@ -1565,10 +2048,23 @@ export default function ChannelDashboard() {
                                         </div>
                                         <div className="flex items-center justify-center gap-1.5 pt-[15px] pb-[24px]">
                                           {slides.map((_, i) => (
-                                            <button
+                                            <div
                                               key={i}
+                                              role="button"
+                                              tabIndex={0}
                                               onClick={() => setSlideViewerIndex(prev => ({ ...prev, [p.id]: i }))}
-                                              className={`w-2 h-2 rounded-full transition-all ${i === currentSlideIdx ? 'bg-accent scale-125' : 'bg-border hover:bg-muted'}`}
+                                              onKeyDown={(e) => e.key === 'Enter' && setSlideViewerIndex(prev => ({ ...prev, [p.id]: i }))}
+                                              style={{
+                                                width: 8,
+                                                height: 8,
+                                                borderRadius: '50%',
+                                                flexShrink: 0,
+                                                cursor: 'pointer',
+                                                transition: 'transform 0.15s ease, background-color 0.15s ease',
+                                                transform: i === currentSlideIdx ? 'scale(1.25)' : 'scale(1)',
+                                                backgroundColor: i === currentSlideIdx ? '#3d6fa8' : undefined,
+                                              }}
+                                              className={i === currentSlideIdx ? '' : 'bg-border'}
                                             />
                                           ))}
                                         </div>
@@ -1591,6 +2087,31 @@ export default function ChannelDashboard() {
               ) : null;
             })()}
 
+            {/* Generate next / first post button — outside streaming block so it shows on page load */}
+            {!isStreamingPosts && (hasPosts || completedPosts.length > 0) && (
+              <div className="mt-6 flex items-center gap-3">
+                <PrimaryButton
+                  onClick={handleGenerateBatch}
+                  disabled={actionLoading !== null || isStreamingPosts}
+                >
+                  Generate next post
+                </PrimaryButton>
+                {completedPosts.length > 0 && (
+                  <span className="text-sm text-muted">{(() => { const ids = new Set(completedPosts.map(cp => cp.id)); return channel.posts.filter(p => !ids.has(p.id)).length + completedPosts.length; })()} total posts</span>
+                )}
+              </div>
+            )}
+            {!isStreamingPosts && !hasPosts && completedPosts.length === 0 && (
+              <div className="mt-6">
+                <PrimaryButton
+                  onClick={handleGenerateBatch}
+                  disabled={actionLoading !== null || !hasStrategy}
+                >
+                  Generate first post
+                </PrimaryButton>
+              </div>
+            )}
+
             {/* Streaming / just-completed posts */}
             {(isStreamingPosts || completedPosts.length > 0 || postStreamErrors.length > 0) && (
               <div className="mt-6 space-y-3">
@@ -1602,15 +2123,16 @@ export default function ChannelDashboard() {
                   const effectiveSlides = p.slides.length > 0 ? p.slides : carouselSlides ?? []
                   const currentSlide = effectiveSlides[currentSlideIdx]
                   const displaySlide = carouselSlides?.[currentSlideIdx]
+                  const isGenerating = !!generatingCarouselJobId && p.carouselJobId === generatingCarouselJobId
 
                   return (
-                    <div key={i} className={`animate-fade-up bg-background border border-border rounded-2xl overflow-hidden transition-all ${isExpanded ? 'border-border-hover' : 'hover:border-border-hover hover:bg-surface-elevated/50'}`}>
+                    <div key={i} className={`animate-fade-up bg-background border border-border rounded-2xl overflow-hidden transition-all ${isGenerating ? 'opacity-60' : ''} ${isExpanded ? 'border-border-hover' : 'hover:border-border-hover hover:bg-surface-elevated/50'}`}>
                       <button
                         onClick={() => togglePostExpanded(p.id, p.carouselJobId)}
                         className="w-full text-left flex items-center gap-4 p-4 transition-all group"
                       >
-                        <div className="w-10 h-10 rounded-xl bg-accent-dim flex items-center justify-center shrink-0">
-                          <span className="text-sm font-bold text-accent">#{p.dayIndex + 1}</span>
+                        <div className="w-10 h-10 rounded-xl bg-[#3d6fa8]/10 flex items-center justify-center shrink-0">
+                          <span className="text-sm font-bold text-[#6b9fcc]">#{p.dayIndex + 1}</span>
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-base font-semibold text-foreground truncate">{p.title}</p>
@@ -1620,7 +2142,12 @@ export default function ChannelDashboard() {
                           <span className="hidden sm:inline text-xs font-medium text-muted bg-surface-elevated px-2.5 py-1 rounded-lg">
                             {p.slideCount} slides
                           </span>
-                          {p.hasImages && (
+                          {isGenerating ? (
+                            <span className="hidden sm:inline text-xs font-medium text-[#6b9fcc] bg-[#3d6fa8]/10 px-2.5 py-1 rounded-lg flex items-center gap-1.5">
+                              <span className="w-2 h-2 border border-[#3d6fa8]/30 border-t-[#6b9fcc] rounded-full animate-spin" />
+                              Generating...
+                            </span>
+                          ) : p.hasImages && (
                             <span className="hidden sm:inline text-xs font-medium text-success bg-success-dim px-2.5 py-1 rounded-lg">
                               Images ready
                             </span>
@@ -1629,7 +2156,7 @@ export default function ChannelDashboard() {
                             <Link
                               href={`/carousel/${p.carouselJobId}`}
                               onClick={(e) => e.stopPropagation()}
-                              className="text-xs text-accent hover:text-accent-hover font-semibold transition-colors whitespace-nowrap"
+                              className="text-xs text-[#6b9fcc] hover:text-[#8bb8e0] font-semibold transition-colors whitespace-nowrap"
                             >
                               View carousel
                             </Link>
@@ -1637,7 +2164,7 @@ export default function ChannelDashboard() {
                             <Link
                               href={`/channels/${channelId}/posts/${p.id}`}
                               onClick={(e) => e.stopPropagation()}
-                              className="text-xs text-accent hover:text-accent-hover font-semibold transition-colors"
+                              className="text-xs text-[#6b9fcc] hover:text-[#8bb8e0] font-semibold transition-colors"
                             >
                               Edit
                             </Link>
@@ -1657,7 +2184,7 @@ export default function ChannelDashboard() {
                         const captionData = dbPostCaptions[p.id]
                         const slideImages = carouselSlides?.filter(s => s.imageUrl).map(s => s.imageUrl!) ?? []
                         const fallbackCaption = p.hook
-                        const captionText = captionData?.caption || fallbackCaption
+                        const captionText = captionData?.caption || captionData?.article || fallbackCaption
                         const hashtagText = captionData?.hashtags?.length
                           ? captionData.hashtags.map(h => h.startsWith('#') ? h : `#${h}`).join(' ')
                           : `#${(channel.niche || 'history').replace(/\s+/g, '').toLowerCase()} #facts #didyouknow #education`
@@ -1669,9 +2196,10 @@ export default function ChannelDashboard() {
                               <div className="flex items-center gap-2 mb-4">
                                 <button
                                   onClick={() => setPreviewMode(prev => { const n = new Set(prev); n.delete(p.id); return n })}
-                                  className={`flex-1 sm:flex-none px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${!isPreview ? 'bg-accent text-background' : 'bg-surface-elevated text-muted hover:text-foreground border border-border'}`}
+                                  className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${!isPreview ? 'bg-[#3d6fa8] text-white' : 'bg-surface-elevated text-muted hover:text-foreground border border-border'}`}
                                 >
-                                  Slides
+                                  <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="4" height="10" rx="1"/><rect x="9" y="3" width="5" height="10" rx="1"/></svg>
+                                  Review slides
                                 </button>
                                 <button
                                   onClick={() => {
@@ -1681,15 +2209,16 @@ export default function ChannelDashboard() {
                                     }
                                   }}
                                   disabled={!p.carouselJobId}
-                                  className={`flex-1 sm:flex-none px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${isPreview ? 'bg-accent text-background' : 'bg-surface-elevated text-muted hover:text-foreground border border-border'} disabled:opacity-30 disabled:cursor-not-allowed`}
+                                  className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${isPreview ? 'bg-[#3d6fa8] text-white' : 'bg-surface-elevated text-muted hover:text-foreground border border-border'} disabled:opacity-30 disabled:cursor-not-allowed`}
                                 >
+                                  <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M1 8s3-5 7-5 7 5 7 5-3 5-7 5-7-5-7-5z"/><circle cx="8" cy="8" r="2"/></svg>
                                   Instagram Preview
                                 </button>
                               </div>
 
                               {effectiveSlides.length === 0 ? (
                                 <div className="flex items-center gap-3 p-6 bg-surface-elevated rounded-xl">
-                                  <span className="w-4 h-4 border-2 border-accent/30 border-t-accent rounded-full animate-spin" />
+                                  <span className="w-4 h-4 border-2 border-[#3d6fa8]/30 border-t-[#6b9fcc] rounded-full animate-spin" />
                                   <span className="text-sm text-muted">Loading slides...</span>
                                 </div>
                               ) : isPreview && slideImages.length > 0 ? (
@@ -1707,7 +2236,7 @@ export default function ChannelDashboard() {
                                 </div>
                               ) : isPreview && dbPostSlidesLoading.has(p.id) ? (
                                 <div className="flex items-center gap-3 p-6 bg-surface-elevated rounded-xl">
-                                  <span className="w-4 h-4 border-2 border-accent/30 border-t-accent rounded-full animate-spin" />
+                                  <span className="w-4 h-4 border-2 border-[#3d6fa8]/30 border-t-[#6b9fcc] rounded-full animate-spin" />
                                   <span className="text-sm text-muted">Loading preview...</span>
                                 </div>
                               ) : (
@@ -1715,7 +2244,7 @@ export default function ChannelDashboard() {
                                   <div className="px-4 pt-3 pb-2">
                                     <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                                       <span className={`text-xs font-bold tracking-wider uppercase ${
-                                        currentSlide?.role === 'OPENER' ? 'text-accent' :
+                                        currentSlide?.role === 'OPENER' ? 'text-[#6b9fcc]' :
                                         currentSlide?.role === 'CTA' ? 'text-violet' :
                                         'text-muted'
                                       }`}>
@@ -1731,16 +2260,16 @@ export default function ChannelDashboard() {
                                               <button
                                                 key={mode}
                                                 onClick={() => handleRegenerateSlide(p.id, p.carouselJobId!, currentSlideIdx, mode)}
-                                                disabled={!!activeMode}
-                                                className="px-2 py-1 text-[11px] font-medium rounded-md border border-border bg-background hover:bg-surface-elevated hover:border-border-hover disabled:opacity-40 disabled:cursor-not-allowed transition-all text-muted hover:text-foreground"
+                                                disabled={!!activeMode || p.carouselJobId === generatingCarouselJobId}
+                                                className="px-2 py-1 text-[11px] font-semibold rounded-md border border-border bg-background hover:bg-surface-elevated hover:border-border-hover disabled:opacity-40 disabled:cursor-not-allowed transition-all text-muted hover:text-foreground"
                                               >
                                                 {activeMode === mode ? (
                                                   <span className="flex items-center gap-1">
-                                                    <span className="w-3 h-3 border border-accent/30 border-t-accent rounded-full animate-spin" />
-                                                    {mode === 'copy' ? 'Rewriting...' : mode === 'image' ? 'Rendering...' : 'Regenerating...'}
+                                                    <span className="w-3 h-3 border border-[#3d6fa8]/30 border-t-[#6b9fcc] rounded-full animate-spin" />
+                                                    {mode === 'copy' ? 'Rewriting...' : mode === 'image' ? 'Rendering...' : 'Regen both...'}
                                                   </span>
                                                 ) : (
-                                                  mode === 'copy' ? 'Regen text' : mode === 'image' ? 'Regen image' : 'Regen slide'
+                                                  mode === 'copy' ? 'Regen text' : mode === 'image' ? 'Regen image' : 'Regen both'
                                                 )}
                                               </button>
                                             ))}
@@ -1787,7 +2316,7 @@ export default function ChannelDashboard() {
                                       <button
                                         key={si}
                                         onClick={() => setSlideViewerIndex(prev => ({ ...prev, [p.id]: si }))}
-                                        className={`w-2 h-2 rounded-full transition-all ${si === currentSlideIdx ? 'bg-accent scale-125' : 'bg-border hover:bg-muted'}`}
+                                        className={`w-2 h-2 rounded-full transition-all ${si === currentSlideIdx ? 'bg-[#3d6fa8] scale-125' : 'bg-border hover:bg-muted'}`}
                                       />
                                     ))}
                                   </div>
@@ -1812,17 +2341,17 @@ export default function ChannelDashboard() {
 
                 {/* Currently generating — progress card */}
                 {isStreamingPosts && (
-                  <div className="bg-accent-dim/60 border border-accent/15 rounded-2xl p-5 animate-fade-up">
+                  <div className="bg-[#3d6fa8]/10 border border-[#3d6fa8]/20 rounded-2xl p-5 animate-fade-up">
                     <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center shrink-0">
-                        <span className="w-5 h-5 border-2 border-accent/30 border-t-accent rounded-full animate-spin" />
+                      <div className="w-10 h-10 rounded-xl bg-[#3d6fa8]/10 flex items-center justify-center shrink-0">
+                        <span className="w-5 h-5 border-2 border-[#3d6fa8]/30 border-t-[#6b9fcc] rounded-full animate-spin" />
                       </div>
                       <div className="flex-1 min-w-0 space-y-1.5">
                         <p className="text-sm font-semibold text-foreground/80 truncate">
                           {postStreamProgress?.hook || 'Preparing...'}
                         </p>
                         {carouselProgress ? (
-                          <p className="text-xs text-accent font-medium">{carouselProgress.message}</p>
+                          <p className="text-xs text-[#6b9fcc] font-medium">{carouselProgress.message}</p>
                         ) : (
                           <p className="text-xs text-muted-light">Generating hook and starting pipeline...</p>
                         )}
@@ -1851,9 +2380,9 @@ export default function ChannelDashboard() {
                                 key={i}
                                 className={`flex-1 h-1 rounded-full transition-all duration-500 ${
                                   i < currentIndex
-                                    ? 'bg-accent'
+                                    ? 'bg-[#3d6fa8]'
                                     : i === currentIndex
-                                    ? 'bg-accent animate-pulse'
+                                    ? 'bg-[#3d6fa8] animate-pulse'
                                     : 'bg-border'
                                 }`}
                               />
@@ -1861,7 +2390,7 @@ export default function ChannelDashboard() {
                           </div>
                           {/* Single active stage label */}
                           <div className="flex items-center justify-between">
-                            <span className="text-xs font-medium text-accent">
+                            <span className="text-xs font-medium text-[#6b9fcc]">
                               {STAGES[currentIndex]}
                             </span>
                             <span className="text-xs text-muted">
@@ -1874,18 +2403,6 @@ export default function ChannelDashboard() {
                   </div>
                 )}
 
-                {/* After completion — generate more button */}
-                {!isStreamingPosts && completedPosts.length > 0 && (
-                  <div className="pt-3 flex items-center gap-3">
-                    <PrimaryButton
-                      onClick={handleGenerateBatch}
-                      disabled={actionLoading !== null || isStreamingPosts}
-                    >
-                      Generate next post
-                    </PrimaryButton>
-                    <span className="text-sm text-muted">{(() => { const ids = new Set(completedPosts.map(cp => cp.id)); return channel.posts.filter(p => !ids.has(p.id)).length + completedPosts.length; })()} total posts</span>
-                  </div>
-                )}
               </div>
             )}
           </Section>
@@ -1936,11 +2453,11 @@ export default function ChannelDashboard() {
                       key={i}
                       onClick={() => handleSetName(suggestion.name)}
                       disabled={actionLoading === 'set-name'}
-                      className="group text-left border border-border bg-background rounded-2xl p-5 transition-all duration-200 hover:border-accent/30 hover:bg-accent-dim/50 disabled:opacity-40 animate-fade-up max-w-xs"
+                      className="group text-left border border-border bg-background rounded-2xl p-5 transition-all duration-200 hover:border-[#3d6fa8]/30 hover:bg-[#3d6fa8]/8 disabled:opacity-40 animate-fade-up max-w-xs"
                       style={{ animationDelay: `${i * 50}ms` }}
                     >
                       <div className="flex items-center justify-between gap-3 mb-1.5">
-                        <p className="text-lg font-bold text-foreground group-hover:text-accent transition-colors">{suggestion.name}</p>
+                        <p className="text-lg font-bold text-foreground group-hover:text-[#6b9fcc] transition-colors">{suggestion.name}</p>
                         <span className="text-xs font-medium text-muted bg-surface-elevated px-2 py-0.5 rounded-lg">
                           {suggestion.style}
                         </span>
@@ -1980,13 +2497,13 @@ export default function ChannelDashboard() {
             <div className="lg:hidden flex gap-3 pt-4">
               <Link
                 href={`/channels/${channelId}/posts`}
-                className="flex-1 text-center px-5 py-3 bg-surface hover:bg-surface-hover border border-border rounded-xl text-sm font-semibold transition-all"
+                className="flex-1 text-center px-[30px] py-3 bg-surface hover:bg-surface-hover border border-border rounded-full text-sm font-semibold transition-all"
               >
                 View all posts
               </Link>
               <button
                 onClick={() => setShowNaming(!showNaming)}
-                className="flex-1 text-center px-5 py-3 bg-surface hover:bg-surface-hover border border-border rounded-xl text-sm font-semibold transition-all"
+                className="flex-1 text-center px-[30px] py-3 bg-surface hover:bg-surface-hover border border-border rounded-full text-sm font-semibold transition-all"
               >
                 {channel.name !== 'Untitled Channel' ? 'Rename' : 'Name channel'}
               </button>

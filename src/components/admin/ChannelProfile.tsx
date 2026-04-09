@@ -99,7 +99,7 @@ export function ChannelProfile({ channel, onUpdate }: ChannelProfileProps) {
               <button
                 onClick={handleSave}
                 disabled={saving}
-                className="px-3 py-1 bg-accent text-background text-xs font-medium rounded-lg hover:bg-accent-hover disabled:opacity-40 transition-colors"
+                className="px-3 py-1 ig-btn text-xs font-medium rounded-lg transition-all"
               >
                 {saving ? 'Saving...' : 'Save'}
               </button>

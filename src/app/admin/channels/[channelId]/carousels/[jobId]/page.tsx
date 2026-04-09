@@ -274,9 +274,9 @@ export default function AdminCarouselViewerPage() {
             <div className="flex items-center bg-surface border border-border rounded-lg p-0.5">
               <button
                 onClick={() => setViewMode('slides')}
-                className={`px-4 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                className={`px-4 py-1.5 text-xs font-semibold rounded-md transition-colors ${
                   viewMode === 'slides'
-                    ? 'bg-accent text-background'
+                    ? 'ig-btn'
                     : 'text-muted hover:text-foreground'
                 }`}
               >
@@ -284,9 +284,9 @@ export default function AdminCarouselViewerPage() {
               </button>
               <button
                 onClick={() => setViewMode('mockup')}
-                className={`px-4 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                className={`px-4 py-1.5 text-xs font-semibold rounded-md transition-colors ${
                   viewMode === 'mockup'
-                    ? 'bg-accent text-background'
+                    ? 'ig-btn'
                     : 'text-muted hover:text-foreground'
                 }`}
               >
@@ -308,7 +308,7 @@ export default function AdminCarouselViewerPage() {
                         <button
                           onClick={() => handleRegenerate(activeSlide, 'image', 'wikipedia')}
                           disabled={regenerating !== null}
-                          className={`px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-40 flex items-center gap-1.5 ${
+                          className={`px-3 py-1.5 text-xs font-semibold transition-colors disabled:opacity-40 flex items-center gap-1.5 ${
                             currentSource === 'wikipedia'
                               ? 'bg-surface-active text-foreground'
                               : 'text-muted hover:text-foreground hover:bg-surface-hover'
@@ -322,7 +322,7 @@ export default function AdminCarouselViewerPage() {
                         <button
                           onClick={() => handleRegenerate(activeSlide, 'image', 'generated')}
                           disabled={regenerating !== null}
-                          className={`px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-40 flex items-center gap-1.5 ${
+                          className={`px-3 py-1.5 text-xs font-semibold transition-colors disabled:opacity-40 flex items-center gap-1.5 ${
                             currentSource === 'generated'
                               ? 'bg-surface-active text-foreground'
                               : 'text-muted hover:text-foreground hover:bg-surface-hover'
@@ -369,7 +369,7 @@ export default function AdminCarouselViewerPage() {
                   <button
                     onClick={handleApprove}
                     disabled={approving}
-                    className="px-4 py-1.5 bg-accent text-background text-xs font-medium rounded-lg hover:bg-accent-hover disabled:opacity-40 transition-colors"
+                    className="px-4 py-1.5 ig-btn text-xs font-semibold rounded-lg transition-all"
                   >
                     {approving ? 'Approving...' : 'Approve Carousel'}
                   </button>
@@ -381,14 +381,14 @@ export default function AdminCarouselViewerPage() {
                     <button
                       onClick={handleGenerateCaption}
                       disabled={generatingCaption}
-                      className="px-4 py-1.5 bg-violet text-white text-xs font-medium rounded-lg hover:opacity-90 disabled:opacity-40 transition-colors"
+                      className="px-4 py-1.5 bg-violet text-white text-xs font-semibold rounded-lg hover:opacity-90 disabled:opacity-40 transition-colors"
                     >
                       {generatingCaption ? 'Generating...' : 'Generate Caption'}
                     </button>
                   )}
                   <button
                     onClick={handleExport}
-                    className="px-4 py-1.5 border border-border text-xs font-medium text-foreground rounded-lg hover:bg-surface-hover transition-colors"
+                    className="px-4 py-1.5 border border-border text-xs font-semibold text-foreground rounded-lg hover:bg-surface-hover transition-colors"
                   >
                     Export as ZIP
                   </button>
@@ -396,7 +396,7 @@ export default function AdminCarouselViewerPage() {
                     <button
                       onClick={handlePublishToInstagram}
                       disabled={publishing}
-                      className="px-4 py-1.5 bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs font-medium rounded-lg hover:opacity-90 disabled:opacity-50 transition-opacity flex items-center gap-1.5"
+                      className="px-4 py-1.5 bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs font-semibold rounded-lg hover:opacity-90 disabled:opacity-50 transition-opacity flex items-center gap-1.5"
                     >
                       {publishing && <div className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin" />}
                       {publishing ? 'Posting…' : 'Post to Instagram'}
@@ -404,7 +404,7 @@ export default function AdminCarouselViewerPage() {
                   ) : (
                     <Link
                       href={`/admin/channels/${channelId}?tab=instagram`}
-                      className="px-4 py-1.5 border border-dashed border-border text-xs font-medium text-muted rounded-lg hover:text-foreground hover:border-border-hover transition-colors"
+                      className="px-[26px] py-1.5 border border-dashed border-border text-xs font-semibold text-muted rounded-full hover:text-foreground hover:border-border-hover transition-colors"
                     >
                       Connect Instagram
                     </Link>
@@ -548,7 +548,7 @@ export default function AdminCarouselViewerPage() {
                 <button
                   onClick={handleRegenerateArticle}
                   disabled={regeneratingArticle}
-                  className="px-4 py-1.5 text-xs font-medium text-muted border border-border rounded-lg hover:text-foreground hover:bg-surface-hover disabled:opacity-40 transition-colors"
+                  className="px-4 py-1.5 text-xs font-semibold text-muted border border-border rounded-lg hover:text-foreground hover:bg-surface-hover disabled:opacity-40 transition-colors"
                 >
                   {regeneratingArticle ? 'Regenerating article...' : 'Regenerate Article'}
                 </button>

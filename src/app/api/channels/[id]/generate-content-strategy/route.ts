@@ -6,7 +6,8 @@ import { prisma } from '@/lib/db/prisma';
 /**
  * POST /api/channels/:id/generate-content-strategy
  *
- * Generates 3 distinct content strategy options for the user to pick from.
+ * Generates 3 complementary content pillars for the channel.
+ * Returns strategies + shared channelTone and channelAudience.
  */
 export async function POST(
   _request: Request,
@@ -21,9 +22,9 @@ export async function POST(
     }
 
     const topic = channel.niche || channel.exploreTopic || 'general';
-    const strategies = await generateContentStrategyOptions(topic);
+    const { strategies, channelTone, channelAudience } = await generateContentStrategyOptions(topic);
 
-    return NextResponse.json({ strategies, _debug: buildDebugMeta() }, { status: 200 });
+    return NextResponse.json({ strategies, channelTone, channelAudience, _debug: buildDebugMeta() }, { status: 200 });
   } catch (error) {
     return handleApiError(error);
   }

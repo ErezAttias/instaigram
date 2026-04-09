@@ -8,7 +8,7 @@ export default function NavBar() {
   const [open, setOpen] = useState(false);
 
   return (
-    <nav className="sticky top-0 z-50 backdrop-blur-sm">
+    <nav className="sticky top-0 z-50 backdrop-blur-sm" style={{ WebkitMaskImage: 'linear-gradient(to bottom, black 60%, transparent 100%)', maskImage: 'linear-gradient(to bottom, black 60%, transparent 100%)' }}>
       <div className="max-w-[1800px] mx-auto px-6 lg:px-8 h-16 flex items-center justify-between">
         <Link
           href="/"
@@ -38,7 +38,7 @@ export default function NavBar() {
         <div className="lg:hidden flex items-center gap-1">
           <ThemeToggle />
           <button
-            className="flex items-center justify-center w-10 h-10 rounded-lg text-muted-light hover:text-foreground hover:bg-surface-hover transition-colors"
+            className="flex items-center justify-center w-10 h-10 p-2 rounded-lg text-muted-light hover:text-foreground hover:bg-surface-hover transition-colors"
             onClick={() => setOpen(o => !o)}
             aria-label="Toggle menu"
             aria-expanded={open}

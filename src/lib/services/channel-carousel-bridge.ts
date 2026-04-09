@@ -36,6 +36,20 @@ interface ContentStrategy {
   audience: string;
 }
 
+/** Extract pillars from either old single-strategy or new multi-pillar format */
+function extractPillars(raw: unknown): ContentStrategy[] {
+  if (!raw || typeof raw !== 'object') return [];
+  const data = raw as Record<string, unknown>;
+  if (Array.isArray(data.pillars)) {
+    return data.pillars as ContentStrategy[];
+  }
+  // Legacy: single strategy stored directly
+  if (typeof data.contentIntent === 'string') {
+    return [data as unknown as ContentStrategy];
+  }
+  return [];
+}
+
 type HookType = 'CONTRARIAN' | 'CALL_OUT' | 'MISTAKE_EXPOSURE' | 'HIDDEN_TRUTH';
 
 const VALID_HOOK_TYPES = new Set<string>(['CONTRARIAN', 'CALL_OUT', 'MISTAKE_EXPOSURE', 'HIDDEN_TRUTH']);
@@ -86,8 +100,8 @@ export async function* generateChannelPostsBatch(
     return;
   }
 
-  const contentStrategy = channel.contentStrategy as ContentStrategy | null;
-  if (!contentStrategy) {
+  const pillars = extractPillars(channel.contentStrategy);
+  if (pillars.length === 0) {
     yield { event: 'error', data: { error: 'No content strategy defined. Approve a strategy first.' } };
     return;
   }
@@ -117,7 +131,7 @@ export async function* generateChannelPostsBatch(
   try {
     const hookPrompt = buildBatchHooksPrompt({
       topic,
-      contentStrategy,
+      pillars,
       count: batchSize,
       existingHooks,
     });
@@ -153,7 +167,7 @@ export async function* generateChannelPostsBatch(
 
     try {
       // Create CarouselJob — the standalone service will handle the full pipeline
-      const carouselJob = await createCarouselJob(topic, hook.text);
+      const carouselJob = await createCarouselJob(topic, hook.text, channelId);
 
       // Create Post record linked to the CarouselJob
       const post = await prisma.post.create({

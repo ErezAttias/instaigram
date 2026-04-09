@@ -35,6 +35,14 @@ interface ContentStrategy {
   audience: string;
 }
 
+function extractPillars(raw: unknown): ContentStrategy[] {
+  if (!raw || typeof raw !== 'object') return [];
+  const data = raw as Record<string, unknown>;
+  if (Array.isArray(data.pillars)) return data.pillars as ContentStrategy[];
+  if (typeof data.contentIntent === 'string') return [data as unknown as ContentStrategy];
+  return [];
+}
+
 type HookType = 'CONTRARIAN' | 'CALL_OUT' | 'MISTAKE_EXPOSURE' | 'HIDDEN_TRUTH';
 type HookPattern = 'CONTRAST' | 'MISTAKE' | 'MYTH' | 'LIST' | 'STORY' | 'BREAKDOWN' | 'OPINION';
 
@@ -77,8 +85,8 @@ export async function* generatePostsBatchStreaming(
     return;
   }
 
-  const contentStrategy = channel.contentStrategy as ContentStrategy | null;
-  if (!contentStrategy) {
+  const pillars = extractPillars(channel.contentStrategy);
+  if (pillars.length === 0) {
     yield { event: 'error', data: { error: 'No content strategy defined. Approve a strategy first.' } };
     return;
   }
@@ -125,7 +133,7 @@ export async function* generatePostsBatchStreaming(
   try {
     const hookPrompt = buildBatchHooksPrompt({
       topic,
-      contentStrategy,
+      pillars,
       count: batchSize,
       existingHooks,
     });

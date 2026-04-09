@@ -107,8 +107,9 @@ export async function getChannelVisualStyle(channelId: string): Promise<ChannelV
   const record = await prisma.channelVisualStyle.findUnique({ where: { channelId } });
   if (!record) return { ...DEFAULT_VISUAL_STYLE };
   return {
-    fontPairingId: record.fontPairingId,
-    monoFont: record.monoFont,
+    titleFontId: record.titleFontId,
+    bodyFontId: record.bodyFontId,
+    singleFont: record.singleFont,
     headlineColor: record.headlineColor,
     emphasisColor: record.emphasisColor,
     bodyColor: record.bodyColor,
@@ -117,6 +118,8 @@ export async function getChannelVisualStyle(channelId: string): Promise<ChannelV
     logoBase64: record.logoBase64,
     logoPosition: record.logoPosition as ChannelVisualStyleContext['logoPosition'],
     logoSizePx: record.logoSizePx,
+    t1FontSizePx: record.t1FontSizePx,
+    t2FontSizePx: record.t2FontSizePx,
   };
 }
 
@@ -130,8 +133,9 @@ export async function upsertChannelVisualStyle(
     create: { channelId, ...DEFAULT_VISUAL_STYLE, ...data },
   });
   return {
-    fontPairingId: record.fontPairingId,
-    monoFont: record.monoFont,
+    titleFontId: record.titleFontId,
+    bodyFontId: record.bodyFontId,
+    singleFont: record.singleFont,
     headlineColor: record.headlineColor,
     emphasisColor: record.emphasisColor,
     bodyColor: record.bodyColor,
@@ -140,6 +144,8 @@ export async function upsertChannelVisualStyle(
     logoBase64: record.logoBase64,
     logoPosition: record.logoPosition as ChannelVisualStyleContext['logoPosition'],
     logoSizePx: record.logoSizePx,
+    t1FontSizePx: record.t1FontSizePx,
+    t2FontSizePx: record.t2FontSizePx,
   };
 }
 
@@ -157,26 +163,22 @@ export async function getChannelCarousels(
 
   const carousels = await prisma.carouselJob.findMany({
     where,
-    include: {
-      slides: {
-        take: 1,
-        orderBy: { slideIndex: 'asc' },
-        select: { imageUrl: true, role: true },
-      },
+    select: {
+      id: true,
+      topic: true,
+      direction: true,
+      status: true,
+      approved: true,
+      caption: true,
+      createdAt: true,
+      updatedAt: true,
     },
     orderBy: { createdAt: 'desc' },
   });
 
   return carousels.map(c => ({
-    id: c.id,
-    topic: c.topic,
-    direction: c.direction,
-    status: c.status,
-    approved: c.approved,
-    caption: c.caption,
-    createdAt: c.createdAt,
-    updatedAt: c.updatedAt,
-    thumbnailUrl: c.slides[0]?.imageUrl || null,
+    ...c,
+    thumbnailUrl: null,
   }));
 }
 

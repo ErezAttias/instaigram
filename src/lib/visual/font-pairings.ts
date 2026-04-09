@@ -6,9 +6,9 @@
 import * as fs from 'fs';
 import * as path from 'path';
 
-export type { FontPairing } from './font-pairings-data';
-export { FONT_PAIRINGS, getFontPairing } from './font-pairings-data';
-import type { FontPairing } from './font-pairings-data';
+export type { FontOption } from './font-pairings-data';
+export { TITLE_FONTS, BODY_FONTS, getTitleFont, getBodyFont } from './font-pairings-data';
+import type { FontOption } from './font-pairings-data';
 
 const FONTS_DIR = path.join(process.cwd(), 'assets', 'fonts');
 
@@ -17,38 +17,39 @@ const FONTS_DIR = path.join(process.cwd(), 'assets', 'fonts');
  * Injected into SVG <defs> so librsvg/Sharp can render custom fonts
  * without system font installation.
  */
-export function buildFontStyleBlock(pairing: FontPairing, monoFont: boolean): string {
+export function buildFontStyleBlock(
+  titleFont: FontOption,
+  bodyFont: FontOption,
+  singleFont: boolean,
+): string {
   const faces: string[] = [];
 
-  function addFace(fontDef: FontPairing['display'] | FontPairing['body']) {
-    if (!fontDef.file) return;
-    const filePath = path.join(FONTS_DIR, fontDef.file);
+  function addFace(family: string, weight: number, file: string | null) {
+    if (!file) return;
+    const filePath = path.join(FONTS_DIR, file);
     if (!fs.existsSync(filePath)) {
       console.warn(`[FontPairings] Font file not found: ${filePath} — using system fallback`);
       return;
     }
     const base64 = fs.readFileSync(filePath).toString('base64');
     faces.push(
-      `@font-face { font-family: '${fontDef.family}'; font-weight: ${fontDef.weight}; ` +
+      `@font-face { font-family: '${family}'; font-weight: ${weight}; ` +
       `src: url('data:font/truetype;base64,${base64}') format('truetype'); }`
     );
   }
 
-  addFace(pairing.display);
-  if (!monoFont) {
-    if (pairing.body.file !== pairing.display.file) {
-      addFace(pairing.body);
+  // Always embed the title font at its display weight
+  addFace(titleFont.family, titleFont.weight, titleFont.file);
+
+  if (singleFont) {
+    // In single-font mode embed the light variant of the title font (for body text)
+    if (titleFont.lightFile && titleFont.lightFile !== titleFont.file) {
+      addFace(titleFont.family, titleFont.singleBodyWeight, titleFont.lightFile);
     }
   } else {
-    if (pairing.display.file) {
-      const filePath = path.join(FONTS_DIR, pairing.display.file);
-      if (fs.existsSync(filePath)) {
-        const base64 = fs.readFileSync(filePath).toString('base64');
-        faces.push(
-          `@font-face { font-family: '${pairing.display.family}'; font-weight: 400; ` +
-          `src: url('data:font/truetype;base64,${base64}') format('truetype'); }`
-        );
-      }
+    // Embed body font (skip if it shares the same file as the title font)
+    if (bodyFont.file && bodyFont.file !== titleFont.file) {
+      addFace(bodyFont.family, bodyFont.weight, bodyFont.file);
     }
   }
 

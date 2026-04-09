@@ -105,7 +105,7 @@ export default function NewChannelPage() {
           <button
             type="submit"
             disabled={!name.trim() || !niche.trim() || loading}
-            className="px-5 py-2.5 bg-accent text-background text-sm font-medium rounded-lg hover:bg-accent-hover disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className="px-5 py-2.5 ig-btn text-sm font-semibold rounded-lg transition-all"
           >
             {loading ? 'Creating...' : 'Create Channel'}
           </button>

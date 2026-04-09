@@ -25,6 +25,14 @@ interface ContentStrategy {
   audience: string;
 }
 
+function extractPillars(raw: unknown): ContentStrategy[] {
+  if (!raw || typeof raw !== 'object') return [];
+  const data = raw as Record<string, unknown>;
+  if (Array.isArray(data.pillars)) return data.pillars as ContentStrategy[];
+  if (typeof data.contentIntent === 'string') return [data as unknown as ContentStrategy];
+  return [];
+}
+
 const LenientGeneratedHooks = z.object({
   hooks: z.array(z.object({
     text: z.string(),
@@ -67,7 +75,7 @@ export async function runBatchOrder(batchOrderId: string): Promise<void> {
   if (!batchOrder) throw new Error('BatchOrder not found');
 
   const { channel } = batchOrder;
-  const contentStrategy = channel.contentStrategy as ContentStrategy | null;
+  const pillars = extractPillars(channel.contentStrategy);
 
   // Mark as started
   await prisma.batchOrder.update({
@@ -98,15 +106,17 @@ export async function runBatchOrder(batchOrderId: string): Promise<void> {
       const niche = channel.niche || channel.exploreTopic || 'general';
       const existingTopics = channel.carouselJobs.map(j => j.topic);
 
+      const effectivePillars = pillars.length > 0 ? pillars : [{
+        contentIntent: 'evergreen_fact',
+        description: `Fascinating facts about ${niche}`,
+        tone: 'sharp',
+        hookTypes: ['contrarian', 'hidden truth', 'call out', 'mistake exposure'],
+        audience: 'curious minds',
+      }];
+
       const hookPrompt = buildBatchHooksPrompt({
         topic: niche,
-        contentStrategy: contentStrategy || {
-          contentIntent: 'evergreen_fact',
-          description: `Fascinating facts about ${niche}`,
-          tone: 'sharp',
-          hookTypes: ['contrarian', 'hidden truth', 'call out', 'mistake exposure'],
-          audience: 'curious minds',
-        },
+        pillars: effectivePillars,
         count: batchOrder.size,
         existingHooks: existingTopics,
       });

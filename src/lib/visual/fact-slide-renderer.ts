@@ -36,7 +36,7 @@ import {
   type ValidationResult,
 } from './text-fit-validator';
 import { type ChannelVisualStyleContext, DEFAULT_VISUAL_STYLE } from './visual-style';
-import { getFontPairing, buildFontStyleBlock } from './font-pairings';
+import { getTitleFont, getBodyFont, buildFontStyleBlock } from './font-pairings';
 import { buildLogoCompositeInput } from './logo-compositor';
 
 // ─── Constants ──────────────────────────────────────────────────
@@ -55,7 +55,7 @@ const DOC_PALETTE = {
 /** Font sizes for each tier — matched to OPENER/CTA for design family consistency */
 const FONT = {
   t1: { size: 72, weight: 800, lineHeight: 1.15 },
-  t2: { size: 36, weight: 400, lineHeight: 1.5 },
+  t2: { size: 40, weight: 500, lineHeight: 1.3 },
   t3: { size: 20, weight: 400, lineHeight: 1.2 },
 };
 
@@ -208,7 +208,7 @@ function buildDocumentaryOverlay(
   // Resolve colors: channel style overrides take priority over system defaults
   const t1Color = style.headlineColor ?? '#FFFFFF';
   const emphasisColor = style.emphasisColor ?? '#00A8FF';
-  const t2Color = style.bodyColor ?? '#B0B0B0';
+  const t2Color = style.bodyColor ?? '#D0D0D0';
   void emphasisColor; // available for future emphasis word highlighting
 
   // Uniform padding from canvas edges
@@ -222,9 +222,9 @@ function buildDocumentaryOverlay(
   const contentRight = CANVAS.width - TEXT_PAD;
   const contentWidth = contentRight - contentLeft;
 
-  // Use resolved font sizes from validation (adaptive sizing)
-  const t1Size = validation.t1FontSize ?? FONT.t1.size;
-  const t2Size = validation.t2FontSize ?? FONT.t2.size;
+  // Use resolved font sizes from validation (adaptive sizing), falling back to style then hardcoded defaults
+  const t1Size = validation.t1FontSize ?? style?.t1FontSizePx ?? FONT.t1.size;
+  const t2Size = validation.t2FontSize ?? style?.t2FontSizePx ?? FONT.t2.size;
 
   // Hard character-limit wrapping to prevent right-side overflow.
   // Computed dynamically from font size so it scales with adaptive sizing.
@@ -300,12 +300,13 @@ function buildDocumentaryOverlay(
     horizontalCenterNorm: (contentLeft + textBlockWidth / 2) / CANVAS.width,
   };
 
-  // Resolve font pairing
-  const pairing = getFontPairing(style.fontPairingId);
-  const displayFontFamily = `'${pairing.display.family}', sans-serif`;
-  const bodyFontFamily = style.monoFont
-    ? `'${pairing.display.family}', sans-serif`
-    : `'${pairing.body.family}', serif`;
+  // Resolve fonts
+  const titleFont = getTitleFont(style.titleFontId);
+  const bodyFont = getBodyFont(style.bodyFontId);
+  const displayFontFamily = `'${titleFont.family}', sans-serif`;
+  const bodyFontFamily = style.singleFont
+    ? `'${titleFont.family}', sans-serif`
+    : `'${bodyFont.family}', ${bodyFont.generic ?? 'serif'}`;
 
   const elements: string[] = [];
 
@@ -328,7 +329,7 @@ function buildDocumentaryOverlay(
     elements.push(
       `<text x="${contentLeft}" y="${Math.round(y)}" `
       + `font-family="${displayFontFamily}" `
-      + `font-size="${t1Size}" font-weight="${pairing.display.weight}" `
+      + `font-size="${t1Size}" font-weight="${titleFont.weight}" `
       + `fill="${t1Color}" letter-spacing="-1.5">`
       + escapeXml(line)
       + `</text>`
@@ -342,7 +343,7 @@ function buildDocumentaryOverlay(
     elements.push(
       `<text x="${contentLeft}" y="${Math.round(y)}" `
       + `font-family="${bodyFontFamily}" `
-      + `font-size="${t2Size}" font-weight="${style.monoFont ? 400 : pairing.body.weight}" `
+      + `font-size="${t2Size}" font-weight="${style.singleFont ? titleFont.singleBodyWeight : bodyFont.weight}" `
       + `fill="${t2Color}">`
       + escapeXml(line)
       + `</text>`
@@ -404,7 +405,7 @@ function buildDocumentaryOverlay(
     </defs>
     <rect x="0" y="0" width="${CANVAS.width}" height="${CANVAS.height}" fill="url(#textBarGrad)"/>`;
 
-  const fontStyleBlock = buildFontStyleBlock(pairing, style.monoFont);
+  const fontStyleBlock = buildFontStyleBlock(titleFont, bodyFont, style.singleFont);
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${CANVAS.width}" height="${CANVAS.height}" viewBox="0 0 ${CANVAS.width} ${CANVAS.height}">
     <defs>${fontStyleBlock}</defs>
     ${textPanelOverlay}
@@ -519,6 +520,8 @@ export async function renderFactSlide(
         slideType: input.slideType, displayTitle: input.displayTitle,
         displaySupport: input.displaySupport, textZone: input.textZone,
         keepTogether: input.keepTogether, forceT1FontSize: input.forceT1FontSize,
+        baseT1FontSize: input.visualStyle?.t1FontSizePx,
+        baseT2FontSize: input.visualStyle?.t2FontSizePx,
       });
       const { svg: previewSvg } = buildDocumentaryOverlay(preValidation, input, input.visualStyle);
       previewImage = await sharp(baseImageBuffer)
@@ -642,6 +645,8 @@ export async function renderFactSlide(
       textZone: selectedZone,
       keepTogether: input.keepTogether,
       forceT1FontSize: input.forceT1FontSize,
+      baseT1FontSize: input.visualStyle?.t1FontSizePx,
+      baseT2FontSize: input.visualStyle?.t2FontSizePx,
     };
 
     validation = validateTextFit(validationInput);

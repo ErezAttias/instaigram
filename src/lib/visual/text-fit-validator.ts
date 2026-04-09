@@ -35,6 +35,16 @@ export interface TextFitInput {
    * If the text doesn't fit at this size, the validator will still try smaller sizes.
    */
   forceT1FontSize?: number;
+  /**
+   * Preferred T1 font size from channel visual style.
+   * The validator starts from this size and scales down if text doesn't fit.
+   * Ignored when forceT1FontSize is set.
+   */
+  baseT1FontSize?: number;
+  /**
+   * Preferred T2 font size from channel visual style.
+   */
+  baseT2FontSize?: number;
 }
 
 export type CheckStatus = 'pass' | 'fail' | 'warning';
@@ -109,7 +119,7 @@ const CHAR_WIDTH_RATIO = {
 /** Typography sizes — matched to OPENER/CTA for design family consistency */
 const FONT_SIZES = {
   t1: { min: 42, max: 72, default: 72 },
-  t2: { min: 28, max: 40, default: 36 },
+  t2: { min: 28, max: 44, default: 40 },
   t3: { min: 18, max: 24, default: 20 },
 };
 
@@ -119,7 +129,7 @@ const T1_FONT_CANDIDATES = [72, 60, 54, 48, 42];
 /** Line height multipliers */
 const LINE_HEIGHT = {
   t1: 1.35,
-  t2: 1.4,
+  t2: 1.3,
 };
 
 /** Gap between T1 and T2 (as multiple of T2 font size) */
@@ -513,14 +523,18 @@ export function validateTextFit(input: TextFitInput): ValidationResult {
   let t1FontSize = FONT_SIZES.t1.default;
   let t1Lines: string[] = [];
   let t2Lines: string[] = [];
-  let t2FontSize = FONT_SIZES.t2.default;
+  let t2FontSize = input.baseT2FontSize ?? FONT_SIZES.t2.default;
   let foundFit = false;
 
-  // If a forced T1 size is set (from carousel normalization), try that size first.
-  // If it doesn't work, fall through to the normal cascade.
+  // Build font size candidates from largest to smallest.
+  // forceT1FontSize (carousel normalization) takes priority.
+  // baseT1FontSize (channel style) sets the starting point but allows adaptive fallback.
+  const startT1 = input.baseT1FontSize ?? FONT_SIZES.t1.default;
   const fontCandidates = input.forceT1FontSize
     ? [input.forceT1FontSize, ...T1_FONT_CANDIDATES.filter(s => s < input.forceT1FontSize!)]
-    : T1_FONT_CANDIDATES;
+    : startT1 !== FONT_SIZES.t1.default
+      ? [startT1, ...T1_FONT_CANDIDATES.filter(s => s < startT1)]
+      : T1_FONT_CANDIDATES;
 
   for (const zone of zoneOrder) {
     const zoneDims = ZONE_DIMENSIONS[zone];

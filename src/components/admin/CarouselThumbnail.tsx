@@ -32,9 +32,9 @@ export function CarouselThumbnail({
       {/* Thumbnail */}
       <Link href={`/admin/channels/${channelId}/carousels/${id}`}>
         <div className="aspect-[4/5] bg-surface-elevated relative overflow-hidden">
-          {thumbnailUrl ? (
+          {status === 'COMPLETE' || status === 'APPROVED' ? (
             <img
-              src={thumbnailUrl}
+              src={`/api/carousel/${id}/thumbnail`}
               alt={topic}
               className="w-full h-full object-cover"
               loading="lazy"

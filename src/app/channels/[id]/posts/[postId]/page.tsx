@@ -309,7 +309,7 @@ export default function PostDetailPage() {
             <button
               onClick={handleRegenerateHook}
               disabled={actionLoading !== null}
-              className="px-2.5 py-1 border border-border hover:border-border-hover hover:bg-surface-hover text-[11px] font-medium rounded-md transition-all duration-200 disabled:opacity-40"
+              className="px-2.5 py-1 border border-border hover:border-border-hover hover:bg-surface-hover text-[11px] font-semibold rounded-md transition-all duration-200 disabled:opacity-40"
             >
               {actionLoading === 'hook' ? (
                 <span className="flex items-center gap-1.5">
@@ -336,7 +336,7 @@ export default function PostDetailPage() {
             <button
               onClick={handleRenderSlides}
               disabled={renderLoading || actionLoading !== null}
-              className="px-4 py-2 bg-violet hover:bg-violet/90 text-white rounded-lg text-[13px] font-medium disabled:opacity-40 disabled:cursor-not-allowed"
+              className="px-4 py-2 bg-violet hover:bg-violet/90 text-white rounded-lg text-[13px] font-semibold disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {renderLoading ? (
                 <span className="flex items-center gap-2">
@@ -348,7 +348,7 @@ export default function PostDetailPage() {
             <button
               onClick={handleRegeneratePost}
               disabled={actionLoading !== null}
-              className="px-4 py-2 bg-accent hover:bg-accent-hover text-background rounded-lg text-[13px] font-medium disabled:opacity-40 disabled:cursor-not-allowed"
+              className="px-4 py-2 bg-accent hover:bg-accent-hover text-background rounded-lg text-[13px] font-semibold disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {actionLoading === 'post' ? (
                 <span className="flex items-center gap-2">
@@ -389,7 +389,7 @@ export default function PostDetailPage() {
                     <button
                       onClick={() => handleRegenerateSlide(slide.slideIndex)}
                       disabled={actionLoading !== null}
-                      className="px-2 py-0.5 border border-border/60 hover:border-border-hover hover:bg-background/40 text-[10px] font-medium rounded transition-all duration-200 disabled:opacity-40"
+                      className="px-2 py-0.5 border border-border/60 hover:border-border-hover hover:bg-background/40 text-[10px] font-semibold rounded transition-all duration-200 disabled:opacity-40"
                     >
                       {actionLoading === `slide-${slide.slideIndex}` ? (
                         <span className="w-2.5 h-2.5 border border-muted/30 border-t-muted rounded-full animate-spin inline-block" />

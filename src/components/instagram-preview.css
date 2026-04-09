@@ -77,6 +77,9 @@
   transform: translateY(-50%);
   width: 30px;
   height: 30px;
+  min-width: 30px;
+  min-height: 30px;
+  aspect-ratio: 1 / 1;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.85);
   border: none;
@@ -84,6 +87,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
   color: #262626;
   z-index: 2;
   opacity: 0;
@@ -368,8 +372,11 @@
 }
 
 .ig-dot {
+  flex: 0 0 6px;
   width: 6px;
   height: 6px;
+  min-width: 6px;
+  min-height: 6px;
   border-radius: 50%;
   background: var(--ig-dot);
   border: none;
@@ -385,6 +392,15 @@
 
 .ig-dot:hover:not(.ig-dot-active) {
   background: #d4d4d4;
+}
+
+/* Inner div used for dot rendering (bypasses button reset issues) */
+.ig-dot-inner {
+  background: var(--ig-dot);
+}
+
+.ig-dot-inner-active {
+  background: var(--ig-dot-active);
 }
 
 /* Likes */
@@ -435,6 +451,31 @@
   cursor: pointer;
   padding: 0;
   opacity: 0.4;
+}
+
+/* ─── Light mode ─────────────────────────────────────────── */
+
+.light .ig-preview-root {
+  --ig-bg: #ffffff;
+  --ig-surface: #ffffff;
+  --ig-border: #dbdbdb;
+  --ig-text: #262626;
+  --ig-text-secondary: #737373;
+  --ig-link: #00376b;
+  --ig-dot: #b0b0b0;
+  --ig-dot-active: #0095f6;
+}
+
+.light .ig-media-container {
+  background: #efefef;
+}
+
+.light .ig-slide {
+  background: #efefef;
+}
+
+.light .ig-dot:hover:not(.ig-dot-active) {
+  background: #a8a8a8;
 }
 
 /* ─── Responsive ─────────────────────────────────────────── */

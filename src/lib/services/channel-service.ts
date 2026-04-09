@@ -51,6 +51,7 @@ export async function getChannel(channelId: string) {
         include: {
           slides: true,
           caption: true,
+          carouselJob: { select: { status: true } },
         },
       },
       generationJobs: true,
@@ -61,5 +62,11 @@ export async function getChannel(channelId: string) {
     throw new Error('Channel not found');
   }
 
-  return channel;
+  return {
+    ...channel,
+    posts: channel.posts.map(post => ({
+      ...post,
+      carouselJobStatus: post.carouselJob?.status ?? null,
+    })),
+  };
 }

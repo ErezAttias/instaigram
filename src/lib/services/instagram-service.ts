@@ -40,7 +40,10 @@ export async function publishCarouselToInstagram(
   // Step 1: Create a media container for each slide
   const childIds: string[] = [];
   for (const slide of job.slides) {
-    const imageUrl = `${appUrl}/api/carousel/${jobId}/slides/${slide.slideIndex}/image`;
+    // Use R2 URL directly if available — Instagram fetches it server-side and needs a public URL
+    const imageUrl = slide.imageUrl?.startsWith('https://')
+      ? slide.imageUrl
+      : `${appUrl}/api/carousel/${jobId}/slides/${slide.slideIndex}/image`;
     const res = await fetch(`${GRAPH_API}/${igUserId}/media`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

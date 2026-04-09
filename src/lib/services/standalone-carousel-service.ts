@@ -53,6 +53,7 @@ import {
 } from '@/lib/validation/carousel-enforcement';
 import { auditPromptStyle } from '@/lib/validation/style-validator';
 import { generateArticle } from '@/lib/services/article-service';
+import { saveImage } from '@/lib/storage/image-storage';
 
 // ─── Helpers ────────────────────────────────────────────────
 
@@ -1149,6 +1150,11 @@ export async function runCarouselGeneration(
         slideStatus = 'PENDING'; // frontend maps PENDING+imageUrl → READY display
       }
 
+      // Save image to storage (R2 or local disk); store URL in DB
+      const savedImageUrl = imageBase64
+        ? await saveImage(jobId, slide.slideNumber, imageBase64)
+        : null;
+
       // Save slide to DB immediately so frontend can display it progressively
       await prisma.carouselSlide.upsert({
         where: { carouselJobId_slideIndex: { carouselJobId: jobId, slideIndex: slide.slideNumber } },
@@ -1166,14 +1172,14 @@ export async function runCarouselGeneration(
           topicEntity: slide.topicEntity,
           displayTitle: compressed?.displayTitle ?? null,
           displaySupport: compressed?.displaySupport ?? null,
-          imageUrl: imageBase64 ? `data:image/png;base64,${imageBase64}` : null,
+          imageUrl: savedImageUrl,
           imageError,
           status: slideStatus,
           ...(resolvedImageSource !== null && { imageSource: resolvedImageSource }),
           ...(imageSourceUrl !== undefined && { imageSourceUrl }),
         },
         update: {
-          imageUrl: imageBase64 ? `data:image/png;base64,${imageBase64}` : null,
+          imageUrl: savedImageUrl,
           imageError,
           status: slideStatus,
           ...(resolvedImageSource !== null && { imageSource: resolvedImageSource }),
@@ -1450,11 +1456,24 @@ export async function regenerateCarouselSlideImage(
   const displaySupport = slide.displaySupport || '';
   const imageProvider = getImageProviderForTopic(job.topic, job.direction);
 
-  // Load channel visual style for regeneration
+  // Load channel visual style for regeneration.
+  // If the job has no channelId (older jobs), look it up via the Post that references this job.
+  let regenChannelId = job.channelId;
+  if (!regenChannelId) {
+    const linkedPost = await prisma.post.findFirst({
+      where: { carouselJobId: job.id },
+      select: { channelId: true },
+    });
+    regenChannelId = linkedPost?.channelId ?? null;
+    // Backfill so future regen calls don't need the lookup
+    if (regenChannelId) {
+      await prisma.carouselJob.update({ where: { id: job.id }, data: { channelId: regenChannelId } });
+    }
+  }
   let regenVisualStyle: ChannelVisualStyleContext = DEFAULT_VISUAL_STYLE;
-  if (job.channelId) {
+  if (regenChannelId) {
     const styleRecord = await prisma.channelVisualStyle.findUnique({
-      where: { channelId: job.channelId },
+      where: { channelId: regenChannelId },
     });
     if (styleRecord) {
       regenVisualStyle = styleRecord as unknown as ChannelVisualStyleContext;
@@ -1546,10 +1565,12 @@ export async function regenerateCarouselSlideImage(
       conceptHint,
     );
 
+    const regenImageUrl = await saveImage(jobId, slideIndex, renderOutput.imageBase64);
+
     return await prisma.carouselSlide.update({
       where: { id: slide.id },
       data: {
-        imageUrl: `data:image/png;base64,${renderOutput.imageBase64}`,
+        imageUrl: regenImageUrl,
         imageError: null,
         status: 'PENDING',
         ...(renderOutput.resolvedImageSource !== null && { imageSource: renderOutput.resolvedImageSource }),

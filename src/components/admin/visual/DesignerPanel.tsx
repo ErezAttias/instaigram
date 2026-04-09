@@ -1,8 +1,8 @@
 'use client';
 
-import { useRef } from 'react';
+import { useRef, useEffect } from 'react';
 import type { ChannelVisualStyleContext } from '@/lib/visual/visual-style';
-import { FONT_PAIRINGS } from '@/lib/visual/font-pairings-data';
+import { TITLE_FONTS, BODY_FONTS, type FontOption } from '@/lib/visual/font-pairings-data';
 
 interface DesignerPanelProps {
   style: ChannelVisualStyleContext;
@@ -55,6 +55,63 @@ function ColorInput({
   );
 }
 
+function FontPicker({
+  label,
+  fonts,
+  selectedId,
+  onSelect,
+  disabled = false,
+}: {
+  label: string;
+  fonts: FontOption[];
+  selectedId: string;
+  onSelect: (id: string) => void;
+  disabled?: boolean;
+}) {
+  // Inject Google Fonts for all options in this picker
+  useEffect(() => {
+    fonts.forEach(font => {
+      if (!font.googleFontsFamily) return;
+      const id = `gf-${font.id}`;
+      if (!document.getElementById(id)) {
+        const link = document.createElement('link');
+        link.id = id;
+        link.rel = 'stylesheet';
+        link.href = `https://fonts.googleapis.com/css2?family=${font.googleFontsFamily}&display=swap`;
+        document.head.appendChild(link);
+      }
+    });
+  }, [fonts]);
+
+  return (
+    <div>
+      <p className={`text-xs font-medium mb-2 ${disabled ? 'text-muted/50' : 'text-muted'}`}>{label}</p>
+      <div className="flex flex-wrap gap-2">
+        {fonts.map(font => (
+          <button
+            key={font.id}
+            onClick={() => !disabled && onSelect(font.id)}
+            disabled={disabled}
+            className={`px-3 py-2 rounded-lg border text-sm transition-colors ${
+              selectedId === font.id && !disabled
+                ? 'border-accent bg-accent/10 text-foreground'
+                : disabled
+                ? 'border-border/40 bg-surface/50 text-muted/40 cursor-not-allowed'
+                : 'border-border bg-surface text-foreground hover:border-border-elevated cursor-pointer'
+            }`}
+            style={{
+              fontFamily: `'${font.family}', sans-serif`,
+              fontWeight: font.weight,
+            }}
+          >
+            {font.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function DesignerPanel({ style, onChange }: DesignerPanelProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -77,42 +134,77 @@ export function DesignerPanel({ style, onChange }: DesignerPanelProps) {
 
   return (
     <div className="space-y-6">
-      {/* Font Pairing */}
-      <section>
-        <h3 className="text-sm font-semibold text-foreground mb-3">Font Pairing</h3>
-        <div className="grid grid-cols-1 gap-2">
-          {FONT_PAIRINGS.map(pairing => (
-            <label
-              key={pairing.id}
-              className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
-                style.fontPairingId === pairing.id
-                  ? 'border-accent bg-accent/10'
-                  : 'border-border hover:border-border-elevated bg-surface'
-              }`}
-            >
-              <input
-                type="radio"
-                name="fontPairing"
-                value={pairing.id}
-                checked={style.fontPairingId === pairing.id}
-                onChange={() => onChange({ fontPairingId: pairing.id })}
-                className="accent-accent"
-              />
-              <div>
-                <span className="text-sm font-medium text-foreground">{pairing.label}</span>
-              </div>
-            </label>
-          ))}
-        </div>
-        <label className="flex items-center gap-2 mt-3 cursor-pointer">
+      {/* Fonts */}
+      <section className="space-y-4">
+        <h3 className="text-sm font-semibold text-foreground">Fonts</h3>
+
+        <FontPicker
+          label="Title font"
+          fonts={TITLE_FONTS}
+          selectedId={style.titleFontId}
+          onSelect={id => onChange({ titleFontId: id })}
+        />
+
+        <label className="flex items-center gap-2 cursor-pointer">
           <input
             type="checkbox"
-            checked={style.monoFont}
-            onChange={e => onChange({ monoFont: e.target.checked })}
+            checked={style.singleFont}
+            onChange={e => onChange({ singleFont: e.target.checked })}
             className="accent-accent"
           />
-          <span className="text-sm text-muted">Single font (use one typeface at two weights)</span>
+          <span className="text-sm text-muted">Single font (use title font for body text)</span>
         </label>
+
+        <FontPicker
+          label="Paragraph font"
+          fonts={BODY_FONTS}
+          selectedId={style.bodyFontId}
+          onSelect={id => onChange({ bodyFontId: id })}
+          disabled={style.singleFont}
+        />
+
+        {/* Font Sizes */}
+        <div className="space-y-4 pt-1">
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-xs font-medium text-muted">Title size</span>
+              <span className="text-xs text-muted font-mono">{style.t1FontSizePx ?? 72}px</span>
+            </div>
+            <input
+              type="range"
+              min={40}
+              max={100}
+              step={2}
+              value={style.t1FontSizePx ?? 72}
+              onChange={e => onChange({ t1FontSizePx: Number(e.target.value) })}
+              className="w-full accent-accent"
+            />
+            <div className="flex justify-between text-xs text-muted mt-0.5">
+              <span>40</span>
+              <span>100</span>
+            </div>
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-xs font-medium text-muted">Paragraph size</span>
+              <span className="text-xs text-muted font-mono">{style.t2FontSizePx ?? 40}px</span>
+            </div>
+            <input
+              type="range"
+              min={20}
+              max={56}
+              step={2}
+              value={style.t2FontSizePx ?? 40}
+              onChange={e => onChange({ t2FontSizePx: Number(e.target.value) })}
+              className="w-full accent-accent"
+            />
+            <div className="flex justify-between text-xs text-muted mt-0.5">
+              <span>20</span>
+              <span>56</span>
+            </div>
+          </div>
+        </div>
       </section>
 
       <hr className="border-border" />

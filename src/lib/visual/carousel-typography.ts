@@ -101,7 +101,7 @@ export function normalizeCarouselTypography(
     return {
       mode: 'SHARED_T1_SIZE',
       sharedT1Size: T1_CANDIDATES[0],
-      sharedT2Size: 34,
+      sharedT2Size: 38,
       slides: [],
       rhythm: { occupancies: [], average: 0, maxDeviation: 0, consistent: true },
     };

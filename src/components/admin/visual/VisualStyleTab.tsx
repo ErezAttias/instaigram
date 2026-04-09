@@ -111,7 +111,7 @@ export function VisualStyleTab({ channelId }: VisualStyleTabProps) {
             disabled={saving || !hasChanges}
             className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
               hasChanges && !saving
-                ? 'bg-accent text-background hover:bg-accent-hover'
+                ? 'ig-btn'
                 : 'bg-surface border border-border text-muted cursor-not-allowed'
             }`}
           >

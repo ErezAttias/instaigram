@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
+import { resolveImageUrl } from '@/app/api/carousel/[jobId]/thumbnail/route';
 
 /**
  * GET /api/carousel/[jobId]/slides/[index]/image
@@ -32,18 +33,19 @@ export async function GET(
       return NextResponse.json({ error: 'Slide has no image' }, { status: 404 });
     }
 
-    // imageUrl is a base64 data URI: "data:image/png;base64,..."
-    const match = slide.imageUrl.match(/^data:image\/(\w+);base64,(.+)$/);
-    if (!match) {
+    // R2 / external URL — redirect directly so Instagram gets the CDN URL
+    if (slide.imageUrl.startsWith('https://')) {
+      return NextResponse.redirect(slide.imageUrl, { status: 302 });
+    }
+
+    const { buffer, mime } = await resolveImageUrl(slide.imageUrl);
+    if (!buffer) {
       return NextResponse.json({ error: 'Invalid image format' }, { status: 500 });
     }
 
-    const [, format, base64Data] = match;
-    const buffer = Buffer.from(base64Data, 'base64');
-
     return new NextResponse(buffer, {
       headers: {
-        'Content-Type': `image/${format}`,
+        'Content-Type': mime,
         'Content-Length': buffer.length.toString(),
         'Cache-Control': 'public, max-age=3600',
       },

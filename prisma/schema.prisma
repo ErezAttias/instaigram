@@ -151,8 +151,9 @@ model ChannelVisualStyle {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  fontPairingId  String   @default("inter_roboto_slab")
-  monoFont       Boolean  @default(false)
+  titleFontId    String   @default("inter")
+  bodyFontId     String   @default("lora")
+  singleFont     Boolean  @default(false)
 
   headlineColor  String?
   emphasisColor  String?
@@ -164,6 +165,9 @@ model ChannelVisualStyle {
   logoBase64     String?
   logoPosition   String   @default("bottom_right")
   logoSizePx     Int      @default(80)
+
+  t1FontSizePx   Int      @default(72)
+  t2FontSizePx   Int      @default(36)
 
   channel Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
 }
