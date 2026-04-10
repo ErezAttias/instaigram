@@ -494,7 +494,7 @@ export default function HomeAurora() {
               )}
 
               {/* Secondary CTA — text-link style */}
-              <div className="text-center mt-4">
+              <div className="flex justify-center mt-4">
                 <button
                   type="button"
                   onClick={handleDiscover}
