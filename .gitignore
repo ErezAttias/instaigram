@@ -32,3 +32,6 @@ yarn-error.log*
 # dev artifacts
 .a5c/
 output/
+
+# carousel images (served from R2, not tracked in git)
+public/carousel-images/
