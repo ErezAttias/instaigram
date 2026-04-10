@@ -114,7 +114,7 @@ export default function InstagramPreview({
   comments = [],
 }: InstagramPreviewProps) {
   const [currentSlide, setCurrentSlide] = useState(0);
-  const [captionExpanded, setCaptionExpanded] = useState(true);
+  const [captionExpanded, setCaptionExpanded] = useState(false);
   const touchStartX = useRef<number | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 

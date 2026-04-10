@@ -106,7 +106,9 @@ function ExampleCarousel({ carousel, isLight }: { carousel: CarouselData; isLigh
   const textColor = isLight ? 'text-gray-900' : 'text-white'
   const mutedColor = isLight ? 'text-gray-500' : 'text-white/70'
   const iconStroke = isLight ? '#111113' : 'white'
-  const shadowStyle = isLight ? '0 4px 24px rgba(0,0,0,0.10)' : '0 8px 40px rgba(0,0,0,0.55)'
+  const shadowStyle = isLight
+    ? '0 4px 24px rgba(0,0,0,0.10)'
+    : '0 0 0 1px rgba(255,255,255,0.09), 0 24px 60px rgba(0,0,0,0.85), 0 0 40px rgba(188,24,136,0.07)'
 
   return (
     <div
@@ -118,7 +120,7 @@ function ExampleCarousel({ carousel, isLight }: { carousel: CarouselData; isLigh
         willChange: 'transform',
         padding: '2px',
         borderRadius: '18px',
-        background: 'rgba(255,255,255,0.85)',
+        background: isLight ? 'rgba(255,255,255,0.85)' : 'rgba(58,52,78,1)',
         boxShadow: shadowStyle,
       }}
     >
@@ -243,6 +245,15 @@ const LOADING_STEPS = [
   'Almost done...',
 ]
 
+const PLACEHOLDER_EXAMPLES = [
+  'coffee lovers',
+  'AI tools for developers',
+  'fitness for busy parents',
+  'personal finance tips',
+  'travel on a budget',
+  'sustainable living',
+]
+
 // ---------------------------------------------------------------------------
 // Main page
 // ---------------------------------------------------------------------------
@@ -291,6 +302,42 @@ export default function HomeAurora() {
   const [loadingSource, setLoadingSource] = useState<'direct' | 'discover' | null>(null)
   const [error, setError] = useState('')
   const [inputFocused, setInputFocused] = useState(false)
+  const [animatedPlaceholder, setAnimatedPlaceholder] = useState('')
+
+  useEffect(() => {
+    let cancelled = false
+    let exampleIdx = 0
+    let charIdx = 0
+    let deleting = false
+
+    const tick = () => {
+      if (cancelled) return
+      const current = PLACEHOLDER_EXAMPLES[exampleIdx]
+      if (!deleting) {
+        charIdx++
+        setAnimatedPlaceholder(current.slice(0, charIdx))
+        if (charIdx === current.length) {
+          deleting = true
+          setTimeout(tick, 1800)
+          return
+        }
+        setTimeout(tick, 80)
+      } else {
+        charIdx--
+        setAnimatedPlaceholder(current.slice(0, charIdx))
+        if (charIdx === 0) {
+          deleting = false
+          exampleIdx = (exampleIdx + 1) % PLACEHOLDER_EXAMPLES.length
+          setTimeout(tick, 400)
+          return
+        }
+        setTimeout(tick, 45)
+      }
+    }
+
+    setTimeout(tick, 800)
+    return () => { cancelled = true }
+  }, [])
 
   useEffect(() => {
     if (!loading) {
@@ -380,8 +427,8 @@ export default function HomeAurora() {
         {/* ── Section 1: Hero text + Form ─────────────────────────────────── */}
         <section className="pt-4 pb-8 px-4 sm:px-6 text-center">
           <div className="max-w-4xl mx-auto animate-fade-up">
-            <h1 className="text-[2.4rem] sm:text-5xl lg:text-[3.5rem] font-bold tracking-tight leading-[1.1] mb-3">
-              Create your{' '}
+            <h1 className="text-[2.625rem] sm:text-5xl lg:text-[3.5rem] font-bold tracking-tight leading-[1.1] mb-3">
+              Create your<br className="sm:hidden" />{' '}
               <span
                 className="bg-clip-text text-transparent"
                 style={{ backgroundImage: IG_GRADIENT }}
@@ -389,7 +436,7 @@ export default function HomeAurora() {
                 content channel
               </span>
             </h1>
-            <p className="text-foreground/75 text-base leading-relaxed mb-8">
+            <p className="text-muted-light text-base leading-relaxed mb-8">
               Your next 30 days of scroll-stopping carousels, ready in minutes.
             </p>
           </div>
@@ -400,7 +447,7 @@ export default function HomeAurora() {
 
               {/* Integrated pill: input + button as one unit */}
               <div
-                className="p-[2px] rounded-2xl transition-all duration-300"
+                className="p-[2px] rounded-[28px] sm:rounded-full transition-all duration-300"
                 style={{
                   background: IG_GRADIENT,
                   boxShadow: inputFocused
@@ -410,7 +457,7 @@ export default function HomeAurora() {
                       : '0 0 32px rgba(188,24,136,0.3), 0 0 60px rgba(220,39,67,0.1)',
                 }}
               >
-                <div className={`flex flex-col sm:flex-row sm:items-center gap-2 p-2 rounded-[14px] ${isLight ? 'bg-white' : 'bg-[#0e0c1a]'}`}>
+                <div className={`flex flex-col sm:flex-row sm:items-center gap-2 p-2 rounded-[26px] sm:rounded-full ${isLight ? 'bg-white' : 'bg-[#0e0c1a]'}`}>
                   <input
                     id="topic"
                     type="text"
@@ -418,14 +465,14 @@ export default function HomeAurora() {
                     onChange={(e) => setTopicInput(e.target.value)}
                     onFocus={() => setInputFocused(true)}
                     onBlur={() => setInputFocused(false)}
-                    placeholder="e.g. coffee, AI tools, fitness for busy parents..."
+                    placeholder={animatedPlaceholder}
                     autoComplete="off"
-                    className="pill-input flex-1 px-3 py-3 bg-transparent text-foreground placeholder-muted text-[17px] focus:outline-none"
+                    className="pill-input flex-1 px-3 py-3 bg-transparent text-foreground placeholder-muted text-base focus:outline-none"
                   />
                   <button
                     type="submit"
                     disabled={loading || !topicInput.trim()}
-                    className="w-full sm:w-auto shrink-0 px-5 py-3 text-white font-bold rounded-xl text-sm disabled:opacity-40 disabled:cursor-not-allowed transition-all hover:opacity-90 active:scale-[0.97] whitespace-nowrap"
+                    className="w-full sm:w-auto shrink-0 px-5 py-3 text-white font-medium rounded-full text-base disabled:opacity-40 disabled:cursor-not-allowed transition-all hover:opacity-90 active:scale-[0.97] whitespace-nowrap"
                     style={{ background: IG_GRADIENT }}
                   >
                     {loading && loadingSource === 'direct' ? (
@@ -452,7 +499,7 @@ export default function HomeAurora() {
                   type="button"
                   onClick={handleDiscover}
                   disabled={loading}
-                  className="text-sm text-muted hover:text-foreground font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="text-sm text-muted hover:text-foreground font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed min-h-[44px] flex items-center justify-center"
                 >
                   {loading && loadingSource === 'discover' ? (
                     <span className="flex items-center justify-center gap-2">
@@ -467,14 +514,14 @@ export default function HomeAurora() {
             </form>
 
             {/* Trust badges */}
-            <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-2 mt-8 pt-6 border-t border-border/50">
+            <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-2 mt-8 pt-6 border-t border-border/30">
 
               {/* Feature badges */}
               {[
                 {
                   label: '30 posts/month',
                   icon: (
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#e6683c" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#e6683c" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
                       <circle cx="12" cy="13" r="4" />
                     </svg>
@@ -483,7 +530,7 @@ export default function HomeAurora() {
                 {
                   label: 'AI-powered',
                   icon: (
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#cc2366" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#cc2366" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
                     </svg>
                   ),
@@ -491,7 +538,7 @@ export default function HomeAurora() {
                 {
                   label: 'Full captions',
                   icon: (
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#bc1888" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#bc1888" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
                     </svg>
                   ),
@@ -499,7 +546,7 @@ export default function HomeAurora() {
                 {
                   label: 'Auto-hashtags',
                   icon: (
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6c3fc5" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6c3fc5" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                       <line x1="4" y1="9" x2="20" y2="9" />
                       <line x1="4" y1="15" x2="20" y2="15" />
                       <line x1="10" y1="3" x2="8" y2="21" />
@@ -510,7 +557,7 @@ export default function HomeAurora() {
               ].map((badge) => (
                 <div key={badge.label} className="flex items-center gap-1.5 shrink-0">
                   <span className="shrink-0">{badge.icon}</span>
-                  <span className="text-xs font-medium text-muted whitespace-nowrap">{badge.label}</span>
+                  <span className="text-xs font-medium text-muted-light whitespace-nowrap">{badge.label}</span>
                 </div>
               ))}
             </div>
@@ -526,12 +573,12 @@ export default function HomeAurora() {
                   <div key={i} className={`w-[18px] h-[18px] rounded-full ${bg} border-2 border-background`} />
                 ))}
               </div>
-              <p className="text-xs text-muted uppercase tracking-widest font-medium opacity-60">
-                <span className="text-foreground font-semibold normal-case tracking-normal opacity-100">500+</span> example channels
+              <p className="text-xs text-muted font-medium">
+                <span className="font-semibold">500+</span> example channels
               </p>
             </div>
             {/* Cards — horizontal scroll on mobile, 3-col grid on desktop */}
-            <div ref={cardsContainerRef} onMouseMove={handleCardsTilt} onMouseLeave={handleCardsLeave} className="flex sm:grid sm:grid-cols-3 gap-4 overflow-x-auto sm:overflow-visible snap-x snap-mandatory py-8 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-hide opacity-80">
+            <div ref={cardsContainerRef} onMouseMove={handleCardsTilt} onMouseLeave={handleCardsLeave} className="flex sm:grid sm:grid-cols-3 gap-4 overflow-x-auto sm:overflow-visible snap-x snap-mandatory py-8 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-hide">
               {EXAMPLE_CAROUSELS.map((carousel) => (
                 <ExampleCarousel key={carousel.id} carousel={carousel} isLight={isLight} />
               ))}

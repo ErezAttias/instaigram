@@ -118,7 +118,7 @@ function SidebarStepper({ currentStep }: { currentStep: number }) {
           <div key={label}>
             {i > 0 && (
               <div className="w-8 flex justify-center">
-                <div className={`w-px h-3 ${connectorDone ? 'bg-[#3d6fa8]/40' : 'bg-border'}`} />
+                <div className={`w-0.5 h-5 ${connectorDone ? 'bg-[#3d6fa8]/40' : 'bg-border'}`} />
               </div>
             )}
             <div className="flex items-center gap-3">
@@ -134,7 +134,7 @@ function SidebarStepper({ currentStep }: { currentStep: number }) {
                   i + 1
                 )}
               </div>
-              <span className={`text-sm font-medium transition-colors ${active ? 'text-foreground' : done ? 'text-muted-light' : 'text-muted'}`}>
+              <span className={`text-sm font-medium transition-colors ${active ? 'text-foreground' : done ? 'text-muted-light' : 'text-muted-light'}`}>
                 {label}
               </span>
             </div>
@@ -154,27 +154,31 @@ function SidebarStepper({ currentStep }: { currentStep: number }) {
 
 function HorizontalStepper({ currentStep }: { currentStep: number }) {
   return (
-    <div className="flex items-center overflow-hidden">
+    <div className="flex items-center gap-1.5">
       {STEP_LABELS.map((label, i) => {
         const done = currentStep > i
         const active = currentStep === i
         return (
-          <div key={label} className={`flex items-center gap-1.5 ${active ? 'flex-shrink-0' : 'shrink'} min-w-0`}>
-            <div
-              className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold transition-all shrink-0 ${done ? 'bg-[#3d6fa8]/15 text-[#6b9fcc]' : active ? 'text-white' : 'bg-surface-elevated text-muted border border-border'}`}
-              style={active ? { background: IG_GRADIENT } : undefined}
-            >
-              {done ? (
-                <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M2 6.5L4.5 9L10 3" />
-                </svg>
-              ) : (
-                i + 1
+          <div key={label} className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5">
+              <div
+                className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold transition-all shrink-0 ${done ? 'bg-[#3d6fa8]/15 text-[#6b9fcc]' : active ? 'text-white' : 'bg-surface-elevated text-muted border border-border'}`}
+                style={active ? { background: IG_GRADIENT } : undefined}
+              >
+                {done ? (
+                  <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M2 6.5L4.5 9L10 3" />
+                  </svg>
+                ) : (
+                  i + 1
+                )}
+              </div>
+              {active && (
+                <span className="text-sm font-medium text-foreground whitespace-nowrap">{label}</span>
               )}
             </div>
-            <span className={`text-sm font-medium truncate ${active ? 'text-foreground' : 'text-muted'}`}>{label}</span>
             {i < STEP_LABELS.length - 1 && (
-              <div className={`w-4 shrink-0 h-px mx-1 ${done ? 'bg-[#3d6fa8]/40' : 'bg-border'}`} />
+              <div className={`w-4 shrink-0 h-px ${done ? 'bg-[#3d6fa8]/40' : 'bg-border'}`} />
             )}
           </div>
         )
@@ -204,7 +208,7 @@ function PrimaryButton({
     <button
       onClick={onClick}
       disabled={disabled || loading}
-      className={`px-5 py-2.5 text-white rounded-full text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed transition-all hover:opacity-90 active:scale-[0.98]${className ? ` ${className}` : ''}`}
+      className={`px-5 py-2.5 text-white rounded-full text-base font-semibold disabled:opacity-40 disabled:cursor-not-allowed transition-all hover:opacity-90 active:scale-[0.98]${className ? ` ${className}` : ''}`}
       style={{ background: IG_GRADIENT, boxShadow: IG_GLOW }}
     >
       {loading ? (
@@ -234,7 +238,7 @@ function GhostButton({
     <button
       onClick={onClick}
       disabled={disabled}
-      className={`px-4 py-2 border rounded-xl text-sm font-semibold transition-all duration-200 disabled:opacity-40 ${
+      className={`px-5 py-2.5 border rounded-full text-sm font-semibold transition-all duration-200 disabled:opacity-40 ${
         active
           ? 'border-[#3d6fa8]/30 bg-[#3d6fa8]/10 text-foreground'
           : 'border-border hover:border-[#3d6fa8]/25 hover:bg-[#3d6fa8]/8'
@@ -256,6 +260,7 @@ function Section({
   collapsible,
   defaultCollapsed,
   collapsedSummary,
+  collapsedTitle,
 }: {
   children: React.ReactNode
   delay?: number
@@ -265,6 +270,7 @@ function Section({
   collapsible?: boolean
   defaultCollapsed?: boolean
   collapsedSummary?: React.ReactNode
+  collapsedTitle?: React.ReactNode
 }) {
   const [collapsed, setCollapsed] = useState(defaultCollapsed ?? false)
 
@@ -273,45 +279,55 @@ function Section({
     if (defaultCollapsed) setCollapsed(true)
   }, [defaultCollapsed])
 
-  return (
-    <div
-      className={`animate-fade-up rounded-2xl border transition-all duration-300 ${
-        completed
-          ? 'border-border/60 bg-surface/70 opacity-80 hover:opacity-100 hover:border-border-hover'
-          : active
-            ? 'border-border bg-surface hover:border-border-hover'
-            : 'border-border bg-surface hover:border-border-hover'
-      } ${collapsed ? 'px-6 py-4 lg:px-8' : compact ? 'p-5' : 'p-6 lg:p-8'} relative`}
-      style={delay ? { animationDelay: `${delay}ms` } : undefined}
-    >
-      {collapsible && collapsed ? (
+  // Collapsible sections use a single DOM structure: persistent header + toggled body
+  if (collapsible) {
+    return (
+      <div
+        className={`animate-fade-up rounded-2xl border transition-all duration-300 border-border bg-surface hover:border-border-hover ${collapsed ? 'p-5' : compact ? 'p-5' : 'p-5 lg:p-8'}`}
+        style={delay ? { animationDelay: `${delay}ms` } : undefined}
+      >
+        {/* Persistent header — always mounted, chevron never moves */}
         <button
-          onClick={() => setCollapsed(false)}
-          className="w-full flex items-center justify-between gap-4 group"
+          onClick={() => setCollapsed(c => !c)}
+          className="w-full flex items-center justify-between gap-4 group rounded-2xl p-0"
         >
-          <div className="flex-1 min-w-0 text-left">{collapsedSummary}</div>
+          <div className="flex-1 min-w-0 text-left">
+            {collapsedTitle ?? collapsedSummary}
+          </div>
           <svg
             width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"
-            className="text-muted group-hover:text-foreground transition-colors shrink-0"
+            className={`text-muted group-hover:text-foreground transition-transform duration-200 shrink-0 ${collapsed ? '' : 'rotate-180'}`}
           >
             <path d="M4 6l4 4 4-4" />
           </svg>
         </button>
-      ) : (
-        <>
-          {collapsible && (
-            <button
-              onClick={() => setCollapsed(true)}
-              className="absolute top-4 right-4 lg:top-6 lg:right-6 text-muted hover:text-foreground transition-colors z-10"
-            >
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-                <path d="M4 10l4-4 4 4" />
-              </svg>
-            </button>
-          )}
-          {children}
-        </>
-      )}
+        {/* Body — animated height via CSS grid */}
+        <div
+          className="grid transition-[grid-template-rows,opacity] duration-300 ease-out"
+          style={{ gridTemplateRows: collapsed ? '0fr' : '1fr', opacity: collapsed ? 0 : 1 }}
+        >
+          <div className="overflow-hidden">
+            <div className="pt-5">
+              {children}
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div
+      className={`animate-fade-up rounded-2xl border transition-colors duration-300 ${
+        completed
+          ? 'border-border bg-surface hover:border-border-hover'
+          : active
+            ? 'border-border bg-surface hover:border-border-hover'
+            : 'border-border bg-surface hover:border-border-hover'
+      } ${compact ? 'p-5' : 'p-6 lg:p-8'} relative`}
+      style={delay ? { animationDelay: `${delay}ms` } : undefined}
+    >
+      {children}
     </div>
   )
 }
@@ -321,11 +337,15 @@ function Section({
 function LockedStep({ label, delay }: { label: string; delay?: number }) {
   return (
     <div
-      className="animate-fade-up rounded-2xl border border-border bg-surface px-6 py-4 opacity-30 transition-all duration-300 flex items-center justify-between"
+      className="animate-fade-up flex items-center gap-3 px-4 py-3 opacity-40"
       style={delay ? { animationDelay: `${delay}ms` } : undefined}
     >
-      <h2 className="text-base font-semibold text-muted">{label}</h2>
-      <span className="text-xs font-medium text-muted bg-surface-elevated px-2.5 py-1 rounded-lg">Locked</span>
+      <div className="w-5 h-5 rounded-full border border-border flex items-center justify-center shrink-0">
+        <svg width="9" height="9" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="3" y="5" width="6" height="6" rx="1"/><path d="M4 5V4a2 2 0 0 1 4 0v1"/>
+        </svg>
+      </div>
+      <span className="text-sm text-muted">{label}</span>
     </div>
   )
 }
@@ -1117,6 +1137,12 @@ export default function ChannelDashboard() {
       ? `Explore angles${channel.exploreTopic ? ` — ${channel.exploreTopic}` : ''}`
       : 'Discover niches'
 
+  const step1Subtitle = isDirectMode
+    ? 'Confirm your topic or let us find a sharper angle for it.'
+    : isExploreMode
+      ? 'Pick the angle that best fits your channel.'
+      : 'We found a few niches based on trending topics. Pick the one that resonates with you.'
+
   const hasStrategy = !!channel.contentStrategy
   const hasPosts = channel.posts.length > 0
 
@@ -1140,17 +1166,19 @@ export default function ChannelDashboard() {
         {/* ─── Sidebar (Desktop) ──────────────────────────────── */}
         <aside className="hidden lg:flex flex-col w-[240px] xl:w-[260px] shrink-0 sticky top-20 self-start pt-2">
           {/* Channel info */}
-          <div className="mb-6">
+          <div className="mb-6 pb-6 border-b border-border">
             {channel.name === 'Untitled Channel' ? (
               <div className="mb-1">
-                <p className="text-xs text-muted uppercase tracking-[0.1em] font-semibold mb-1">Channel name</p>
                 <button
                   onClick={() => setShowNaming(true)}
-                  className="flex items-center gap-2 group"
+                  className="flex items-center gap-2 group text-left rounded-lg p-0"
                 >
-                  <span className="text-xl font-bold tracking-tight text-muted italic border-b border-dashed border-muted/40 leading-tight">Untitled channel</span>
-                  <span className="text-xs font-semibold text-[#6b9fcc] opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">+ Name it</span>
+                  <span className="text-xl font-bold tracking-tight text-foreground leading-tight">Untitled channel</span>
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-muted group-hover:text-[#6b9fcc] transition-colors shrink-0">
+                    <path d="M3 13h2l8-8-2-2-8 8v2z" /><path d="M10 4l2 2" />
+                  </svg>
                 </button>
+                <p className="text-xs text-muted mt-1">Click to name your channel</p>
               </div>
             ) : (
               <h1 className="text-2xl font-bold tracking-tight leading-tight mb-1">{channel.name}</h1>
@@ -1165,6 +1193,7 @@ export default function ChannelDashboard() {
 
           {/* Bottom links */}
           <div className="mt-8 pt-6 border-t border-border space-y-1">
+            <p className="text-xs text-muted font-medium px-3 mb-2">Settings</p>
             {hasPosts && (
               <>
                 <Link
@@ -1215,26 +1244,27 @@ export default function ChannelDashboard() {
               <span className="whitespace-nowrap">Slide style</span>
               <span className="ml-auto text-xs text-muted truncate min-w-0">{getTitleFont(visualStyle.titleFontId).label}</span>
             </button>
+            <p className="text-xs text-muted px-3 mt-1">Font and layout for new carousels</p>
           </div>
         </aside>
 
         {/* ─── Main Content ───────────────────────────────────── */}
-        <div className="flex-1 min-w-0 space-y-8">
+        <div className="flex-1 min-w-0 space-y-4 lg:space-y-8">
           {/* Mobile header */}
-          <div className="lg:hidden mb-4 pl-2">
+          <div className="lg:hidden mb-6 flex items-center justify-between gap-3">
+            <HorizontalStepper currentStep={effectiveStep} />
             {channel.name === 'Untitled Channel' ? (
-              <div>
-                <p className="text-xs text-muted uppercase tracking-[0.1em] font-semibold mb-1">Channel name</p>
-                <button
-                  onClick={() => setShowNaming(true)}
-                  className="flex items-baseline gap-2"
-                >
-                  <span className="text-2xl font-bold tracking-tight text-muted italic border-b border-dashed border-muted/40">Untitled channel</span>
-                  <span className="text-xs font-semibold text-[#6b9fcc] whitespace-nowrap">+ Name it</span>
-                </button>
-              </div>
+              <button
+                onClick={() => setShowNaming(true)}
+                className="flex items-center gap-1.5 px-3 py-2 min-h-[36px] rounded-full border border-border text-sm font-medium text-muted hover:text-foreground hover:border-border-hover transition-all shrink-0"
+              >
+                <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M2 10h2l6-6-2-2-6 6v2z" /><path d="M7.5 3.5l1 1" />
+                </svg>
+                Name channel
+              </button>
             ) : (
-              <h1 className="text-2xl font-bold tracking-tight">{channel.name}</h1>
+              <span className="text-sm font-semibold text-foreground truncate max-w-[140px]">{channel.name}</span>
             )}
           </div>
 
@@ -1251,30 +1281,39 @@ export default function ChannelDashboard() {
           {/* ═══════════════════════════════════════════════════════
               Step 1: Niche / Topic Selection
               ═══════════════════════════════════════════════════════ */}
+          {effectiveStep > 0 && niches.length > 0 && niches.some(n => n.selected) ? (
+          <Section
+            delay={60}
+            completed
+            collapsible
+            defaultCollapsed
+            collapsedTitle={
+              <h2 className="text-xl font-bold tracking-tight">{step1Title}</h2>
+            }
+          >
+            <p className="text-sm text-muted-light mb-4 max-w-prose" style={{ textWrap: 'balance' } as React.CSSProperties}>{step1Subtitle}</p>
+            {niches.length > 0 && (
+              <div className="space-y-3">
+                {niches.filter(n => n.selected).map((niche) => (
+                  <div key={niche.id} className="border rounded-2xl p-5 border-[#3d6fa8]/40 bg-[#3d6fa8]/10">
+                    <h3 className="text-base font-semibold mb-1">{niche.title}</h3>
+                    <p className="text-sm text-muted-light leading-relaxed">{niche.description}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Section>
+          ) : (
           <Section
             delay={60}
             completed={effectiveStep > 0}
             active={effectiveStep === 0}
-            collapsible={effectiveStep > 0 && niches.length > 0 && niches.some(n => n.selected)}
-            defaultCollapsed={effectiveStep > 0 && niches.length > 0 && niches.some(n => n.selected)}
-            collapsedSummary={
-              <div className="flex items-center gap-3">
-                <div className="w-7 h-7 rounded-full bg-[#3d6fa8]/15 flex items-center justify-center shrink-0">
-                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[#6b9fcc]">
-                    <path d="M2.5 7.5L5.5 10.5L11.5 3.5" />
-                  </svg>
-                </div>
-                <div className="min-w-0">
-                  <span className="text-sm font-semibold text-muted-light">{step1Title}</span>
-                  {niches.find(n => n.selected) && (
-                    <span className="text-sm text-muted ml-2">— {niches.find(n => n.selected)?.title}</span>
-                  )}
-                </div>
-              </div>
-            }
           >
             <div className="flex items-start justify-between gap-3 mb-6">
-              <h2 className="text-lg font-bold tracking-tight">{step1Title}</h2>
+              <div>
+                <h2 className="text-xl font-bold tracking-tight">{step1Title}</h2>
+                {niches.length > 0 && <p className="text-sm text-muted-light mt-1 max-w-prose" style={{ textWrap: 'balance' }}>{step1Subtitle}</p>}
+              </div>
 
               {isDirectMode && effectiveStep === 0 && niches.length === 0 ? (
                 <div className="flex items-center gap-2">
@@ -1305,16 +1344,16 @@ export default function ChannelDashboard() {
                 >
                   Regenerate
                 </GhostButton>
-              ) : (
+              ) : niches.length === 0 ? (
                 <PrimaryButton
                   onClick={handleGenerateNiches}
                   disabled={actionLoading !== null}
                   loading={actionLoading === 'generate-niches'}
                   loadingText="Generating..."
                 >
-                  {niches.length > 0 ? 'Regenerate' : isExploreMode ? 'Explore angles' : 'Generate niches'}
+                  {isExploreMode ? 'Explore angles' : 'Generate niches'}
                 </PrimaryButton>
-              )}
+              ) : null}
             </div>
 
             {/* Direct mode: refine choice */}
@@ -1391,7 +1430,7 @@ export default function ChannelDashboard() {
                         onClick={() => !niche.selected && handleSelectNiche(niche.id)}
                         disabled={actionLoading !== null || niche.selected}
                         className={`
-                          animate-fade-up snap-start shrink-0 w-[300px] lg:w-[320px] text-left border rounded-2xl p-5 transition-all duration-200 flex flex-col disabled:opacity-100
+                          animate-fade-up snap-start shrink-0 w-[280px] lg:w-[320px] text-left border rounded-2xl p-5 transition-all duration-200 flex flex-col disabled:opacity-100
                           ${niche.selected
                             ? 'border-[#3d6fa8]/40 bg-[#3d6fa8]/10'
                             : 'border-border bg-background hover:border-[#3d6fa8]/25 hover:bg-[#3d6fa8]/8'
@@ -1413,7 +1452,7 @@ export default function ChannelDashboard() {
                     {niches.map((niche) => (
                       <div
                         key={niche.id}
-                        className={`w-1.5 h-1.5 rounded-full transition-colors duration-200 ${niche.selected ? 'bg-[#3d6fa8]' : 'bg-border'}`}
+                        className={`w-2 h-2 rounded-full transition-colors duration-200 ${niche.selected ? 'bg-[#3d6fa8]' : 'bg-border'}`}
                       />
                     ))}
                   </div>
@@ -1422,8 +1461,8 @@ export default function ChannelDashboard() {
 
                 {/* Regenerate intents */}
                 {effectiveStep === 0 && niches.length > 1 && (
-                  <div className="flex flex-wrap items-center gap-2 pt-3">
-                    <span className="text-xs font-medium text-muted mr-1">Regenerate:</span>
+                  <div className="flex flex-wrap items-center gap-2 pt-6">
+                    <span className="text-xs font-medium text-muted mr-1">Try different angles:</span>
                     {REGENERATE_INTENTS.map((intent) => (
                       <GhostButton
                         key={intent.value}
@@ -1438,12 +1477,16 @@ export default function ChannelDashboard() {
               </div>
             )}
           </Section>
+          )}
 
           {/* ═══════════════════════════════════════════════════════
               Step 2: Define Content Strategy
               ═══════════════════════════════════════════════════════ */}
           {effectiveStep < 1 ? (
-            <LockedStep label="Content strategy" delay={120} />
+            <div className="space-y-1">
+              <LockedStep label="Content strategy" delay={120} />
+              <LockedStep label="Generate posts" delay={180} />
+            </div>
           ) : hasStrategy && strategyOptions.length === 0 ? (
             /* Strategy approved — compact display */
             <Section
@@ -1452,18 +1495,8 @@ export default function ChannelDashboard() {
               completed={effectiveStep > 1}
               collapsible={effectiveStep > 1}
               defaultCollapsed={effectiveStep > 1}
-              collapsedSummary={
-                <div className="flex items-center gap-3">
-                  <div className="w-7 h-7 rounded-full bg-[#3d6fa8]/15 flex items-center justify-center shrink-0">
-                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[#6b9fcc]">
-                      <path d="M2.5 7.5L5.5 10.5L11.5 3.5" />
-                    </svg>
-                  </div>
-                  <div className="min-w-0">
-                    <span className="text-sm font-semibold text-muted-light">Content Strategy</span>
-                    <span className="text-sm text-muted ml-2">— {approvedPillars.length} pillar{approvedPillars.length !== 1 ? 's' : ''} · {approvedChannelTone}</span>
-                  </div>
-                </div>
+              collapsedTitle={
+                <h2 className="text-xl font-bold tracking-tight">Content strategy</h2>
               }
             >
               <div className="flex items-center justify-between mb-3">
@@ -1493,9 +1526,11 @@ export default function ChannelDashboard() {
               <div className="flex flex-col gap-3 mb-5">
                 <div>
                   <h2 className="text-xl font-bold tracking-tight">Content strategy</h2>
-                  {strategyOptions.length > 0 && (
-                    <p className="text-sm text-muted-light mt-1">All 3 pillars are active — deselect any you don&apos;t want.</p>
-                  )}
+                  <p className="text-sm text-muted-light mt-1 max-w-prose">
+                    {strategyOptions.length > 0
+                      ? 'Your content pillars — the themes your posts will rotate through. Tap to deselect.'
+                      : 'Generate the content pillars that will shape your posting themes for the next 30 days.'}
+                  </p>
                 </div>
                 {strategyOptions.length === 0 && (
                   <PrimaryButton
@@ -1512,7 +1547,7 @@ export default function ChannelDashboard() {
 
               {/* Pillar cards — all selected by default, tap to toggle */}
               {strategyOptions.length > 0 && (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   {strategyOptions.map((strategy, i) => {
                     const isSelected = selectedPillarIndices.has(i)
                     return (
@@ -1523,44 +1558,44 @@ export default function ChannelDashboard() {
                       className={`animate-fade-up text-left rounded-2xl p-6 transition-all duration-200 disabled:opacity-40 flex flex-col gap-4 relative ${
                         isSelected
                           ? 'border-2 border-[#3d6fa8]/50 bg-[#3d6fa8]/10'
-                          : 'border border-border bg-background hover:border-[#3d6fa8]/25 hover:bg-[#3d6fa8]/8'
+                          : 'border-2 border-border/50 bg-background hover:border-[#3d6fa8]/25 hover:bg-[#3d6fa8]/8'
                       }`}
                       style={{ animationDelay: `${i * 80}ms` }}
                     >
                       {/* Checkmark */}
                       <div
-                        className={`absolute top-4 right-4 w-5 h-5 rounded-full flex items-center justify-center transition-all duration-150 ${isSelected ? 'bg-[#3d6fa8] text-white' : 'border border-border bg-background'}`}
+                        className={`absolute top-4 right-4 w-6 h-6 rounded-full flex items-center justify-center transition-all duration-150 ${isSelected ? 'bg-[#3d6fa8]/15 text-[#6b9fcc]' : 'border border-border bg-background'}`}
                       >
                         {isSelected && (
-                          <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M1.5 5.5L4 8L8.5 2" />
                           </svg>
                         )}
                       </div>
-                      <p className="text-base font-semibold text-foreground leading-snug pr-7">{strategy.contentIntent}</p>
+                      <p className="text-base font-semibold text-foreground leading-normal pr-7">{strategy.contentIntent}</p>
                       <div className="flex flex-wrap gap-1.5">
-                        <span className="text-xs font-medium text-muted-light bg-surface-elevated border border-border px-2 py-0.5 rounded-lg">{strategy.tone}</span>
+                        <span className="text-xs font-medium text-muted-light bg-surface-elevated border border-border px-2 py-0.5 rounded-full whitespace-nowrap">{strategy.tone}</span>
                       </div>
-                      <p className="text-sm text-muted-light leading-relaxed flex-1">
-                        <span className="font-medium text-muted">Target audience: </span>
+                      <p className="text-sm text-foreground leading-relaxed flex-1">
+                        <span className="font-normal text-muted-light">Target audience: </span>
                         {strategy.audience.replace(/^(The target audience (are|is)\s*|Target audience:\s*)/i, '')}
                       </p>
                       {(strategy.engagementPotential || strategy.contentDifficulty || strategy.audienceSize) && (
                         <div className="flex flex-wrap gap-1.5">
                           {strategy.engagementPotential && strategy.engagementPotential >= 7 && (
-                            <span className="text-xs font-medium text-success bg-success-dim px-2 py-0.5 rounded-lg">High engagement</span>
+                            <span className="text-xs font-medium text-success bg-success-dim px-2 py-0.5 rounded-full whitespace-nowrap">High engagement</span>
                           )}
                           {strategy.contentDifficulty && strategy.contentDifficulty <= 4 && (
-                            <span className="text-xs font-medium text-success bg-success-dim px-2 py-0.5 rounded-lg">Low effort</span>
+                            <span className="text-xs font-medium text-success bg-success-dim px-2 py-0.5 rounded-full whitespace-nowrap">Low effort</span>
                           )}
                           {strategy.contentDifficulty && strategy.contentDifficulty >= 7 && (
-                            <span className="text-xs font-medium text-[#f0a030] bg-[rgba(240,160,48,0.1)] px-2 py-0.5 rounded-lg">High effort</span>
+                            <span className="text-xs font-medium text-[#f0a030] bg-[rgba(240,160,48,0.1)] px-2 py-0.5 rounded-full whitespace-nowrap">High effort</span>
                           )}
                           {strategy.audienceSize && strategy.audienceSize >= 7 && (
-                            <span className="text-xs font-medium text-[#60a5fa] bg-[rgba(96,165,250,0.1)] px-2 py-0.5 rounded-lg">Wide audience</span>
+                            <span className="text-xs font-medium text-[#60a5fa] bg-[rgba(96,165,250,0.1)] px-2 py-0.5 rounded-full whitespace-nowrap">Wide audience</span>
                           )}
                           {strategy.audienceSize && strategy.audienceSize <= 3 && (
-                            <span className="text-xs font-medium text-muted-light bg-surface-elevated px-2 py-0.5 rounded-lg">Niche audience</span>
+                            <span className="text-xs font-medium text-muted-light bg-surface-elevated px-2 py-0.5 rounded-full whitespace-nowrap">Niche audience</span>
                           )}
                         </div>
                       )}
@@ -1572,7 +1607,7 @@ export default function ChannelDashboard() {
 
               {/* CTA + Regenerate — anchored below cards */}
               {strategyOptions.length > 0 && (
-                <div className="flex items-center justify-between pt-4">
+                <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3 pt-4">
                   <GhostButton onClick={handleGenerateStrategy} disabled={actionLoading !== null}>
                     Regenerate pillars
                   </GhostButton>
@@ -1581,6 +1616,7 @@ export default function ChannelDashboard() {
                     disabled={actionLoading !== null || selectedPillarIndices.size === 0}
                     loading={actionLoading === 'approve-strategy'}
                     loadingText="Saving..."
+                    className="w-full sm:w-auto justify-center"
                   >
                     Set my pillars ({selectedPillarIndices.size})
                   </PrimaryButton>
@@ -1608,17 +1644,18 @@ export default function ChannelDashboard() {
               ═══════════════════════════════════════════════════════ */}
           {showStyleEditor && (
             <Section delay={175}>
-              <div className="flex items-start justify-between gap-3 mb-6">
+              <div className="mb-6 space-y-4">
                 <div>
                   <h2 className="text-xl font-bold tracking-tight">Slide style</h2>
                   <p className="text-sm text-muted-light mt-1">Applies to new posts. Existing carousel images are unchanged.</p>
                 </div>
-                <div className="flex items-center gap-2 shrink-0">
+                <div className="flex items-center gap-2">
                   <PrimaryButton
                     onClick={handleSaveVisualStyle}
                     loading={styleSaving}
                     loadingText="Saving..."
                     disabled={styleSaving}
+                    className="flex-1 sm:flex-none justify-center"
                   >
                     Save style
                   </PrimaryButton>
@@ -1629,7 +1666,7 @@ export default function ChannelDashboard() {
               </div>
 
               {/* Two-column: controls + live preview */}
-              <div className="flex flex-col lg:flex-row gap-8">
+              <div className="flex flex-col-reverse lg:flex-row gap-8">
                 {/* Controls */}
                 <div className="flex-1 space-y-6">
                   {/* Fonts */}
@@ -1638,13 +1675,13 @@ export default function ChannelDashboard() {
 
                     {/* Title font picker */}
                     <div>
-                      <p className="text-xs font-medium text-muted mb-2">Title font</p>
+                      <p className="text-sm font-medium text-muted mb-2">Title font</p>
                       <div className="flex flex-wrap gap-2">
                         {TITLE_FONTS.map(font => (
                           <button
                             key={font.id}
                             onClick={() => setVisualStyle(prev => ({ ...prev, titleFontId: font.id }))}
-                            className={`px-3 py-2 rounded-lg border text-sm transition-colors cursor-pointer ${
+                            className={`px-3 py-2.5 min-h-[44px] rounded-lg border text-sm transition-colors cursor-pointer ${
                               visualStyle.titleFontId === font.id
                                 ? 'border-[#3d6fa8]/60 bg-[#3d6fa8]/10 text-[#6b9fcc]'
                                 : 'border-border bg-surface text-foreground hover:border-border-hover'
@@ -1657,26 +1694,26 @@ export default function ChannelDashboard() {
                       </div>
                     </div>
 
-                    <label className="flex items-center gap-2 cursor-pointer">
+                    <label className="flex items-center gap-3 cursor-pointer min-h-[44px]">
                       <input
                         type="checkbox"
                         checked={visualStyle.singleFont}
                         onChange={e => setVisualStyle(prev => ({ ...prev, singleFont: e.target.checked }))}
-                        className="accent-[#3d6fa8]"
+                        className="w-5 h-5 accent-[#3d6fa8] shrink-0"
                       />
                       <span className="text-sm text-muted">Single font (use title font for body text)</span>
                     </label>
 
                     {/* Paragraph font picker */}
                     <div>
-                      <p className={`text-xs font-medium mb-2 ${visualStyle.singleFont ? 'text-muted/50' : 'text-muted'}`}>Paragraph font</p>
+                      <p className={`text-sm font-medium mb-2 ${visualStyle.singleFont ? 'text-muted/50' : 'text-muted'}`}>Paragraph font</p>
                       <div className="flex flex-wrap gap-2">
                         {BODY_FONTS.map(font => (
                           <button
                             key={font.id}
                             onClick={() => !visualStyle.singleFont && setVisualStyle(prev => ({ ...prev, bodyFontId: font.id }))}
                             disabled={visualStyle.singleFont}
-                            className={`px-3 py-2 rounded-lg border text-sm transition-colors ${
+                            className={`px-3 py-2.5 min-h-[44px] rounded-lg border text-sm transition-colors ${
                               visualStyle.bodyFontId === font.id && !visualStyle.singleFont
                                 ? 'border-[#3d6fa8]/60 bg-[#3d6fa8]/10 text-[#6b9fcc] cursor-pointer'
                                 : visualStyle.singleFont
@@ -1699,39 +1736,37 @@ export default function ChannelDashboard() {
                     <h3 className="text-sm font-semibold text-foreground mb-3">Text Colors</h3>
                     <div className="space-y-3">
                       {([
-                        { key: 'headlineColor', label: 'Headline', placeholder: '#FFFFFF' },
-                        { key: 'emphasisColor', label: 'Emphasis', placeholder: '#00A8FF' },
-                        { key: 'bodyColor', label: 'Body', placeholder: '#B0B0B0' },
-                      ] as const).map(({ key, label, placeholder }) => (
-                        <div key={key} className="flex items-center gap-3">
-                          <span className="text-sm text-muted w-24 shrink-0">{label}</span>
-                          <div className="flex items-center gap-2 flex-1">
-                            <input
-                              type="color"
-                              value={visualStyle[key] ?? '#FFFFFF'}
-                              onChange={e => setVisualStyle(prev => ({ ...prev, [key]: e.target.value }))}
-                              className="w-8 h-8 rounded cursor-pointer border border-border bg-transparent"
-                            />
-                            <input
-                              type="text"
-                              value={visualStyle[key] ?? ''}
-                              placeholder={placeholder}
-                              onChange={e => {
-                                const v = e.target.value.trim()
-                                setVisualStyle(prev => ({ ...prev, [key]: v === '' ? null : v }))
-                              }}
-                              className="flex-1 bg-surface border border-border rounded-lg px-2 py-1.5 text-sm text-foreground font-mono placeholder:text-muted focus:border-[#3d6fa8]/50 outline-none"
-                            />
-                            {visualStyle[key] && (
-                              <button
-                                onClick={() => setVisualStyle(prev => ({ ...prev, [key]: null }))}
-                                className="text-muted hover:text-foreground text-xs px-1"
-                                title="Reset to default"
-                              >
-                                ✕
-                              </button>
-                            )}
-                          </div>
+                        { key: 'headlineColor', label: 'Headline', placeholder: '#FFFFFF', fallback: '#FFFFFF' },
+                        { key: 'emphasisColor', label: 'Emphasis', placeholder: '#00A8FF', fallback: '#00A8FF' },
+                        { key: 'bodyColor', label: 'Body', placeholder: '#B0B0B0', fallback: '#B0B0B0' },
+                      ] as const).map(({ key, label, placeholder, fallback }) => (
+                        <div key={key} className="flex items-center gap-2 min-w-0">
+                          <span className="text-sm text-muted w-16 shrink-0">{label}</span>
+                          <input
+                            type="color"
+                            value={visualStyle[key] ?? fallback}
+                            onChange={e => setVisualStyle(prev => ({ ...prev, [key]: e.target.value }))}
+                            className="w-9 h-9 rounded-full cursor-pointer border border-border bg-transparent shrink-0"
+                          />
+                          <input
+                            type="text"
+                            value={visualStyle[key] ?? ''}
+                            placeholder={placeholder}
+                            onChange={e => {
+                              const v = e.target.value.trim()
+                              setVisualStyle(prev => ({ ...prev, [key]: v === '' ? null : v }))
+                            }}
+                            className="flex-1 min-w-0 bg-surface border border-border rounded-lg px-2 py-2 text-sm text-foreground font-mono placeholder:text-muted focus:border-[#3d6fa8]/50 outline-none"
+                          />
+                          {visualStyle[key] && (
+                            <button
+                              onClick={() => setVisualStyle(prev => ({ ...prev, [key]: null }))}
+                              className="w-8 h-8 flex items-center justify-center rounded-lg p-0 text-muted hover:text-foreground hover:bg-surface-hover transition-colors shrink-0"
+                              title="Reset to default"
+                            >
+                              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M2 2l8 8M10 2l-8 8" /></svg>
+                            </button>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -1750,7 +1785,7 @@ export default function ChannelDashboard() {
               Step 3: Generate Posts — Batches of 3
               ═══════════════════════════════════════════════════════ */}
           {effectiveStep < 2 ? (
-            <LockedStep label="Generate posts" delay={180} />
+            effectiveStep >= 1 ? <LockedStep label="Generate posts" delay={180} /> : null
           ) : (
           <Section compact={!isStreamingPosts && completedPosts.length === 0 && !hasPosts} delay={180} active={effectiveStep === 2}>
             <div className="flex flex-col gap-3">
@@ -1766,7 +1801,7 @@ export default function ChannelDashboard() {
                 </div>
                 <button
                   onClick={() => { setShowStyleEditor(true); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-muted border border-border rounded-lg hover:text-[#6b9fcc] hover:border-[#3d6fa8]/30 transition-all shrink-0"
+                  className="flex items-center gap-1.5 px-3 py-2.5 min-h-[44px] text-xs font-semibold text-muted border border-border rounded-lg hover:text-[#6b9fcc] hover:border-[#3d6fa8]/30 transition-all shrink-0"
                 >
                   <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                     <circle cx="8" cy="8" r="5.5" />
@@ -1823,80 +1858,78 @@ export default function ChannelDashboard() {
                             <p className="text-base font-semibold text-foreground truncate">{p.title}</p>
                             <p className="text-sm text-muted truncate">{p.hook}</p>
                           </div>
-                          <div className="flex items-center gap-3 shrink-0">
-                            {/* Failed / stuck badge */}
+                          <div className="flex items-center gap-2 shrink-0">
+                            {/* Failed badge — always visible */}
                             {isStuck && !retryLoading.has(p.id) && (
-                              <span className="text-xs font-medium text-red-400 bg-red-500/10 border border-red-500/20 rounded-full px-2 py-0.5">
+                              <span className="text-xs font-medium text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-2 py-0.5">
                                 Failed
                               </span>
                             )}
 
-                            {/* Restyle (healthy) or Retry (stuck) */}
-                            {p.carouselJobId && !isStuck && (
-                              <button
-                                onClick={(e) => { e.stopPropagation(); handleRestyleAllSlides(p.id, p.carouselJobId!) }}
-                                disabled={restyleLoading.has(p.id) || p.carouselJobId === generatingCarouselJobId}
-                                className="flex items-center gap-1.5 text-xs text-muted hover:text-[#6b9fcc] font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                                title="Re-render all slides with current saved style"
-                              >
-                                {restyleLoading.has(p.id) ? (
-                                  <span className="w-3 h-3 border border-[#3d6fa8]/30 border-t-[#6b9fcc] rounded-full animate-spin" />
-                                ) : (
-                                  <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                                    <circle cx="8" cy="8" r="5.5" />
-                                    <circle cx="5" cy="6" r="1" fill="currentColor" stroke="none" />
-                                    <circle cx="8" cy="4.5" r="1" fill="currentColor" stroke="none" />
-                                    <circle cx="11" cy="6" r="1" fill="currentColor" stroke="none" />
-                                  </svg>
-                                )}
-                                {restyleLoading.has(p.id) ? 'Restyling...' : 'Restyle'}
-                              </button>
-                            )}
-                            {isStuck && (
-                              <button
-                                onClick={(e) => { e.stopPropagation(); handleRetryCarousel(p.id, p.carouselJobId!) }}
-                                disabled={retryLoading.has(p.id)}
-                                className="flex items-center gap-1.5 text-xs text-red-400 hover:text-red-300 font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                                title="Retry carousel generation"
-                              >
-                                {retryLoading.has(p.id) ? (
-                                  <span className="w-3 h-3 border border-red-400/30 border-t-red-400 rounded-full animate-spin" />
-                                ) : (
-                                  <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M2 8a6 6 0 1 0 1.5-4" />
-                                    <path d="M2 4v4h4" />
-                                  </svg>
-                                )}
-                                {retryLoading.has(p.id) ? 'Retrying...' : 'Retry'}
-                              </button>
-                            )}
-
-                            {/* View carousel link — hidden for stuck jobs */}
-                            {!isStuck && (
-                              <Link
-                                href={p.carouselJobId ? `/carousel/${p.carouselJobId}` : `/channels/${channelId}/posts/${p.id}`}
-                                onClick={(e) => e.stopPropagation()}
-                                className="text-xs text-[#6b9fcc] hover:text-[#8bb8e0] font-semibold transition-colors"
-                              >
-                                View carousel
-                              </Link>
-                            )}
-
-                            {/* Delete button */}
-                            <button
-                              onClick={(e) => { e.stopPropagation(); handleDeletePost(p.id) }}
-                              disabled={deletingPostId === p.id}
-                              className="flex items-center text-muted hover:text-red-400 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                              title="Delete post"
-                            >
-                              {deletingPostId === p.id ? (
-                                <span className="w-3.5 h-3.5 border border-red-400/30 border-t-red-400 rounded-full animate-spin" />
-                              ) : (
-                                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                                  <path d="M2 4h12M5 4V2h6v2M6 7v5M10 7v5M3 4l1 9a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1l1-9" />
-                                </svg>
+                            {/* Actions hidden on mobile — shown in expanded view */}
+                            <div className="hidden sm:flex items-center gap-3">
+                              {p.carouselJobId && !isStuck && (
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); handleRestyleAllSlides(p.id, p.carouselJobId!) }}
+                                  disabled={restyleLoading.has(p.id) || p.carouselJobId === generatingCarouselJobId}
+                                  className="flex items-center gap-1.5 text-xs text-muted hover:text-[#6b9fcc] font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                                  title="Re-render all slides with current saved style"
+                                >
+                                  {restyleLoading.has(p.id) ? (
+                                    <span className="w-3 h-3 border border-[#3d6fa8]/30 border-t-[#6b9fcc] rounded-full animate-spin" />
+                                  ) : (
+                                    <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                                      <circle cx="8" cy="8" r="5.5" />
+                                      <circle cx="5" cy="6" r="1" fill="currentColor" stroke="none" />
+                                      <circle cx="8" cy="4.5" r="1" fill="currentColor" stroke="none" />
+                                      <circle cx="11" cy="6" r="1" fill="currentColor" stroke="none" />
+                                    </svg>
+                                  )}
+                                  {restyleLoading.has(p.id) ? 'Restyling...' : 'Restyle'}
+                                </button>
                               )}
-                            </button>
+                              {isStuck && (
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); handleRetryCarousel(p.id, p.carouselJobId!) }}
+                                  disabled={retryLoading.has(p.id)}
+                                  className="flex items-center gap-1.5 text-xs text-red-400 hover:text-red-300 font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                                  title="Retry carousel generation"
+                                >
+                                  {retryLoading.has(p.id) ? (
+                                    <span className="w-3 h-3 border border-red-400/30 border-t-red-400 rounded-full animate-spin" />
+                                  ) : (
+                                    <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                                      <path d="M2 8a6 6 0 1 0 1.5-4" />
+                                      <path d="M2 4v4h4" />
+                                    </svg>
+                                  )}
+                                  {retryLoading.has(p.id) ? 'Retrying...' : 'Retry'}
+                                </button>
+                              )}
+                              {!isStuck && (
+                                <Link
+                                  href={p.carouselJobId ? `/carousel/${p.carouselJobId}` : `/channels/${channelId}/posts/${p.id}`}
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="text-xs text-[#6b9fcc] hover:text-[#8bb8e0] font-semibold transition-colors"
+                                >
+                                  View carousel
+                                </Link>
+                              )}
+                              <button
+                                onClick={(e) => { e.stopPropagation(); if (window.confirm('Delete this post and its carousel?')) handleDeletePost(p.id) }}
+                                disabled={deletingPostId === p.id}
+                                className="flex items-center text-muted hover:text-red-400 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                                title="Delete post"
+                              >
+                                {deletingPostId === p.id ? (
+                                  <span className="w-3.5 h-3.5 border border-red-400/30 border-t-red-400 rounded-full animate-spin" />
+                                ) : (
+                                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M2 4h12M5 4V2h6v2M6 7v5M10 7v5M3 4l1 9a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1l1-9" />
+                                  </svg>
+                                )}
+                              </button>
+                            </div>
 
                             <svg
                               width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"
@@ -1959,7 +1992,7 @@ export default function ChannelDashboard() {
                                         className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${isPreview ? 'bg-[#3d6fa8] text-white' : 'bg-surface-elevated text-muted hover:text-foreground border border-border'} disabled:opacity-30 disabled:cursor-not-allowed`}
                                       >
                                         <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M1 8s3-5 7-5 7 5 7 5-3 5-7 5-7-5-7-5z"/><circle cx="8" cy="8" r="2"/></svg>
-                                        Instagram Preview
+                                        Preview
                                       </button>
                                     </div>
 
@@ -1981,46 +2014,11 @@ export default function ChannelDashboard() {
                                       /* Slide-by-slide viewer */
                                       <div className="bg-surface-elevated rounded-xl overflow-hidden">
                                         <div className="px-4 pt-3 pb-2">
-                                          <div className="flex items-center justify-between">
-                                            <span className="text-xs font-medium tracking-wider uppercase text-muted">
-                                              {currentSlide?.role} — Slide {currentSlideIdx + 1} of {slides.length}
-                                            </span>
-                                            {/* Regeneration buttons */}
-                                            {p.carouselJobId && (() => {
-                                              const regenKey = `${p.id}-${currentSlideIdx}`
-                                              const activeMode = regenLoading[regenKey]
-                                              return (
-                                                <div className="flex items-center gap-1.5">
-                                                  {(['copy', 'image', 'full'] as const).map(mode => (
-                                                    <button
-                                                      key={mode}
-                                                      onClick={() => handleRegenerateSlide(p.id, p.carouselJobId!, currentSlideIdx, mode)}
-                                                      disabled={!!activeMode || p.carouselJobId === generatingCarouselJobId}
-                                                      className="px-2 py-1 text-[11px] font-semibold rounded-md border border-border bg-background hover:bg-surface-elevated hover:border-border-hover disabled:opacity-40 disabled:cursor-not-allowed transition-all text-muted hover:text-foreground"
-                                                    >
-                                                      {activeMode === mode ? (
-                                                        <span className="flex items-center gap-1">
-                                                          <span className="w-3 h-3 border border-[#3d6fa8]/30 border-t-[#6b9fcc] rounded-full animate-spin" />
-                                                          {mode === 'copy' ? 'Rewriting...' : mode === 'image' ? 'Rendering...' : 'Regen both...'}
-                                                        </span>
-                                                      ) : (
-                                                        mode === 'copy' ? 'Regen text' : mode === 'image' ? 'Regen image' : 'Regen both'
-                                                      )}
-                                                    </button>
-                                                  ))}
-                                                </div>
-                                              )
-                                            })()}
-                                          </div>
+                                          <span className="text-xs font-medium text-muted">
+                                            {currentSlide?.role} — Slide {currentSlideIdx + 1} of {slides.length}
+                                          </span>
                                         </div>
-                                        <div className="flex items-center justify-center gap-2.5 px-2">
-                                          <button
-                                            onClick={() => setSlideViewerIndex(prev => ({ ...prev, [p.id]: Math.max(0, currentSlideIdx - 1) }))}
-                                            disabled={currentSlideIdx === 0}
-                                            className="shrink-0 p-2 rounded-full bg-background/80 border border-border hover:bg-surface-elevated disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-                                          >
-                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-                                          </button>
+                                        <div className="relative px-2">
                                           <div className="min-w-0">
                                             {currentSlide?.imageUrl && (
                                               <div className="relative w-full" style={{ maxHeight: 460 }}>
@@ -2038,15 +2036,49 @@ export default function ChannelDashboard() {
                                               <p className="px-4 text-sm text-muted-light leading-relaxed">{currentSlide.body}</p>
                                             )}
                                           </div>
+                                          {/* Nav arrows overlaid on image edges */}
+                                          <button
+                                            onClick={() => setSlideViewerIndex(prev => ({ ...prev, [p.id]: Math.max(0, currentSlideIdx - 1) }))}
+                                            disabled={currentSlideIdx === 0}
+                                            className="absolute left-3 top-1/2 -translate-y-1/2 p-2.5 rounded-full bg-background/80 border border-border hover:bg-surface-elevated disabled:opacity-0 transition-all"
+                                          >
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                                          </button>
                                           <button
                                             onClick={() => setSlideViewerIndex(prev => ({ ...prev, [p.id]: Math.min(slides.length - 1, currentSlideIdx + 1) }))}
                                             disabled={currentSlideIdx === slides.length - 1}
-                                            className="shrink-0 p-2 rounded-full bg-background/80 border border-border hover:bg-surface-elevated disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                                            className="absolute right-3 top-1/2 -translate-y-1/2 p-2.5 rounded-full bg-background/80 border border-border hover:bg-surface-elevated disabled:opacity-0 transition-all"
                                           >
-                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
                                           </button>
                                         </div>
-                                        <div className="flex items-center justify-center gap-1.5 pt-[15px] pb-[24px]">
+                                        {/* Regen buttons — below image for breathing room */}
+                                        {p.carouselJobId && (() => {
+                                          const regenKey = `${p.id}-${currentSlideIdx}`
+                                          const activeMode = regenLoading[regenKey]
+                                          return (
+                                            <div className="flex items-center justify-center gap-2 pt-3 px-2">
+                                              {(['copy', 'image', 'full'] as const).map(mode => (
+                                                <button
+                                                  key={mode}
+                                                  onClick={() => handleRegenerateSlide(p.id, p.carouselJobId!, currentSlideIdx, mode)}
+                                                  disabled={!!activeMode || p.carouselJobId === generatingCarouselJobId}
+                                                  className="px-3 py-1.5 text-xs font-semibold rounded-md border border-border bg-background hover:bg-surface-elevated hover:border-border-hover disabled:opacity-40 disabled:cursor-not-allowed transition-all text-muted hover:text-foreground"
+                                                >
+                                                  {activeMode === mode ? (
+                                                    <span className="flex items-center gap-1">
+                                                      <span className="w-3 h-3 border border-[#3d6fa8]/30 border-t-[#6b9fcc] rounded-full animate-spin" />
+                                                      {mode === 'copy' ? 'Rewriting...' : mode === 'image' ? 'Rendering...' : 'Both...'}
+                                                    </span>
+                                                  ) : (
+                                                    mode === 'copy' ? 'Regen text' : mode === 'image' ? 'Regen image' : 'Regen both'
+                                                  )}
+                                                </button>
+                                              ))}
+                                            </div>
+                                          )
+                                        })()}
+                                        <div className="flex items-center justify-center gap-1.5 pt-3 pb-4">
                                           {slides.map((_, i) => (
                                             <div
                                               key={i}
@@ -2126,7 +2158,7 @@ export default function ChannelDashboard() {
                   const isGenerating = !!generatingCarouselJobId && p.carouselJobId === generatingCarouselJobId
 
                   return (
-                    <div key={i} className={`animate-fade-up bg-background border border-border rounded-2xl overflow-hidden transition-all ${isGenerating ? 'opacity-60' : ''} ${isExpanded ? 'border-border-hover' : 'hover:border-border-hover hover:bg-surface-elevated/50'}`}>
+                    <div key={i} className={`animate-fade-up bg-background border rounded-2xl overflow-hidden transition-all ${isGenerating ? 'border-[#3d6fa8]/40 animate-pulse' : 'border-border'} ${isExpanded ? 'border-border-hover' : 'hover:border-border-hover hover:bg-surface-elevated/50'}`}>
                       <button
                         onClick={() => togglePostExpanded(p.id, p.carouselJobId)}
                         className="w-full text-left flex items-center gap-4 p-4 transition-all group"
@@ -2359,7 +2391,7 @@ export default function ChannelDashboard() {
                     </div>
                     {/* Pipeline stage indicators */}
                     {(() => {
-                      const STAGES = ['Hook', 'Facts', 'Copy', 'Quality', 'Render', 'Done']
+                      const STAGES = ['Writing hook', 'Researching', 'Writing slides', 'Quality check', 'Creating images', 'Complete']
                       const progressMsg = carouselProgress?.message?.toLowerCase() || ''
                       const stageMap: Record<number, string[]> = {
                         0: ['hook', 'generating hook'],
@@ -2378,7 +2410,7 @@ export default function ChannelDashboard() {
                             {STAGES.map((_, i) => (
                               <div
                                 key={i}
-                                className={`flex-1 h-1 rounded-full transition-all duration-500 ${
+                                className={`flex-1 h-1.5 rounded-full transition-all duration-500 ${
                                   i < currentIndex
                                     ? 'bg-[#3d6fa8]'
                                     : i === currentIndex

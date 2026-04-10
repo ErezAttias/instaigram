@@ -59,7 +59,7 @@ export function SlidePreview({ style }: SlidePreviewProps) {
 
   return (
     <div style={{ width: PREVIEW_WIDTH }}>
-      <p className="text-xs text-muted mb-2 text-center">Preview (approximate)</p>
+      <p className="text-xs text-muted mb-2 text-center">Preview</p>
       <div
         style={{
           width: PREVIEW_WIDTH,

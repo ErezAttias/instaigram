@@ -12,7 +12,7 @@ export default function NavBar() {
       <div className="max-w-[1800px] mx-auto px-6 lg:px-8 h-16 flex items-center justify-between">
         <Link
           href="/"
-          className="text-lg font-bold tracking-tight text-foreground hover:text-accent transition-colors duration-200"
+          className="text-lg font-semibold tracking-tight text-foreground hover:text-accent transition-colors duration-200 font-[family-name:var(--font-bricolage)]"
         >
           InstAIgram
         </Link>
@@ -35,10 +35,10 @@ export default function NavBar() {
         </div>
 
         {/* Mobile: theme toggle + hamburger */}
-        <div className="lg:hidden flex items-center gap-1">
+        <div className="lg:hidden flex items-center gap-2">
           <ThemeToggle />
           <button
-            className="flex items-center justify-center w-10 h-10 p-2 rounded-lg text-muted-light hover:text-foreground hover:bg-surface-hover transition-colors"
+            className="flex items-center justify-center w-11 h-11 p-2.5 rounded-lg text-foreground hover:bg-surface-hover transition-colors"
             onClick={() => setOpen(o => !o)}
             aria-label="Toggle menu"
             aria-expanded={open}
@@ -58,7 +58,7 @@ export default function NavBar() {
 
       {/* Mobile dropdown */}
       {open && (
-        <div className="lg:hidden border-t border-border/30 bg-background/10 backdrop-blur-sm">
+        <div className="lg:hidden border-t border-border/30 bg-background/90 backdrop-blur-md">
           <div className="max-w-[1800px] mx-auto px-6 py-3 flex flex-col gap-1">
             <Link
               href="/admin"

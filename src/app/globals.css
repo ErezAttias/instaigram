@@ -82,11 +82,24 @@ h1, h2 {
   font-family: var(--font-bricolage), system-ui, sans-serif;
 }
 
+/* TYPE SCALE — 5 steps. Do not add custom text-[Xpx] values outside this system.
+   xs   = 12px  → badge labels, card metadata, swipe hints
+   sm   = 14px  → nav links, CTA button, secondary link, badge labels
+   base = 16px  → subheadline, input, body copy
+   lg   = 18px  → logo
+   hero = text-4xl(36px) → sm:text-5xl(48px) → lg:text-[3.5rem](56px) → H1 only
+
+   WEIGHT HIERARCHY:
+   400 regular  → body, subheadline, input
+   500 medium   → nav links, secondary CTA, badges
+   600 semibold → logo, primary button
+   700 bold     → H1 only
+*/
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), system-ui, sans-serif;
-  font-size: 15px;
+  font-size: 1rem;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -276,6 +289,26 @@ input:focus, select:focus, textarea:focus {
   border-color: var(--accent) !important;
   box-shadow: 0 0 0 3px var(--accent-dim) !important;
   outline: none !important;
+}
+
+/* Color picker — full circle swatch */
+input[type="color"] {
+  -webkit-appearance: none;
+  appearance: none;
+  padding: 0;
+  border: none;
+}
+input[type="color"]::-webkit-color-swatch-wrapper {
+  padding: 0;
+  border-radius: 50%;
+}
+input[type="color"]::-webkit-color-swatch {
+  border: none;
+  border-radius: 50%;
+}
+input[type="color"]::-moz-color-swatch {
+  border: none;
+  border-radius: 50%;
 }
 
 /* Pill search input — wrapper handles the focus glow, input itself stays clean */
