@@ -465,22 +465,6 @@ export default function HomeAurora() {
 
             {/* Trust badges */}
             <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-2 mt-8 pt-6 border-t border-border/50">
-              {/* Social proof — anchors first */}
-              <div className="flex items-center gap-2 shrink-0">
-                <div className="flex -space-x-1">
-                  {['bg-gradient-to-br from-orange-400 to-rose-500', 'bg-gradient-to-br from-blue-400 to-violet-500', 'bg-gradient-to-br from-emerald-400 to-teal-500'].map((bg, i) => (
-                    <div
-                      key={i}
-                      className={`w-[18px] h-[18px] rounded-full ${bg} border-2 border-background`}
-                    />
-                  ))}
-                </div>
-                <span className="text-xs text-muted whitespace-nowrap">
-                  <span className="text-foreground font-semibold">500+</span> channels
-                </span>
-              </div>
-
-              <div className="w-px h-4 bg-border/50 shrink-0" />
 
               {/* Feature badges */}
               {[
@@ -533,7 +517,16 @@ export default function HomeAurora() {
         {/* ── Section 2: Preview carousels — social proof below the fold ── */}
         <section className="pb-16 px-4 sm:px-6">
           <div className="max-w-3xl mx-auto">
-            <p className="text-xs text-muted text-center mb-4 uppercase tracking-widest font-medium opacity-60">Example channels</p>
+            <div className="flex items-center justify-center gap-2 mb-4">
+              <div className="flex -space-x-1">
+                {['bg-gradient-to-br from-orange-400 to-rose-500', 'bg-gradient-to-br from-blue-400 to-violet-500', 'bg-gradient-to-br from-emerald-400 to-teal-500'].map((bg, i) => (
+                  <div key={i} className={`w-[18px] h-[18px] rounded-full ${bg} border-2 border-background`} />
+                ))}
+              </div>
+              <p className="text-xs text-muted uppercase tracking-widest font-medium opacity-60">
+                <span className="text-foreground font-semibold normal-case tracking-normal opacity-100">500+</span> example channels
+              </p>
+            </div>
             {/* Cards — horizontal scroll on mobile, 3-col grid on desktop */}
             <div ref={cardsContainerRef} onMouseMove={handleCardsTilt} onMouseLeave={handleCardsLeave} className="flex sm:grid sm:grid-cols-3 gap-4 overflow-x-auto sm:overflow-visible snap-x snap-mandatory py-8 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-hide opacity-80">
               {EXAMPLE_CAROUSELS.map((carousel) => (
