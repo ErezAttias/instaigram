@@ -118,7 +118,7 @@ function ExampleCarousel({ carousel, isLight }: { carousel: CarouselData; isLigh
         willChange: 'transform',
         padding: '2px',
         borderRadius: '18px',
-        background: IG_GRADIENT,
+        background: 'rgba(255,255,255,0.85)',
         boxShadow: shadowStyle,
       }}
     >
