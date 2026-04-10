@@ -341,7 +341,7 @@ export default function HomeAurora() {
   }
 
   return (
-    <div className="relative">
+    <div className="relative -mx-4 lg:-mx-8 -mt-6 lg:-mt-10 min-w-0">
       {/* Background — Aurora in dark mode, CSS gradient in light mode */}
       <div className="fixed inset-0 z-0 overflow-hidden">
         {isLight ? (
@@ -359,6 +359,16 @@ export default function HomeAurora() {
             speed={0.5}
           />
         )}
+        {/* Soft bottom vignette */}
+        <div
+          className="absolute inset-x-0 bottom-0 pointer-events-none"
+          style={{
+            height: '45%',
+            background: isLight
+              ? 'linear-gradient(to bottom, transparent, rgba(180,180,195,0.18))'
+              : 'linear-gradient(to bottom, transparent, rgba(0,0,0,0.25))',
+          }}
+        />
       </div>
 
       {/* Content */}
@@ -454,7 +464,7 @@ export default function HomeAurora() {
             </form>
 
             {/* Trust badges */}
-            <div className="flex flex-nowrap items-center justify-center gap-x-3 mt-8 pt-6 border-t border-border/50">
+            <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-2 mt-8 pt-6 border-t border-border/50">
               {/* Social proof — anchors first */}
               <div className="flex items-center gap-2 shrink-0">
                 <div className="flex -space-x-1">
@@ -492,11 +502,21 @@ export default function HomeAurora() {
                   ),
                 },
                 {
-                  label: 'Ready in minutes',
+                  label: 'Full captions',
                   icon: (
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#bc1888" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                      <circle cx="12" cy="12" r="10" />
-                      <path d="M12 6v6l4 2" />
+                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                    </svg>
+                  ),
+                },
+                {
+                  label: 'Auto-hashtags',
+                  icon: (
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6c3fc5" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="4" y1="9" x2="20" y2="9" />
+                      <line x1="4" y1="15" x2="20" y2="15" />
+                      <line x1="10" y1="3" x2="8" y2="21" />
+                      <line x1="16" y1="3" x2="14" y2="21" />
                     </svg>
                   ),
                 },
