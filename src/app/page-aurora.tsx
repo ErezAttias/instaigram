@@ -106,10 +106,7 @@ function ExampleCarousel({ carousel, isLight }: { carousel: CarouselData; isLigh
   const textColor = isLight ? 'text-gray-900' : 'text-white'
   const mutedColor = isLight ? 'text-gray-500' : 'text-white/70'
   const iconStroke = isLight ? '#111113' : 'white'
-  const borderStyle = isLight
-    ? '0 4px 24px rgba(0,0,0,0.10), 0 0 0 2px rgba(220,39,67,0.45)'
-    : '0 8px 40px rgba(0,0,0,0.55), 0 0 0 1.5px rgba(240,148,51,0.6), 0 0 32px rgba(220,39,67,0.2)'
-  const cardBorder = isLight ? 'border border-black/8' : 'border border-white/10'
+  const shadowStyle = isLight ? '0 4px 24px rgba(0,0,0,0.10)' : '0 8px 40px rgba(0,0,0,0.55)'
 
   return (
     <div
@@ -119,11 +116,14 @@ function ExampleCarousel({ carousel, isLight }: { carousel: CarouselData; isLigh
         aspectRatio: '9/14',
         transition: 'transform 0.35s cubic-bezier(0.03, 0.98, 0.52, 0.99)',
         willChange: 'transform',
+        padding: '2px',
+        borderRadius: '18px',
+        background: IG_GRADIENT,
+        boxShadow: shadowStyle,
       }}
     >
     <div
-      className={`relative flex flex-col rounded-2xl overflow-hidden w-full h-full ${cardBg} ${cardBorder}`}
-      style={{ boxShadow: borderStyle }}
+      className={`relative flex flex-col rounded-2xl overflow-hidden w-full h-full ${cardBg}`}
     >
       {/* ── Instagram post header ── */}
       <div className={`flex items-center gap-2 px-3 py-2.5 ${headerBg} backdrop-blur-sm shrink-0`}>
