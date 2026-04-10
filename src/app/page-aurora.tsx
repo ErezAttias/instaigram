@@ -32,41 +32,41 @@ type CarouselData = {
 
 const EXAMPLE_CAROUSELS: CarouselData[] = [
   {
-    id: 'sharks',
-    topic: 'Ocean Facts',
-    username: 'ocean.facts',
+    id: 'food',
+    topic: 'Food Science',
+    username: 'foodscience',
     headlineFont: "'Montserrat', system-ui, sans-serif",
-    avatarGradient: 'linear-gradient(135deg, #0ea5e9, #0284c7)',
-
+    headlineStyle: { fontWeight: 800 },
+    avatarGradient: 'linear-gradient(135deg, #f97316, #ef4444)',
     imageUrls: [
-      'https://images.unsplash.com/photo-1560275619-4cc5fa59d3ae?w=600&q=80',
-      'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=600&q=80',
-      'https://images.unsplash.com/photo-1519046904884-53103b34b206?w=600&q=80',
+      'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=600&q=80',
+      'https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=600&q=80',
+      'https://images.unsplash.com/photo-1484723091739-30a097e8f929?w=600&q=80',
     ],
-    likeCount: '4,821',
+    likeCount: '9,204',
     slides: [
-      { headline: '5 Secrets Sharks Are Hiding', body: 'The ocean\'s apex predators have secrets hiding in plain sight.' },
-      { headline: 'They Can Detect One Drop of Blood in an Olympic Pool', body: 'An electroreception system no technology has replicated.' },
-      { headline: 'Most Sharks Live 20–30 Years', body: 'The Greenland shark? Over 400. Science is still catching up.' },
+      { headline: '5 Foods That Actually Boost Your Brain', body: 'What you eat in the morning changes your cognition for the entire day.' },
+      { headline: 'Blueberries Improve Memory in 12 Weeks', body: 'Daily consumption increases neural connections in the hippocampus.' },
+      { headline: 'Dark Chocolate Cuts Stress Hormones', body: 'Flavanols in 70%+ cacao reduce cortisol within 2 weeks of daily use.' },
     ],
   },
   {
-    id: 'habits',
-    topic: 'Productivity',
-    username: 'dailyproductivity',
+    id: 'travel',
+    topic: 'Travel',
+    username: 'wanderlust.daily',
     headlineFont: "'Playfair Display', Georgia, serif",
     headlineStyle: { fontWeight: 700, letterSpacing: '0.01em' },
-    avatarGradient: 'linear-gradient(135deg, #8b5cf6, #6d28d9)',
+    avatarGradient: 'linear-gradient(135deg, #06b6d4, #0ea5e9)',
     imageUrls: [
-      'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600&q=80',
-      'https://images.unsplash.com/photo-1499750310107-5fef28a66643?w=600&q=80',
-      'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=600&q=80',
+      'https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?w=600&q=80',
+      'https://images.unsplash.com/photo-1501854140801-50d01698950b?w=600&q=80',
+      'https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=600&q=80',
     ],
-    likeCount: '12,047',
+    likeCount: '18,632',
     slides: [
-      { headline: '5 Morning Habits of Top Performers', body: 'The first 60 minutes determine the rest of your day.' },
-      { headline: 'They Protect the First Hour', body: '92% of high earners don\'t check their phone until after their morning routine.' },
-      { headline: 'Movement Before Screens', body: 'Even 10 minutes of walking spikes BDNF — the brain\'s growth hormone.' },
+      { headline: '5 Places That Look Fake But Are Real', body: 'Earth has destinations so vivid they look AI-generated.' },
+      { headline: 'Peyto Lake, Canada', body: 'A glacier-fed lake so turquoise it looks photoshopped — even in person.' },
+      { headline: 'The Light Only Lasts 20 Minutes', body: 'Golden hour at altitude hits differently. Most tourists miss it entirely.' },
     ],
   },
   {
@@ -106,7 +106,9 @@ function ExampleCarousel({ carousel, isLight }: { carousel: CarouselData; isLigh
   const textColor = isLight ? 'text-gray-900' : 'text-white'
   const mutedColor = isLight ? 'text-gray-500' : 'text-white/70'
   const iconStroke = isLight ? '#111113' : 'white'
-  const borderStyle = isLight ? '0 2px 16px rgba(0,0,0,0.10)' : '0 8px 32px rgba(0,0,0,0.5)'
+  const borderStyle = isLight
+    ? '0 4px 24px rgba(0,0,0,0.10), 0 0 0 1.5px rgba(220,39,67,0.10)'
+    : '0 8px 40px rgba(0,0,0,0.55), 0 0 0 1px rgba(240,148,51,0.18), 0 0 32px rgba(220,39,67,0.07)'
   const cardBorder = isLight ? 'border border-black/8' : 'border border-white/10'
 
   return (
@@ -148,6 +150,7 @@ function ExampleCarousel({ carousel, isLight }: { carousel: CarouselData; isLigh
           src={imageUrl}
           alt={slide.headline}
           className="w-full h-full object-cover"
+          style={{ filter: 'saturate(1.3) contrast(1.06) brightness(1.04)' }}
         />
 
         {/* Dark gradient overlay — heavy at bottom like opener slide */}
