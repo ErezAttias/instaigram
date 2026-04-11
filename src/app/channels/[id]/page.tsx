@@ -2012,9 +2012,9 @@ export default function ChannelDashboard() {
                                           </span>
                                         </div>
                                         <div className="relative px-2">
-                                          <div className="min-w-0">
+                                          <div className="min-w-0 mx-auto w-full" style={{ maxWidth: 'min(100%, calc(420px * 4 / 5))' }}>
                                             {currentSlide?.imageUrl && (
-                                              <div className="relative w-full aspect-[4/5] max-h-[420px] mx-auto" style={{ maxWidth: 'min(100%, calc(420px * 4 / 5))' }}>
+                                              <div className="w-full aspect-[4/5] max-h-[420px]">
                                                 <img
                                                   src={currentSlide.imageUrl}
                                                   alt={currentSlide.displayTitle || currentSlide.headline || `Slide ${currentSlideIdx + 1}`}
@@ -2028,6 +2028,40 @@ export default function ChannelDashboard() {
                                             {!currentSlide?.imageUrl && currentSlide?.body && (
                                               <p className="px-4 text-sm text-muted-light leading-relaxed">{currentSlide.body}</p>
                                             )}
+                                            {/* Regen buttons — same container as image */}
+                                            {p.carouselJobId && (() => {
+                                              const regenKey = `${p.id}-${currentSlideIdx}`
+                                              const activeMode = regenLoading[regenKey]
+                                              const actions = [
+                                                { key: 'copy', label: 'Regen Text', loading: 'Rewriting...', onClick: () => handleRegenerateSlide(p.id, p.carouselJobId!, currentSlideIdx, 'copy') },
+                                                { key: 'image', label: 'Regen Image', loading: 'Rendering...', onClick: () => handleRegenerateSlide(p.id, p.carouselJobId!, currentSlideIdx, 'image') },
+                                                { key: 'full', label: 'Regen Both', loading: 'Both...', onClick: () => handleRegenerateSlide(p.id, p.carouselJobId!, currentSlideIdx, 'full') },
+                                                { key: 'wikipedia', label: 'Wiki Image', loading: 'Fetching...', onClick: () => handleRegenerateSlide(p.id, p.carouselJobId!, currentSlideIdx, 'image', 'wikipedia') },
+                                              ] as const
+                                              return (
+                                                <div className="pt-3 w-full">
+                                                  <div className="grid grid-cols-2 gap-px w-full rounded-lg border border-border overflow-hidden bg-border">
+                                                    {actions.map((action) => (
+                                                      <button
+                                                        key={action.key}
+                                                        onClick={action.onClick}
+                                                        disabled={!!activeMode || p.carouselJobId === generatingCarouselJobId}
+                                                        className={`py-2 text-[11px] font-semibold rounded-none transition-all disabled:opacity-40 disabled:cursor-not-allowed hover:bg-foreground/5 hover:text-foreground bg-background ${
+                                                          activeMode === action.key ? 'bg-foreground/5 text-foreground' : 'text-muted'
+                                                        }`}
+                                                      >
+                                                        {activeMode === action.key ? (
+                                                          <span className="flex items-center justify-center gap-1.5">
+                                                            <span className="w-3 h-3 border border-[#3d6fa8]/30 border-t-[#6b9fcc] rounded-full animate-spin" />
+                                                            {action.loading}
+                                                          </span>
+                                                        ) : action.label}
+                                                      </button>
+                                                    ))}
+                                                  </div>
+                                                </div>
+                                              )
+                                            })()}
                                           </div>
                                           {/* Nav arrows overlaid on image edges */}
                                           <button
@@ -2045,40 +2079,6 @@ export default function ChannelDashboard() {
                                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
                                           </button>
                                         </div>
-                                        {/* Regen buttons — compact segmented row */}
-                                        {p.carouselJobId && (() => {
-                                          const regenKey = `${p.id}-${currentSlideIdx}`
-                                          const activeMode = regenLoading[regenKey]
-                                          const actions = [
-                                            { key: 'copy', label: 'Regen Text', loading: 'Rewriting...', onClick: () => handleRegenerateSlide(p.id, p.carouselJobId!, currentSlideIdx, 'copy') },
-                                            { key: 'image', label: 'Regen Image', loading: 'Rendering...', onClick: () => handleRegenerateSlide(p.id, p.carouselJobId!, currentSlideIdx, 'image') },
-                                            { key: 'full', label: 'Regen Both', loading: 'Both...', onClick: () => handleRegenerateSlide(p.id, p.carouselJobId!, currentSlideIdx, 'full') },
-                                            { key: 'wikipedia', label: 'Wiki Image', loading: 'Fetching...', onClick: () => handleRegenerateSlide(p.id, p.carouselJobId!, currentSlideIdx, 'image', 'wikipedia') },
-                                          ] as const
-                                          return (
-                                            <div className="pt-3 mx-auto w-full" style={{ maxWidth: 'min(100%, calc(420px * 4 / 5))' }}>
-                                              <div className="grid grid-cols-2 gap-px w-full rounded-lg border border-border overflow-hidden bg-border">
-                                                {actions.map((action) => (
-                                                  <button
-                                                    key={action.key}
-                                                    onClick={action.onClick}
-                                                    disabled={!!activeMode || p.carouselJobId === generatingCarouselJobId}
-                                                    className={`py-2 text-[11px] font-semibold rounded-none transition-all disabled:opacity-40 disabled:cursor-not-allowed hover:bg-foreground/5 hover:text-foreground bg-background ${
-                                                      activeMode === action.key ? 'bg-foreground/5 text-foreground' : 'text-muted'
-                                                    }`}
-                                                  >
-                                                    {activeMode === action.key ? (
-                                                      <span className="flex items-center justify-center gap-1.5">
-                                                        <span className="w-3 h-3 border border-[#3d6fa8]/30 border-t-[#6b9fcc] rounded-full animate-spin" />
-                                                        {action.loading}
-                                                      </span>
-                                                    ) : action.label}
-                                                  </button>
-                                                ))}
-                                              </div>
-                                            </div>
-                                          )
-                                        })()}
                                         <div className="flex items-center justify-center gap-1.5 pt-3 pb-4">
                                           {slides.map((_, i) => (
                                             <div
