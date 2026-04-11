@@ -15,6 +15,19 @@ const nextConfig: NextConfig = {
       static: 0,
     },
   },
+  // Prevent browsers and CDN from caching HTML pages — ensures users
+  // always get the latest deployed version without hard refresh.
+  headers: async () => [
+    {
+      source: "/((?!_next/static|_next/image|favicon.ico).*)",
+      headers: [
+        {
+          key: "Cache-Control",
+          value: "no-store, must-revalidate",
+        },
+      ],
+    },
+  ],
 };
 
 export default nextConfig;
