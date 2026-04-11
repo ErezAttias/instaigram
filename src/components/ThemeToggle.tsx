@@ -17,7 +17,7 @@ export default function ThemeToggle() {
       {/* Sliding pill — rendered first so icons sit above it */}
       <span
         className="absolute top-1/2 w-6 h-6 rounded-full bg-foreground/[0.08] transition-transform duration-300"
-        style={{ transform: isDark ? 'translate(33px, -50%)' : 'translate(3px, -50%)' }}
+        style={{ transform: isDark ? 'translate(31px, -50%)' : 'translate(3px, -50%)' }}
       />
 
       {/* Left half — Sun */}
@@ -32,11 +32,11 @@ export default function ThemeToggle() {
         </svg>
       </span>
 
-      {/* Right half — Moon */}
+      {/* Right half — Moon (nudged 1px to optically center the crescent) */}
       <span className="flex-1 flex items-center justify-center z-10">
         <svg
           className="w-4 h-4 transition-all duration-200"
-          style={{ color: 'var(--foreground)', opacity: isDark ? 1 : 0.3 }}
+          style={{ color: 'var(--foreground)', opacity: isDark ? 1 : 0.3, transform: 'translate(-0.5px, -0.5px)' }}
           fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}
         >
           <path strokeLinecap="round" strokeLinejoin="round" d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />

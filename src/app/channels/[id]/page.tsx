@@ -249,18 +249,16 @@ function GhostButton({
   )
 }
 
-// ─── Section Wrapper ─────────────────────────────────────────
+// ─── Accordion Section — flat divider, no card wrapper ───────
 
 function Section({
   children,
   delay,
   compact,
-  completed,
-  active,
   collapsible,
   defaultCollapsed,
-  collapsedSummary,
   collapsedTitle,
+  variant = 'step',
 }: {
   children: React.ReactNode
   delay?: number
@@ -271,28 +269,28 @@ function Section({
   defaultCollapsed?: boolean
   collapsedSummary?: React.ReactNode
   collapsedTitle?: React.ReactNode
+  variant?: 'step' | 'utility'
 }) {
   const [collapsed, setCollapsed] = useState(defaultCollapsed ?? false)
 
-  // Auto-collapse when the parent signals this section should collapse
   useEffect(() => {
     if (defaultCollapsed) setCollapsed(true)
   }, [defaultCollapsed])
 
-  // Collapsible sections use a single DOM structure: persistent header + toggled body
+  const isUtility = variant === 'utility'
+  const wrapperClass = isUtility
+    ? 'animate-fade-up bg-surface rounded-2xl border border-border p-5 lg:p-6'
+    : 'animate-fade-up border-t border-border'
+
   if (collapsible) {
     return (
-      <div
-        className={`animate-fade-up rounded-2xl border transition-all duration-300 border-border bg-surface hover:border-border-hover ${collapsed ? 'p-5' : compact ? 'p-5' : 'p-5 lg:p-8'}`}
-        style={delay ? { animationDelay: `${delay}ms` } : undefined}
-      >
-        {/* Persistent header — always mounted, chevron never moves */}
+      <div className={wrapperClass} style={delay ? { animationDelay: `${delay}ms` } : undefined}>
         <button
           onClick={() => setCollapsed(c => !c)}
-          className="w-full flex items-center justify-between gap-4 group rounded-2xl p-0"
+          className="w-full flex items-center justify-between gap-4 group rounded-2xl p-0 py-4"
         >
           <div className="flex-1 min-w-0 text-left">
-            {collapsedTitle ?? collapsedSummary}
+            {collapsedTitle}
           </div>
           <svg
             width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"
@@ -301,13 +299,12 @@ function Section({
             <path d="M4 6l4 4 4-4" />
           </svg>
         </button>
-        {/* Body — animated height via CSS grid */}
         <div
           className="grid transition-[grid-template-rows,opacity] duration-300 ease-out"
           style={{ gridTemplateRows: collapsed ? '0fr' : '1fr', opacity: collapsed ? 0 : 1 }}
         >
           <div className="overflow-hidden">
-            <div className="pt-5">
+            <div className={compact ? 'pb-4' : 'pb-6'}>
               {children}
             </div>
           </div>
@@ -318,16 +315,12 @@ function Section({
 
   return (
     <div
-      className={`animate-fade-up rounded-2xl border transition-colors duration-300 ${
-        completed
-          ? 'border-border bg-surface hover:border-border-hover'
-          : active
-            ? 'border-border bg-surface hover:border-border-hover'
-            : 'border-border bg-surface hover:border-border-hover'
-      } ${compact ? 'p-5' : 'p-6 lg:p-8'} relative`}
+      className={wrapperClass}
       style={delay ? { animationDelay: `${delay}ms` } : undefined}
     >
-      {children}
+      <div className={isUtility ? '' : compact ? 'py-4' : 'py-6'}>
+        {children}
+      </div>
     </div>
   )
 }
@@ -337,14 +330,12 @@ function Section({
 function LockedStep({ label, delay }: { label: string; delay?: number }) {
   return (
     <div
-      className="animate-fade-up flex items-center gap-3 px-4 py-3 opacity-40"
+      className="animate-fade-up flex items-center gap-3 py-4 border-t border-border opacity-40"
       style={delay ? { animationDelay: `${delay}ms` } : undefined}
     >
-      <div className="w-5 h-5 rounded-full border border-border flex items-center justify-center shrink-0">
-        <svg width="9" height="9" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <rect x="3" y="5" width="6" height="6" rx="1"/><path d="M4 5V4a2 2 0 0 1 4 0v1"/>
-        </svg>
-      </div>
+      <svg width="14" height="14" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="5" width="6" height="6" rx="1"/><path d="M4 5V4a2 2 0 0 1 4 0v1"/>
+      </svg>
       <span className="text-sm text-muted">{label}</span>
     </div>
   )
@@ -1249,7 +1240,7 @@ export default function ChannelDashboard() {
         </aside>
 
         {/* ─── Main Content ───────────────────────────────────── */}
-        <div className="flex-1 min-w-0 space-y-4 lg:space-y-8">
+        <div className="flex-1 min-w-0">
           {/* Mobile header */}
           <div className="lg:hidden mb-6 flex items-center justify-between gap-3">
             <HorizontalStepper currentStep={effectiveStep} />
@@ -1483,10 +1474,10 @@ export default function ChannelDashboard() {
               Step 2: Define Content Strategy
               ═══════════════════════════════════════════════════════ */}
           {effectiveStep < 1 ? (
-            <div className="space-y-1">
+            <>
               <LockedStep label="Content strategy" delay={120} />
               <LockedStep label="Generate posts" delay={180} />
-            </div>
+            </>
           ) : hasStrategy && strategyOptions.length === 0 ? (
             /* Strategy approved — compact display */
             <Section
@@ -1643,7 +1634,7 @@ export default function ChannelDashboard() {
               Slide Style — always accessible after channel exists
               ═══════════════════════════════════════════════════════ */}
           {showStyleEditor && (
-            <Section delay={175}>
+            <Section delay={175} variant="utility">
               <div className="mb-6 space-y-4">
                 <div>
                   <h2 className="text-xl font-bold tracking-tight">Slide style</h2>
@@ -2444,7 +2435,7 @@ export default function ChannelDashboard() {
               Optional: Name Channel (shown when toggled from sidebar)
               ═══════════════════════════════════════════════════════ */}
           {showNaming && (
-            <Section delay={300}>
+            <Section delay={300} variant="utility">
               <div className="flex items-center justify-between mb-5">
                 <h2 className="text-xl font-bold tracking-tight">Name your channel</h2>
                 <div className="flex items-center gap-2">

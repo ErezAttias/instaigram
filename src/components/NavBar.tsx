@@ -56,27 +56,32 @@ export default function NavBar() {
         </div>
       </div>
 
-      {/* Mobile dropdown */}
-      {open && (
-        <div className="lg:hidden border-t border-border/30 bg-background/90 backdrop-blur-md">
-          <div className="max-w-[1800px] mx-auto px-6 py-3 flex flex-col gap-1">
-            <Link
-              href="/admin"
-              onClick={() => setOpen(false)}
-              className="flex items-center h-11 px-3 rounded-lg text-sm font-medium text-muted-light hover:text-foreground hover:bg-surface-hover transition-colors"
-            >
-              Dashboard
-            </Link>
-            <Link
-              href="/carousel"
-              onClick={() => setOpen(false)}
-              className="flex items-center h-11 px-3 rounded-lg text-sm font-medium text-muted-light hover:text-foreground hover:bg-surface-hover transition-colors"
-            >
-              Create Carousel
-            </Link>
+      {/* Mobile dropdown — animated height via CSS grid */}
+      <div
+        className="lg:hidden grid transition-[grid-template-rows,opacity] duration-300 ease-out"
+        style={{ gridTemplateRows: open ? '1fr' : '0fr', opacity: open ? 1 : 0 }}
+      >
+        <div className="overflow-hidden">
+          <div className="border-t border-border/30 bg-background/90 backdrop-blur-md">
+            <div className="max-w-[1800px] mx-auto px-6 py-3 flex flex-col gap-1">
+              <Link
+                href="/admin"
+                onClick={() => setOpen(false)}
+                className="flex items-center h-11 px-3 rounded-lg text-sm font-medium text-muted-light hover:text-foreground hover:bg-surface-hover transition-colors"
+              >
+                Dashboard
+              </Link>
+              <Link
+                href="/carousel"
+                onClick={() => setOpen(false)}
+                className="flex items-center h-11 px-3 rounded-lg text-sm font-medium text-muted-light hover:text-foreground hover:bg-surface-hover transition-colors"
+              >
+                Create Carousel
+              </Link>
+            </div>
           </div>
         </div>
-      )}
+      </div>
     </nav>
   );
 }
