@@ -2279,29 +2279,29 @@ export default function ChannelDashboard() {
                                       }`}>
                                         {currentSlide?.role} — Slide {currentSlideIdx + 1} of {effectiveSlides.length || p.slideCount}
                                       </span>
-                                      {/* Regeneration buttons — compact segmented row */}
+                                      {/* Regeneration buttons — 2x2 grid */}
                                       {p.carouselJobId && (() => {
                                         const regenKey = `${p.id}-${currentSlideIdx}`
                                         const activeMode = regenLoading[regenKey]
                                         const actions = [
-                                          { key: 'copy', label: 'Text', loading: 'Rewriting...', onClick: () => handleRegenerateSlide(p.id, p.carouselJobId!, currentSlideIdx, 'copy') },
-                                          { key: 'image', label: 'Image', loading: 'Rendering...', onClick: () => handleRegenerateSlide(p.id, p.carouselJobId!, currentSlideIdx, 'image') },
-                                          { key: 'full', label: 'Both', loading: 'Both...', onClick: () => handleRegenerateSlide(p.id, p.carouselJobId!, currentSlideIdx, 'full') },
-                                          { key: 'wikipedia', label: 'Wiki', loading: 'Fetching...', onClick: () => handleRegenerateSlide(p.id, p.carouselJobId!, currentSlideIdx, 'image', 'wikipedia') },
+                                          { key: 'copy', label: 'Regen Text', loading: 'Rewriting...', onClick: () => handleRegenerateSlide(p.id, p.carouselJobId!, currentSlideIdx, 'copy') },
+                                          { key: 'image', label: 'Regen Image', loading: 'Rendering...', onClick: () => handleRegenerateSlide(p.id, p.carouselJobId!, currentSlideIdx, 'image') },
+                                          { key: 'full', label: 'Regen Both', loading: 'Both...', onClick: () => handleRegenerateSlide(p.id, p.carouselJobId!, currentSlideIdx, 'full') },
+                                          { key: 'wikipedia', label: 'Wiki Image', loading: 'Fetching...', onClick: () => handleRegenerateSlide(p.id, p.carouselJobId!, currentSlideIdx, 'image', 'wikipedia') },
                                         ] as const
                                         return (
-                                          <div className="inline-flex rounded-lg border border-border overflow-hidden">
-                                            {actions.map((action, i) => (
+                                          <div className="grid grid-cols-2 gap-px rounded-lg border border-border overflow-hidden bg-border">
+                                            {actions.map((action) => (
                                               <button
                                                 key={action.key}
                                                 onClick={action.onClick}
                                                 disabled={!!activeMode || p.carouselJobId === generatingCarouselJobId}
-                                                className={`px-2.5 py-1 text-[11px] font-semibold rounded-none transition-all disabled:opacity-40 disabled:cursor-not-allowed hover:bg-foreground/5 hover:text-foreground ${
+                                                className={`py-1.5 text-[11px] font-semibold rounded-none transition-all disabled:opacity-40 disabled:cursor-not-allowed hover:bg-foreground/5 hover:text-foreground bg-background ${
                                                   activeMode === action.key ? 'bg-foreground/5 text-foreground' : 'text-muted'
-                                                } ${i > 0 ? 'border-l border-border' : ''}`}
+                                                }`}
                                               >
                                                 {activeMode === action.key ? (
-                                                  <span className="flex items-center gap-1">
+                                                  <span className="flex items-center justify-center gap-1">
                                                     <span className="w-2.5 h-2.5 border border-[#3d6fa8]/30 border-t-[#6b9fcc] rounded-full animate-spin" />
                                                     {action.loading}
                                                   </span>
