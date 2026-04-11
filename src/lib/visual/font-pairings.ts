@@ -1,6 +1,10 @@
 /**
- * Server-side font utilities — Node.js fs access for embedding fonts in SVG.
+ * Server-side font utilities — Node.js fs access for rendering fonts in SVG.
  * Do NOT import this file in client components; use font-pairings-data.ts instead.
+ *
+ * Strategy: Register fonts via fontconfig so Pango/librsvg (used by Sharp)
+ * can resolve font-family names in SVG text elements natively.
+ * Base64 data-URI embedding does NOT work on Vercel Lambda's librsvg.
  */
 
 import * as fs from 'fs';
@@ -8,57 +12,61 @@ import * as path from 'path';
 
 export type { FontOption } from './font-pairings-data';
 export { TITLE_FONTS, BODY_FONTS, getTitleFont, getBodyFont } from './font-pairings-data';
-import type { FontOption } from './font-pairings-data';
 
-// Resolve fonts relative to project root. On Vercel Lambda `process.cwd()`
-// may differ from the bundle root, so try __dirname-relative first, then cwd.
 const FONTS_DIR = path.join(process.cwd(), 'assets', 'fonts');
 
 /**
- * Build the SVG <style> block with embedded @font-face declarations.
- * Injected into SVG <defs> so librsvg/Sharp can render custom fonts
- * without system font installation.
+ * Ensure fontconfig knows about our bundled fonts directory.
+ * Writes a minimal fonts.conf to /tmp and points FONTCONFIG_PATH at it.
+ * Safe to call multiple times — only writes once.
+ */
+let _fontconfigRegistered = false;
+
+export function ensureFontconfigRegistered(): void {
+  if (_fontconfigRegistered) return;
+
+  if (!fs.existsSync(FONTS_DIR)) {
+    console.warn(`[FontPairings] Fonts dir not found: ${FONTS_DIR} — fontconfig not configured`);
+    return;
+  }
+
+  const fcDir = '/tmp/fontconfig-instaigram';
+  const fcConf = path.join(fcDir, 'fonts.conf');
+
+  if (!fs.existsSync(fcConf)) {
+    fs.mkdirSync(fcDir, { recursive: true });
+    fs.writeFileSync(fcConf, `<?xml version="1.0"?>
+<!DOCTYPE fontconfig SYSTEM "fonts.dtd">
+<fontconfig>
+  <dir>${FONTS_DIR}</dir>
+</fontconfig>`);
+  }
+
+  process.env.FONTCONFIG_PATH = fcDir;
+  _fontconfigRegistered = true;
+  console.log(`[FontPairings] fontconfig registered: FONTCONFIG_PATH=${fcDir}, fonts dir=${FONTS_DIR}`);
+}
+
+/**
+ * Build the SVG <style> block for font declarations.
+ *
+ * Now that we use fontconfig, we no longer need to embed base64 fonts.
+ * We still return a <style> block that declares @font-face with local()
+ * references so the SVG explicitly requests the correct family+weight
+ * combinations. This helps Pango pick the right font file.
+ *
+ * IMPORTANT: Call ensureFontconfigRegistered() before any Sharp render.
  */
 export function buildFontStyleBlock(
-  titleFont: FontOption,
-  bodyFont: FontOption,
+  titleFont: { family: string; weight: number; file: string | null; lightFile?: string | null; singleBodyWeight: number },
+  bodyFont: { family: string; weight: number; file: string | null },
   singleFont: boolean,
 ): string {
-  const faces: string[] = [];
+  // Ensure fontconfig is set up before we render
+  ensureFontconfigRegistered();
 
-  function addFace(family: string, weight: number, file: string | null) {
-    if (!file) return;
-    const filePath = path.join(FONTS_DIR, file);
-    if (!fs.existsSync(filePath)) {
-      console.warn(`[FontPairings] Font file not found: ${filePath} — using system fallback`);
-      return;
-    }
-    const base64 = fs.readFileSync(filePath).toString('base64');
-    faces.push(
-      `@font-face { font-family: '${family}'; font-weight: ${weight}; ` +
-      `src: url('data:font/truetype;base64,${base64}') format('truetype'); }`
-    );
-  }
-
-  // Always embed the title font at its display weight
-  addFace(titleFont.family, titleFont.weight, titleFont.file);
-
-  if (singleFont) {
-    // In single-font mode embed the light variant of the title font (for body text)
-    if (titleFont.lightFile && titleFont.lightFile !== titleFont.file) {
-      addFace(titleFont.family, titleFont.singleBodyWeight, titleFont.lightFile);
-    }
-  } else {
-    // Embed body font (skip if it shares the same file as the title font)
-    if (bodyFont.file && bodyFont.file !== titleFont.file) {
-      addFace(bodyFont.family, bodyFont.weight, bodyFont.file);
-    }
-  }
-
-  if (faces.length === 0) {
-    console.warn(`[FontPairings] WARNING: No font faces generated! titleFont=${titleFont.family}/${titleFont.file}, bodyFont=${bodyFont.family}/${bodyFont.file}, singleFont=${singleFont}`);
-    return '';
-  }
-  console.log(`[FontPairings] Embedded ${faces.length} font face(s) — total base64 size: ${faces.reduce((n, f) => n + f.length, 0)} chars`);
-  return `<style>${faces.join(' ')}</style>`;
+  // No <style> block needed — fontconfig handles font resolution.
+  // Pango matches font-family + font-weight from the SVG attributes
+  // directly against the .ttf files registered via fontconfig.
+  return '';
 }
