@@ -109,7 +109,7 @@ export function VisualStyleTab({ channelId }: VisualStyleTabProps) {
           <button
             onClick={handleSave}
             disabled={saving || !hasChanges}
-            className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+            className={`h-9 px-4 text-sm font-medium rounded-lg transition-colors ${
               hasChanges && !saving
                 ? 'ig-btn'
                 : 'bg-surface border border-border text-muted cursor-not-allowed'

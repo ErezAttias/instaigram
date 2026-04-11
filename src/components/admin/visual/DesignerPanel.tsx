@@ -92,7 +92,7 @@ function FontPicker({
             key={font.id}
             onClick={() => !disabled && onSelect(font.id)}
             disabled={disabled}
-            className={`px-3 py-2 rounded-lg border text-sm transition-colors ${
+            className={`h-8 px-3 rounded-lg border text-sm transition-colors ${
               selectedId === font.id && !disabled
                 ? 'border-accent bg-accent/10 text-foreground'
                 : disabled
@@ -286,13 +286,13 @@ export function DesignerPanel({ style, onChange }: DesignerPanelProps) {
             <div className="flex gap-2">
               <button
                 onClick={() => fileInputRef.current?.click()}
-                className="text-xs px-3 py-1.5 bg-surface border border-border rounded text-foreground hover:border-accent/40 transition-colors"
+                className="h-8 px-3 text-xs bg-surface border border-border rounded-lg text-foreground hover:border-accent/40 transition-colors"
               >
                 Replace
               </button>
               <button
                 onClick={() => onChange({ logoBase64: null })}
-                className="text-xs px-3 py-1.5 bg-surface border border-border rounded text-muted hover:text-danger hover:border-danger/40 transition-colors"
+                className="h-8 px-3 text-xs bg-surface border border-border rounded-lg text-muted hover:text-danger hover:border-danger/40 transition-colors"
               >
                 Remove
               </button>

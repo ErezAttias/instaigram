@@ -472,7 +472,7 @@ export default function HomeAurora() {
                   <button
                     type="submit"
                     disabled={loading || !topicInput.trim()}
-                    className="w-full sm:w-auto shrink-0 px-5 py-3 text-white font-medium rounded-full text-base disabled:opacity-40 disabled:cursor-not-allowed transition-all hover:opacity-90 active:scale-[0.97] whitespace-nowrap"
+                    className="w-full sm:w-auto shrink-0 h-11 px-6 text-white font-semibold rounded-full text-sm disabled:opacity-40 disabled:cursor-not-allowed transition-all hover:opacity-90 active:scale-[0.97] whitespace-nowrap"
                     style={{ background: IG_GRADIENT }}
                   >
                     {loading && loadingSource === 'direct' ? (
@@ -499,7 +499,7 @@ export default function HomeAurora() {
                   type="button"
                   onClick={handleDiscover}
                   disabled={loading}
-                  className="text-sm text-muted hover:text-foreground font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed min-h-[44px] flex items-center justify-center"
+                  className="text-sm text-muted hover:text-foreground font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed h-11 flex items-center justify-center"
                 >
                   {loading && loadingSource === 'discover' ? (
                     <span className="flex items-center justify-center gap-2">

@@ -99,7 +99,7 @@ export default function CarouselInputPage() {
         <button
           onClick={handleGenerate}
           disabled={loading || !topic.trim()}
-          className="w-full py-3 px-6 bg-accent text-background font-semibold rounded-lg hover:bg-accent-hover disabled:opacity-40 disabled:cursor-not-allowed text-sm tracking-wide"
+          className="w-full h-11 px-6 bg-accent text-background font-semibold rounded-lg hover:bg-accent-hover disabled:opacity-40 disabled:cursor-not-allowed text-sm tracking-wide"
         >
           {loading ? (
             <span className="flex items-center justify-center gap-2">

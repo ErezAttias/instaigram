@@ -324,7 +324,7 @@ export default function ChannelDetailPage() {
                 <button
                   onClick={handleDisconnectInstagram}
                   disabled={igDisconnecting}
-                  className="px-3 py-1.5 text-xs font-semibold border border-red-500/30 text-red-400 rounded-lg hover:bg-red-500/10 transition-colors disabled:opacity-50"
+                  className="h-8 px-3 text-xs font-semibold border border-red-500/30 text-red-400 rounded-lg hover:bg-red-500/10 transition-colors disabled:opacity-50"
                 >
                   {igDisconnecting ? 'Disconnecting…' : 'Disconnect'}
                 </button>
@@ -365,7 +365,7 @@ export default function ChannelDetailPage() {
                 <button
                   onClick={handleSaveManualToken}
                   disabled={igSaving || !igManualToken.trim() || !igManualUserId.trim()}
-                  className="w-full px-4 py-2 ig-btn text-sm font-semibold rounded-lg transition-all"
+                  className="w-full h-9 px-4 ig-btn text-sm font-semibold rounded-lg transition-all"
                 >
                   {igSaving ? 'Connecting…' : 'Connect Instagram'}
                 </button>
@@ -401,13 +401,13 @@ export default function ChannelDetailPage() {
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setShowBatchDialog(true)}
-                className="px-4 py-2 bg-surface-elevated border border-border text-foreground text-sm font-semibold rounded-lg hover:border-accent/40 transition-colors"
+                className="h-9 px-4 bg-surface-elevated border border-border text-foreground text-sm font-semibold rounded-lg hover:border-accent/40 transition-colors"
               >
                 Batch Order
               </button>
               <button
                 onClick={() => setShowCreateDialog(true)}
-                className="px-4 py-2 ig-btn text-sm font-semibold rounded-lg transition-all"
+                className="h-9 px-4 ig-btn text-sm font-semibold rounded-lg transition-all"
               >
                 New Carousel
               </button>

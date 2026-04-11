@@ -105,14 +105,14 @@ export default function NewChannelPage() {
           <button
             type="submit"
             disabled={!name.trim() || !niche.trim() || loading}
-            className="px-5 py-2.5 ig-btn text-sm font-semibold rounded-lg transition-all"
+            className="h-9 px-4 ig-btn text-sm font-semibold rounded-lg transition-all"
           >
             {loading ? 'Creating...' : 'Create Channel'}
           </button>
           <button
             type="button"
             onClick={() => router.back()}
-            className="px-4 py-2.5 text-sm text-muted-light hover:text-foreground transition-colors"
+            className="h-9 px-4 text-sm text-muted-light hover:text-foreground transition-colors"
           >
             Cancel
           </button>

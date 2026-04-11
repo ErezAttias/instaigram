@@ -208,7 +208,7 @@ function PrimaryButton({
     <button
       onClick={onClick}
       disabled={disabled || loading}
-      className={`px-5 py-2.5 text-white rounded-full text-base font-semibold disabled:opacity-40 disabled:cursor-not-allowed transition-all hover:opacity-90 active:scale-[0.98]${className ? ` ${className}` : ''}`}
+      className={`h-11 px-6 text-white rounded-full text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed transition-all hover:opacity-90 active:scale-[0.98]${className ? ` ${className}` : ''}`}
       style={{ background: IG_GRADIENT, boxShadow: IG_GLOW }}
     >
       {loading ? (
@@ -238,7 +238,7 @@ function GhostButton({
     <button
       onClick={onClick}
       disabled={disabled}
-      className={`px-5 py-2.5 border rounded-full text-sm font-semibold transition-all duration-200 disabled:opacity-40 ${
+      className={`h-11 px-6 border rounded-full text-sm font-semibold transition-all duration-200 disabled:opacity-40 ${
         active
           ? 'border-[#3d6fa8]/30 bg-[#3d6fa8]/10 text-foreground'
           : 'border-border hover:border-[#3d6fa8]/25 hover:bg-[#3d6fa8]/8'
@@ -1189,7 +1189,7 @@ export default function ChannelDashboard() {
               <>
                 <Link
                   href={`/channels/${channelId}/posts`}
-                  className="flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-muted-light hover:text-foreground hover:bg-surface-elevated rounded-xl transition-all w-full"
+                  className="flex items-center gap-2 h-11 px-3 text-sm font-medium text-muted-light hover:text-foreground hover:bg-surface-elevated rounded-xl transition-all w-full"
                 >
                   <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                     <rect x="2" y="2" width="12" height="12" rx="2" />
@@ -1199,7 +1199,7 @@ export default function ChannelDashboard() {
                 </Link>
                 <Link
                   href={`/channels/${channelId}/validation`}
-                  className="flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-muted-light hover:text-foreground hover:bg-surface-elevated rounded-xl transition-all w-full"
+                  className="flex items-center gap-2 h-11 px-3 text-sm font-medium text-muted-light hover:text-foreground hover:bg-surface-elevated rounded-xl transition-all w-full"
                 >
                   <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M13.5 4.5L6 12L2.5 8.5" />
@@ -1212,7 +1212,7 @@ export default function ChannelDashboard() {
             {hasStrategy && (
               <button
                 onClick={() => setShowNaming(!showNaming)}
-                className={`flex items-center gap-2 px-3 py-2.5 text-sm font-medium rounded-xl transition-all w-full text-left ${showNaming ? 'bg-surface-elevated text-foreground' : 'text-muted-light hover:text-foreground hover:bg-surface-elevated'}`}
+                className={`flex items-center gap-2 h-11 px-3 text-sm font-medium rounded-xl transition-all w-full text-left ${showNaming ? 'bg-surface-elevated text-foreground' : 'text-muted-light hover:text-foreground hover:bg-surface-elevated'}`}
               >
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M3 13h2l8-8-2-2-8 8v2z" />
@@ -1224,7 +1224,7 @@ export default function ChannelDashboard() {
             {/* Visual style — always accessible */}
             <button
               onClick={() => setShowStyleEditor(!showStyleEditor)}
-              className={`flex items-center gap-2 px-3 py-2.5 text-sm font-medium rounded-xl transition-all w-full text-left ${showStyleEditor ? 'bg-surface-elevated text-foreground' : 'text-muted-light hover:text-foreground hover:bg-surface-elevated'}`}
+              className={`flex items-center gap-2 h-11 px-3 text-sm font-medium rounded-xl transition-all w-full text-left ${showStyleEditor ? 'bg-surface-elevated text-foreground' : 'text-muted-light hover:text-foreground hover:bg-surface-elevated'}`}
             >
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="8" cy="8" r="5.5" />
@@ -1247,7 +1247,7 @@ export default function ChannelDashboard() {
             {channel.name === 'Untitled Channel' ? (
               <button
                 onClick={() => setShowNaming(true)}
-                className="flex items-center gap-1.5 px-3 py-2 min-h-[36px] rounded-full border border-border text-sm font-medium text-muted hover:text-foreground hover:border-border-hover transition-all shrink-0"
+                className="flex items-center gap-1.5 h-9 px-3 rounded-full border border-border text-sm font-medium text-muted hover:text-foreground hover:border-border-hover transition-all shrink-0"
               >
                 <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M2 10h2l6-6-2-2-6 6v2z" /><path d="M7.5 3.5l1 1" />

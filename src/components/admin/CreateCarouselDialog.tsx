@@ -114,7 +114,7 @@ export function CreateCarouselDialog({ channelId, open, onClose, onCreated }: Cr
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-sm text-muted-light hover:text-foreground transition-colors"
+              className="h-9 px-4 text-sm text-muted-light hover:text-foreground transition-colors"
               disabled={loading}
             >
               Cancel
@@ -122,7 +122,7 @@ export function CreateCarouselDialog({ channelId, open, onClose, onCreated }: Cr
             <button
               type="submit"
               disabled={!topic.trim() || loading}
-              className="px-5 py-2 ig-btn text-sm font-medium rounded-lg transition-all"
+              className="h-9 px-4 ig-btn text-sm font-medium rounded-lg transition-all"
             >
               {loading ? 'Creating...' : 'Generate'}
             </button>

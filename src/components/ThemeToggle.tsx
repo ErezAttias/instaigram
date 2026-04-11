@@ -9,10 +9,11 @@ export default function ThemeToggle() {
   return (
     <button
       onClick={toggle}
+      data-toggle
       role="switch"
       aria-checked={!isDark}
       aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
-      className="relative flex items-center w-[3.75rem] h-8 rounded-full border border-foreground/10 bg-foreground/6 transition-colors duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+      className="relative !flex items-center !justify-start w-[3.75rem] h-8 rounded-full border border-foreground/10 bg-foreground/6 transition-colors duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
     >
       {/* Sliding pill — rendered first so icons sit above it */}
       <span

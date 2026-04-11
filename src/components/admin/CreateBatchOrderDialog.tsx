@@ -139,7 +139,7 @@ export function CreateBatchOrderDialog({ channelId, open, onClose, onCreated }: 
                 <button
                   type="button"
                   onClick={() => handleTopicModeChange('ai')}
-                  className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${
+                  className={`h-8 px-3 text-xs font-medium rounded-lg border transition-colors ${
                     topicMode === 'ai'
                       ? 'bg-accent/15 border-accent text-accent'
                       : 'bg-surface-elevated border-border text-muted-light hover:text-foreground'
@@ -150,7 +150,7 @@ export function CreateBatchOrderDialog({ channelId, open, onClose, onCreated }: 
                 <button
                   type="button"
                   onClick={() => handleTopicModeChange('manual')}
-                  className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${
+                  className={`h-8 px-3 text-xs font-medium rounded-lg border transition-colors ${
                     topicMode === 'manual'
                       ? 'bg-accent/15 border-accent text-accent'
                       : 'bg-surface-elevated border-border text-muted-light hover:text-foreground'
@@ -200,7 +200,7 @@ export function CreateBatchOrderDialog({ channelId, open, onClose, onCreated }: 
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-sm text-muted-light hover:text-foreground transition-colors"
+              className="h-9 px-4 text-sm text-muted-light hover:text-foreground transition-colors"
               disabled={loading}
             >
               Cancel
@@ -208,7 +208,7 @@ export function CreateBatchOrderDialog({ channelId, open, onClose, onCreated }: 
             <button
               type="submit"
               disabled={loading}
-              className="px-5 py-2 ig-btn text-sm font-medium rounded-lg transition-all"
+              className="h-9 px-4 ig-btn text-sm font-medium rounded-lg transition-all"
             >
               {loading ? 'Placing order...' : `Order ${topicMode === 'manual' ? topics.filter(t => t.trim()).length || size : size} Carousels`}
             </button>

@@ -339,6 +339,22 @@ button {
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+/*
+ * Button height standard (3 tiers):
+ *   h-11 (44px) — Primary page CTAs, hero buttons
+ *   h-9  (36px) — Dialog actions, toolbar buttons
+ *   h-8  (32px) — Inline actions, compact toolbars
+ * Always use h-* instead of py-* for guaranteed consistent heights.
+ * This rule ensures proper vertical centering for any button with an
+ * explicit Tailwind height class.
+ */
+button[class*="h-"]:not([data-toggle]),
+a[class*="h-"] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
 /* Pill border-radius only for buttons that don't already declare a rounded-* class */
 button:not([class*="rounded-"]) {
   border-radius: 9999px !important;

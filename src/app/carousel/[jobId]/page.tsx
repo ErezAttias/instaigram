@@ -502,7 +502,7 @@ function SlideCard({
             <button
               onClick={onRegenCopy}
               disabled={isRegenerating}
-              className="w-full py-1.5 px-2 text-xs bg-surface-elevated border border-border rounded-md hover:bg-surface-hover hover:border-border-hover disabled:opacity-40 transition-colors"
+              className="w-full h-8 px-2 text-xs bg-surface-elevated border border-border rounded-md hover:bg-surface-hover hover:border-border-hover disabled:opacity-40 transition-colors"
               title="Regenerate headline and body text"
             >
               Rewrite text
@@ -513,7 +513,7 @@ function SlideCard({
             <button
               onClick={onRegenImage}
               disabled={isRegenerating}
-              className={`w-full py-1.5 px-2 text-xs rounded-md disabled:opacity-40 transition-colors ${
+              className={`w-full h-8 px-2 text-xs rounded-md disabled:opacity-40 transition-colors ${
                 isFailed
                   ? 'bg-danger/10 text-danger border border-danger/30 hover:bg-danger/20 font-semibold'
                   : 'bg-surface-elevated border border-border hover:bg-surface-hover hover:border-border-hover'
@@ -528,7 +528,7 @@ function SlideCard({
             <button
               onClick={onRegenFull}
               disabled={isRegenerating}
-              className="w-full py-1.5 px-2 text-xs bg-violet-dim text-violet border border-violet/20 rounded-md hover:bg-violet/20 disabled:opacity-40 transition-colors"
+              className="w-full h-8 px-2 text-xs bg-violet-dim text-violet border border-violet/20 rounded-md hover:bg-violet/20 disabled:opacity-40 transition-colors"
               title="Regenerate everything for this slide"
             >
               Redo slide
@@ -628,7 +628,7 @@ function DecisionBar({
         <button
           onClick={buttonAction}
           disabled={buttonDisabled}
-          className={`w-full sm:w-auto py-2.5 px-6 font-semibold rounded-lg text-sm transition-colors whitespace-nowrap ${buttonClass}`}
+          className={`w-full sm:w-auto h-11 px-6 font-semibold rounded-lg text-sm transition-colors whitespace-nowrap ${buttonClass}`}
         >
           {isProcessing && (
             <svg className="animate-spin -ml-1 mr-2 h-4 w-4 inline-block" viewBox="0 0 24 24" fill="none">
