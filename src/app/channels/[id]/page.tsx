@@ -2273,7 +2273,7 @@ export default function ChannelDashboard() {
                                           { key: 'wikipedia', label: 'Wiki Image', loading: 'Fetching...', onClick: () => handleRegenerateSlide(p.id, p.carouselJobId!, currentSlideIdx, 'image', 'wikipedia') },
                                         ] as const
                                         return (
-                                          <div className="grid grid-cols-2 gap-px rounded-lg border border-border overflow-hidden bg-border">
+                                          <div className="mx-auto w-full grid grid-cols-2 gap-px rounded-lg border border-border overflow-hidden bg-border" style={{ maxWidth: 'min(100%, calc(420px * 4 / 5))' }}>
                                             {actions.map((action) => (
                                               <button
                                                 key={action.key}
@@ -2306,11 +2306,11 @@ export default function ChannelDashboard() {
                                     </button>
                                     <div className="min-w-0">
                                       {displaySlide?.imageUrl && (
-                                        <div className="relative w-full" style={{ maxHeight: 460 }}>
+                                        <div className="relative w-full aspect-[4/5] max-h-[420px] mx-auto" style={{ maxWidth: 'min(100%, calc(420px * 4 / 5))' }}>
                                           <img
                                             src={displaySlide.imageUrl}
                                             alt={currentSlide?.headline || `Slide ${currentSlideIdx + 1}`}
-                                            className="w-full h-auto max-h-[420px] object-contain mx-auto rounded-lg"
+                                            className="w-full h-full object-cover rounded-lg"
                                           />
                                         </div>
                                       )}
