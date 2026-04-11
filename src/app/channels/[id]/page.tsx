@@ -2235,7 +2235,7 @@ export default function ChannelDashboard() {
                                   className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${isPreview ? 'bg-[#3d6fa8] text-white' : 'bg-surface-elevated text-muted hover:text-foreground border border-border'} disabled:opacity-30 disabled:cursor-not-allowed`}
                                 >
                                   <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M1 8s3-5 7-5 7 5 7 5-3 5-7 5-7-5-7-5z"/><circle cx="8" cy="8" r="2"/></svg>
-                                  Instagram Preview
+                                  Preview
                                 </button>
                               </div>
 
