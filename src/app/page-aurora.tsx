@@ -514,14 +514,14 @@ export default function HomeAurora() {
             </form>
 
             {/* Trust badges */}
-            <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-2 mt-8 pt-6 border-t border-border/30">
+            <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-2 mt-8 pt-6 border-t border-border">
 
               {/* Feature badges */}
               {[
                 {
                   label: '30 posts/month',
                   icon: (
-                    <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#e6683c" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="text-muted-light">
                       <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
                       <circle cx="12" cy="13" r="4" />
                     </svg>
@@ -530,7 +530,7 @@ export default function HomeAurora() {
                 {
                   label: 'AI-powered',
                   icon: (
-                    <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#cc2366" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="text-muted-light">
                       <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
                     </svg>
                   ),
@@ -538,7 +538,7 @@ export default function HomeAurora() {
                 {
                   label: 'Full captions',
                   icon: (
-                    <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#bc1888" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="text-muted-light">
                       <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
                     </svg>
                   ),
@@ -546,7 +546,7 @@ export default function HomeAurora() {
                 {
                   label: 'Auto-hashtags',
                   icon: (
-                    <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6c3fc5" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="text-muted-light">
                       <line x1="4" y1="9" x2="20" y2="9" />
                       <line x1="4" y1="15" x2="20" y2="15" />
                       <line x1="10" y1="3" x2="8" y2="21" />
