@@ -27,9 +27,9 @@ export const TITLE_FONTS: FontOption[] = [
     label: 'Inter',
     family: 'Inter',
     weight: 800,
-    file: null,
+    file: 'Inter-ExtraBold.ttf',
     singleBodyWeight: 400,
-    lightFile: null,
+    lightFile: 'Inter-Regular.ttf',
     googleFontsFamily: 'Inter:wght@800',
   },
   {
@@ -80,7 +80,7 @@ export const BODY_FONTS: FontOption[] = [
     label: 'Inter',
     family: 'Inter',
     weight: 400,
-    file: null,
+    file: 'Inter-Regular.ttf',
     singleBodyWeight: 400,
     lightFile: null,
     googleFontsFamily: 'Inter:wght@400',
@@ -169,7 +169,7 @@ export function getFontPairing(_id: string): FontPairing {
     id: 'inter_roboto_slab',
     label: 'Inter / Roboto Slab',
     googleFontsFamily: 'Inter:wght@800&family=Roboto+Slab:wght@400',
-    display: { family: 'Inter', weight: 800, file: null },
+    display: { family: 'Inter', weight: 800, file: 'Inter-ExtraBold.ttf' },
     body: { family: 'Roboto Slab', weight: 400, file: 'RobotoSlab-Regular.ttf' },
   };
 }
