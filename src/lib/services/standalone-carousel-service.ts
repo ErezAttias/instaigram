@@ -53,7 +53,7 @@ import {
 } from '@/lib/validation/carousel-enforcement';
 import { auditPromptStyle } from '@/lib/validation/style-validator';
 import { generateArticle } from '@/lib/services/article-service';
-import { saveImage } from '@/lib/storage/image-storage';
+import { saveImage, saveRawImage, loadRawImage } from '@/lib/storage/image-storage';
 
 // ─── Helpers ────────────────────────────────────────────────
 
@@ -319,6 +319,8 @@ async function renderSlideImage(
   excludeUrls?: string[],
   /** Disambiguated concept (e.g. "Oasis (band)") — used for CTA visual subject when topicEntity is generic */
   conceptHint?: string,
+  /** Raw search term from channel (e.g. "kanye west") — used for Wikipedia person lookups */
+  exploreTopic?: string,
 ): Promise<SlideRenderOutput> {
   if (slide.role === 'OPENER') {
     // Always render OPENER with layout-first composition (same as FACT slides).
@@ -338,7 +340,9 @@ async function renderSlideImage(
     // Also attempted when user explicitly clicks "Wikipedia Photo".
     const isOpenerCelebrity = !isRealPlaceSlide(displayTitle, displaySupport) && isCelebrityTopic(conceptHint || topic, direction);
     if ((isOpenerCelebrity || imageSource === 'wikipedia') && imageSource !== 'generated') {
-      const personName = conceptHint || slide.topicEntity || topic;
+      // For Wikipedia searches, prefer the channel's raw exploreTopic (e.g. "kanye west")
+      // over topic/conceptHint which may be the niche name or slide headline.
+      const personName = exploreTopic || conceptHint || slide.topicEntity || topic;
       console.log(`[Renderer] Celebrity OPENER — Wikipedia primary photo for "${personName}"`);
       try {
         const personProvider = new WikipediaImageProvider();
@@ -438,10 +442,10 @@ async function renderSlideImage(
         } else {
           // Celebrity FACT — search for a contextual photo (different from OPENER portrait).
           // Using slideRole 'CTA' triggers the secondary/Commons search path in the provider.
-          // Use conceptHint (e.g. "Oasis (band)") when available — it's the disambiguated subject
-          // resolved during initial render. Falls back to raw topic, which can be ambiguous
-          // (e.g. "Oasis" → desert article on Wikipedia).
-          const personName = conceptHint || topic;
+          // For Wikipedia searches, prefer the channel's raw exploreTopic (e.g. "kanye west")
+          // over conceptHint which may be the slide headline. Fall back to conceptHint for
+          // disambiguated names like "Oasis (band)".
+          const personName = exploreTopic || conceptHint || topic;
           console.log(`[Renderer] Celebrity FACT — Wikipedia photo for "${personName}"`);
           wikiSubjectName = personName;
           const personProvider = new WikipediaImageProvider();
@@ -546,7 +550,8 @@ async function renderSlideImage(
 
     // ── Wikipedia path for CTA slides ────────────────────────────
     if (imageSource === 'wikipedia') {
-      console.log(`[Renderer] CTA Wikipedia photo for "${ctaSubject}"`);
+      const wikiSubject = exploreTopic || topic || ctaSubject;
+      console.log(`[Renderer] CTA Wikipedia photo for "${wikiSubject}"`);
       try {
         const personProvider = new WikipediaImageProvider();
         const wikiGen = new UnifiedImageProvider(personProvider, null, 'wikipedia-person', 'none');
@@ -566,7 +571,7 @@ async function renderSlideImage(
             textZone: 'bottom_right',
             slideRole: 'CTA', // CTA triggers secondary/Commons search — different from OPENER primary
             textMode: 'light-on-dark',
-            subjectName: ctaSubject,
+            subjectName: wikiSubject,
             excludeUrls,
             visualStyle: visualStyle ?? DEFAULT_VISUAL_STYLE,
           },
@@ -644,6 +649,7 @@ export async function runCarouselGeneration(
   // Load channel name, niche + memory for topic disambiguation and copy constraints
   let channelName: string | undefined;
   let channelNiche: string | undefined;
+  let channelExploreTopic: string | undefined;
   let channelMemory: PipelineParams['memory'] | undefined;
   if (job.channelId) {
     const channel = await prisma.channel.findUnique({
@@ -652,6 +658,7 @@ export async function runCarouselGeneration(
     });
     if (channel?.name) channelName = channel.name;
     if (channel?.niche) channelNiche = channel.niche;
+    if (channel?.exploreTopic) channelExploreTopic = channel.exploreTopic;
     if (channel?.memory) {
       channelMemory = {
         tone: channel.memory.tone ?? undefined,
@@ -1064,7 +1071,7 @@ export async function runCarouselGeneration(
         // Try rendering (UnifiedImageProvider handles Gemini → Stability fallback internally)
         try {
           console.log(`[ImageStage] Slide ${slideNum} attempt ${attempt} — calling renderSlideImage`);
-          const renderOutput = await renderSlideImage(slide, displayTitle, displaySupport, job.topic, imageProvider, finalSlides, undefined, job.direction, channelVisualStyle, undefined, preSelectedConcept);
+          const renderOutput = await renderSlideImage(slide, displayTitle, displaySupport, job.topic, imageProvider, finalSlides, undefined, job.direction, channelVisualStyle, undefined, preSelectedConcept, channelExploreTopic);
           imageBase64 = renderOutput.imageBase64;
           rawImageBase64 = renderOutput.rawImageBase64;
           resolvedImageSource = renderOutput.resolvedImageSource;
@@ -1154,6 +1161,13 @@ export async function runCarouselGeneration(
       const savedImageUrl = imageBase64
         ? await saveImage(jobId, slide.slideNumber, imageBase64)
         : null;
+
+      // Save raw image (before text overlay) for future restyle operations
+      if (rawImageBase64) {
+        await saveRawImage(jobId, slide.slideNumber, rawImageBase64).catch(err =>
+          console.warn(`[ImageStage] Failed to save raw image for slide ${slide.slideNumber}: ${err}`)
+        );
+      }
 
       // Save slide to DB immediately so frontend can display it progressively
       await prisma.carouselSlide.upsert({
@@ -1471,7 +1485,13 @@ export async function regenerateCarouselSlideImage(
     }
   }
   let regenVisualStyle: ChannelVisualStyleContext = DEFAULT_VISUAL_STYLE;
+  let regenExploreTopic: string | undefined;
   if (regenChannelId) {
+    const channelData = await prisma.channel.findUnique({
+      where: { id: regenChannelId },
+      select: { exploreTopic: true },
+    });
+    regenExploreTopic = channelData?.exploreTopic ?? undefined;
     const styleRecord = await prisma.channelVisualStyle.findUnique({
       where: { channelId: regenChannelId },
     });
@@ -1563,9 +1583,17 @@ export async function regenerateCarouselSlideImage(
       regenVisualStyle,
       excludeUrls,
       conceptHint,
+      regenExploreTopic,
     );
 
     const regenImageUrl = await saveImage(jobId, slideIndex, renderOutput.imageBase64);
+
+    // Save raw image for future restyle operations
+    if (renderOutput.rawImageBase64) {
+      await saveRawImage(jobId, slideIndex, renderOutput.rawImageBase64).catch(err =>
+        console.warn(`[Regen] Failed to save raw image for slide ${slideIndex}: ${err}`)
+      );
+    }
 
     return await prisma.carouselSlide.update({
       where: { id: slide.id },
@@ -1588,6 +1616,108 @@ export async function regenerateCarouselSlideImage(
         imageError: errorMsg.slice(0, 2000),
         status: 'FAILED_IMAGE',
       },
+    });
+    throw err;
+  }
+}
+
+// ─── Restyle Slide (re-render overlay on existing image) ────
+
+/**
+ * Re-renders the text overlay on a slide using the channel's current visual style,
+ * without regenerating the base image. Falls back to full image regen if no raw image exists.
+ */
+export async function restyleCarouselSlide(jobId: string, slideIndex: number) {
+  const job = await prisma.carouselJob.findUnique({
+    where: { id: jobId },
+    include: { slides: { orderBy: { slideIndex: 'asc' } } },
+  });
+  if (!job) throw new Error('CarouselJob not found');
+
+  const slide = job.slides.find(s => s.slideIndex === slideIndex);
+  if (!slide) throw new Error(`Slide ${slideIndex} not found`);
+
+  // Try to load the raw image (before text overlay)
+  const rawImage = await loadRawImage(jobId, slideIndex);
+  if (!rawImage) {
+    // No raw image saved — fall back to full regen preserving image source
+    console.log(`[Restyle] No raw image for slide ${slideIndex} — falling back to full regen`);
+    const preserveSource = (slide.imageSource as 'wikipedia' | 'generated' | undefined) ?? 'generated';
+    return regenerateCarouselSlideImage(jobId, slideIndex, preserveSource);
+  }
+
+  console.log(`[Restyle] Re-rendering overlay for slide ${slideIndex} using saved raw image`);
+
+  await prisma.carouselSlide.update({
+    where: { id: slide.id },
+    data: { status: 'REGENERATING', imageError: null },
+  });
+
+  const displayTitle = slide.displayTitle || slide.headline || '';
+  const displaySupport = slide.displaySupport || '';
+
+  // Load channel visual style
+  let regenChannelId = job.channelId;
+  if (!regenChannelId) {
+    const linkedPost = await prisma.post.findFirst({
+      where: { carouselJobId: job.id },
+      select: { channelId: true },
+    });
+    regenChannelId = linkedPost?.channelId ?? null;
+  }
+  let visualStyle: ChannelVisualStyleContext = DEFAULT_VISUAL_STYLE;
+  if (regenChannelId) {
+    const styleRecord = await prisma.channelVisualStyle.findUnique({
+      where: { channelId: regenChannelId },
+    });
+    if (styleRecord) {
+      visualStyle = styleRecord as unknown as ChannelVisualStyleContext;
+    }
+  }
+
+  try {
+    const promptOutput = buildSlidePrompt({
+      slideRole: slide.role as 'HOOK' | 'FACT' | 'CTA',
+      subject: slide.topicEntity || job.topic,
+      topic: job.topic,
+      headlineText: displayTitle,
+      bodyText: displaySupport,
+    });
+
+    const result = await renderFactSlide({
+      imagePrompt: promptOutput.imagePrompt,
+      slideType: 'fact',
+      displayTitle,
+      displaySupport,
+      textZone: 'bottom_right',
+      slideRole: slide.role,
+      ...(slide.role === 'OPENER' && { forceT1FontSize: 86 }),
+      ...(slide.role === 'CTA' && { textMode: 'light-on-dark' as const }),
+      visualStyle,
+      baseImage: rawImage, // Skip image generation — re-use existing
+    });
+
+    if (!result.image) {
+      throw new Error(`Restyle render returned no image`);
+    }
+
+    const imageBase64 = result.image.toString('base64');
+    const imageUrl = await saveImage(jobId, slideIndex, imageBase64);
+
+    return await prisma.carouselSlide.update({
+      where: { id: slide.id },
+      data: {
+        imageUrl,
+        imageError: null,
+        status: 'PENDING',
+      },
+    });
+  } catch (err) {
+    const errorMsg = err instanceof Error ? err.message : String(err);
+    console.error(`[Restyle] Slide ${slideIndex} restyle FAILED: ${errorMsg}`);
+    await prisma.carouselSlide.update({
+      where: { id: slide.id },
+      data: { imageError: errorMsg.slice(0, 2000), status: 'FAILED_IMAGE' },
     });
     throw err;
   }

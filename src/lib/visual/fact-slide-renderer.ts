@@ -101,6 +101,8 @@ export interface FactSlideInput {
   excludeUrls?: string[];
   /** Per-channel visual style overrides (font pairing, colors, logo) */
   visualStyle?: ChannelVisualStyleContext;
+  /** Pre-existing base image buffer — when provided, skips image generation and re-composites overlay only (restyle) */
+  baseImage?: Buffer;
 }
 
 export type RenderStep =
@@ -475,7 +477,12 @@ export async function renderFactSlide(
   let providerError: string | undefined;
   let providerErrorStatus: number | undefined;
 
-  if (imageProvider) {
+  // ── Restyle path: skip image generation, re-use existing base image ──
+  if (input.baseImage) {
+    console.log('[FactRenderer] Restyle mode — using provided base image, skipping generation');
+    baseImageBuffer = input.baseImage;
+    imageSource = 'restyle' as ImageSourceProvider;
+  } else if (imageProvider) {
     try {
       const slideRole = input.slideRole ?? 'FACT';
       const resolvedModel = imageProvider.resolveModel(slideRole);

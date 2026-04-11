@@ -118,7 +118,7 @@ function SidebarStepper({ currentStep }: { currentStep: number }) {
           <div key={label}>
             {i > 0 && (
               <div className="w-8 flex justify-center">
-                <div className={`w-0.5 h-5 ${connectorDone ? 'bg-[#3d6fa8]/40' : 'bg-border'}`} />
+                <div className={`w-0.5 h-4 ${connectorDone ? 'bg-[#3d6fa8]/40' : 'bg-border'}`} />
               </div>
             )}
             <div className="flex items-center gap-3">
@@ -140,7 +140,7 @@ function SidebarStepper({ currentStep }: { currentStep: number }) {
             </div>
             {i < STEP_LABELS.length - 1 && (
               <div className="w-8 flex justify-center">
-                <div className={`w-px h-3 ${done ? 'bg-[#3d6fa8]/40' : 'bg-border'}`} />
+                <div className={`w-px h-4 ${done ? 'bg-[#3d6fa8]/40' : 'bg-border'}`} />
               </div>
             )}
           </div>
@@ -208,7 +208,7 @@ function PrimaryButton({
     <button
       onClick={onClick}
       disabled={disabled || loading}
-      className={`h-11 px-6 text-white rounded-full text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed transition-all hover:opacity-90 active:scale-[0.98]${className ? ` ${className}` : ''}`}
+      className={`min-h-11 py-2.5 px-6 text-white rounded-full text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed transition-all hover:opacity-90 active:scale-[0.98]${className ? ` ${className}` : ''}`}
       style={{ background: IG_GRADIENT, boxShadow: IG_GLOW }}
     >
       {loading ? (
@@ -280,7 +280,7 @@ function Section({
   const isUtility = variant === 'utility'
   const wrapperClass = isUtility
     ? 'animate-fade-up bg-surface rounded-2xl border border-border p-5 lg:p-6'
-    : 'animate-fade-up border-t border-border'
+    : 'animate-fade-up border-t border-border lg:border-t-0'
 
   if (collapsible) {
     return (
@@ -330,8 +330,7 @@ function Section({
 function LockedStep({ label, delay }: { label: string; delay?: number }) {
   return (
     <div
-      className="animate-fade-up flex items-center gap-3 py-4 border-t border-border opacity-40"
-      style={delay ? { animationDelay: `${delay}ms` } : undefined}
+      className="flex items-center gap-3 py-4 opacity-40 cursor-not-allowed"
     >
       <svg width="14" height="14" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
         <rect x="3" y="5" width="6" height="6" rx="1"/><path d="M4 5V4a2 2 0 0 1 4 0v1"/>
@@ -453,6 +452,7 @@ export default function ChannelDashboard() {
       const titleFont = getTitleFont(visualStyle.titleFontId)
       setStyleSaveNotice(`Slide style updated · New posts will use ${titleFont.label}`)
       setTimeout(() => setStyleSaveNotice(null), 4000)
+      setShowStyleEditor(false)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save style')
     } finally {
@@ -546,12 +546,17 @@ export default function ChannelDashboard() {
   const nicheScrollRef = useRef<HTMLDivElement>(null)
   const [canScrollLeft, setCanScrollLeft] = useState(false)
   const [canScrollRight, setCanScrollRight] = useState(false)
+  const [activeScrollIndex, setActiveScrollIndex] = useState(0)
 
   const updateScrollArrows = useCallback(() => {
     const el = nicheScrollRef.current
     if (!el) return
     setCanScrollLeft(Math.round(el.scrollLeft) > 10)
     setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 4)
+    // Track which card is most visible for dot indicator
+    const cardWidth = 320 + 16 // card width + gap
+    const index = Math.round(el.scrollLeft / cardWidth)
+    setActiveScrollIndex(index)
   }, [])
 
   useEffect(() => {
@@ -1042,9 +1047,17 @@ export default function ChannelDashboard() {
       if (!res.ok) return
       const data = await res.json()
       if (data.slides) {
+        // Append cache-busting timestamp to image URLs so browser fetches fresh images after regen
+        const cacheBust = `?t=${Date.now()}`
+        const slides = data.slides
+          .sort((a: { slideIndex: number }, b: { slideIndex: number }) => a.slideIndex - b.slideIndex)
+          .map((s: Record<string, unknown>) => ({
+            ...s,
+            imageUrl: s.imageUrl ? `${(s.imageUrl as string).split('?')[0]}${cacheBust}` : s.imageUrl,
+          }))
         setDbPostSlides(prev => ({
           ...prev,
-          [postId]: data.slides.sort((a: { slideIndex: number }, b: { slideIndex: number }) => a.slideIndex - b.slideIndex),
+          [postId]: slides,
         }))
         setDbPostCaptions(prev => ({
           ...prev,
@@ -1062,14 +1075,14 @@ export default function ChannelDashboard() {
     }
   }
 
-  async function handleRegenerateSlide(postId: string, carouselJobId: string, slideIndex: number, mode: 'copy' | 'image' | 'full') {
+  async function handleRegenerateSlide(postId: string, carouselJobId: string, slideIndex: number, mode: 'copy' | 'image' | 'full', imageSource?: 'wikipedia' | 'generated') {
     const key = `${postId}-${slideIndex}`
-    setRegenLoading(prev => ({ ...prev, [key]: mode }))
+    setRegenLoading(prev => ({ ...prev, [key]: imageSource === 'wikipedia' ? 'wikipedia' : mode }))
     try {
       const res = await fetch(`/api/carousel/${carouselJobId}/regenerate-slide`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ slideIndex, mode }),
+        body: JSON.stringify({ slideIndex, mode, ...(imageSource && { imageSource }) }),
       })
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
@@ -1155,9 +1168,9 @@ export default function ChannelDashboard() {
     <div className="animate-fade-up">
       <div className="flex gap-8 xl:gap-10">
         {/* ─── Sidebar (Desktop) ──────────────────────────────── */}
-        <aside className="hidden lg:flex flex-col w-[240px] xl:w-[260px] shrink-0 sticky top-20 self-start pt-2">
+        <aside className="hidden lg:flex flex-col w-[240px] xl:w-[260px] shrink-0 sticky top-20 self-start pt-2 border-r border-border pr-8">
           {/* Channel info */}
-          <div className="mb-6 pb-6 border-b border-border">
+          <div className="mb-6 pb-2">
             {channel.name === 'Untitled Channel' ? (
               <div className="mb-1">
                 <button
@@ -1183,15 +1196,15 @@ export default function ChannelDashboard() {
           <SidebarStepper currentStep={effectiveStep} />
 
           {/* Bottom links */}
-          <div className="mt-8 pt-6 border-t border-border space-y-1">
-            <p className="text-xs text-muted font-medium px-3 mb-2">Settings</p>
+          <div className="mt-8 pt-2 space-y-0.5">
+            <p className="text-xs text-muted font-medium mb-2">Settings</p>
             {hasPosts && (
               <>
                 <Link
                   href={`/channels/${channelId}/posts`}
-                  className="flex items-center gap-2 h-11 px-3 text-sm font-medium text-muted-light hover:text-foreground hover:bg-surface-elevated rounded-xl transition-all w-full"
+                  className="flex items-center !justify-start gap-2.5 h-9 rounded-xl text-sm font-medium text-muted-light hover:text-foreground transition-colors w-full"
                 >
-                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <svg className="w-4 h-4 shrink-0" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                     <rect x="2" y="2" width="12" height="12" rx="2" />
                     <path d="M5 6h6M5 8.5h4" />
                   </svg>
@@ -1199,9 +1212,9 @@ export default function ChannelDashboard() {
                 </Link>
                 <Link
                   href={`/channels/${channelId}/validation`}
-                  className="flex items-center gap-2 h-11 px-3 text-sm font-medium text-muted-light hover:text-foreground hover:bg-surface-elevated rounded-xl transition-all w-full"
+                  className="flex items-center !justify-start gap-2.5 h-9 rounded-xl text-sm font-medium text-muted-light hover:text-foreground transition-colors w-full"
                 >
-                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <svg className="w-4 h-4 shrink-0" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M13.5 4.5L6 12L2.5 8.5" />
                   </svg>
                   Validation report
@@ -1212,9 +1225,9 @@ export default function ChannelDashboard() {
             {hasStrategy && (
               <button
                 onClick={() => setShowNaming(!showNaming)}
-                className={`flex items-center gap-2 h-11 px-3 text-sm font-medium rounded-xl transition-all w-full text-left ${showNaming ? 'bg-surface-elevated text-foreground' : 'text-muted-light hover:text-foreground hover:bg-surface-elevated'}`}
+                className={`flex items-center !justify-start gap-2.5 h-9 rounded-xl text-sm font-medium transition-colors w-full text-left ${showNaming ? 'text-foreground' : 'text-muted-light hover:text-foreground'}`}
               >
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <svg className="w-4 h-4 shrink-0" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M3 13h2l8-8-2-2-8 8v2z" />
                   <path d="M10 4l2 2" />
                 </svg>
@@ -1224,9 +1237,9 @@ export default function ChannelDashboard() {
             {/* Visual style — always accessible */}
             <button
               onClick={() => setShowStyleEditor(!showStyleEditor)}
-              className={`flex items-center gap-2 h-11 px-3 text-sm font-medium rounded-xl transition-all w-full text-left ${showStyleEditor ? 'bg-surface-elevated text-foreground' : 'text-muted-light hover:text-foreground hover:bg-surface-elevated'}`}
+              className={`flex items-center !justify-start gap-2.5 h-9 rounded-xl text-sm font-medium transition-colors w-full text-left ${showStyleEditor ? 'text-foreground' : 'text-muted-light hover:text-foreground'}`}
             >
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <svg className="w-4 h-4 shrink-0" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="8" cy="8" r="5.5" />
                 <circle cx="5" cy="6" r="1" fill="currentColor" stroke="none" />
                 <circle cx="8" cy="4.5" r="1" fill="currentColor" stroke="none" />
@@ -1235,7 +1248,7 @@ export default function ChannelDashboard() {
               <span className="whitespace-nowrap">Slide style</span>
               <span className="ml-auto text-xs text-muted truncate min-w-0">{getTitleFont(visualStyle.titleFontId).label}</span>
             </button>
-            <p className="text-xs text-muted px-3 mt-1">Font and layout for new carousels</p>
+            <p className="text-xs text-muted mt-1">Font and layout for new carousels</p>
           </div>
         </aside>
 
@@ -1247,9 +1260,9 @@ export default function ChannelDashboard() {
             {channel.name === 'Untitled Channel' ? (
               <button
                 onClick={() => setShowNaming(true)}
-                className="flex items-center gap-1.5 h-9 px-3 rounded-full border border-border text-sm font-medium text-muted hover:text-foreground hover:border-border-hover transition-all shrink-0"
+                className="flex items-center gap-1.5 h-9 px-3 rounded-lg border border-border text-xs font-semibold text-muted hover:text-foreground hover:border-border-hover transition-all shrink-0"
               >
-                <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="13" height="13" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M2 10h2l6-6-2-2-6 6v2z" /><path d="M7.5 3.5l1 1" />
                 </svg>
                 Name channel
@@ -1399,7 +1412,7 @@ export default function ChannelDashboard() {
                   {canScrollLeft && (
                     <button
                       onClick={() => nicheScrollRef.current?.scrollBy({ left: -320, behavior: 'smooth' })}
-                      className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-surface-elevated border border-border shadow-lg flex items-center justify-center text-muted hover:text-foreground hover:border-border-hover transition-all opacity-0 group-hover/scroll:opacity-100"
+                      className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-surface-elevated border border-border shadow-lg flex items-center justify-center text-muted hover:text-foreground hover:border-border-hover transition-all opacity-60 group-hover/scroll:opacity-100"
                       aria-label="Scroll left"
                     >
                       ‹
@@ -1408,7 +1421,7 @@ export default function ChannelDashboard() {
                   {canScrollRight && (
                     <button
                       onClick={() => nicheScrollRef.current?.scrollBy({ left: 320, behavior: 'smooth' })}
-                      className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-surface-elevated border border-border shadow-lg flex items-center justify-center text-muted hover:text-foreground hover:border-border-hover transition-all opacity-0 group-hover/scroll:opacity-100"
+                      className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-surface-elevated border border-border shadow-lg flex items-center justify-center text-muted hover:text-foreground hover:border-border-hover transition-all opacity-60 group-hover/scroll:opacity-100"
                       aria-label="Scroll right"
                     >
                       ›
@@ -1430,20 +1443,20 @@ export default function ChannelDashboard() {
                         style={{ animationDelay: `${i * 60}ms` }}
                       >
                         <div className="flex items-center justify-between gap-2 mb-2">
-                          <h3 className="text-base font-semibold leading-tight">{niche.title}</h3>
+                          <h3 className="text-base font-semibold leading-snug">{niche.title}</h3>
                           {niche.selected && (
                             <span className="text-xs font-semibold text-white px-2.5 py-1 rounded-lg shrink-0" style={{ background: IG_GRADIENT }}>Selected</span>
                           )}
                         </div>
-                        <p className="text-sm text-muted-light leading-relaxed flex-1">{niche.description}</p>
+                        <p className="text-sm font-normal text-muted-light leading-relaxed flex-1">{niche.description}</p>
                       </button>
                     ))}
                   </div>
                   <div className="flex justify-center gap-1.5 pt-3">
-                    {niches.map((niche) => (
+                    {niches.map((niche, i) => (
                       <div
                         key={niche.id}
-                        className={`w-2 h-2 rounded-full transition-colors duration-200 ${niche.selected ? 'bg-[#3d6fa8]' : 'bg-border'}`}
+                        className={`w-2 h-2 rounded-full transition-all duration-200 ${niche.selected ? 'bg-[#3d6fa8]' : i === activeScrollIndex ? 'bg-foreground/40 scale-110' : 'bg-border'}`}
                       />
                     ))}
                   </div>
@@ -1564,11 +1577,9 @@ export default function ChannelDashboard() {
                         )}
                       </div>
                       <p className="text-base font-semibold text-foreground leading-normal pr-7">{strategy.contentIntent}</p>
-                      <div className="flex flex-wrap gap-1.5">
-                        <span className="text-xs font-medium text-muted-light bg-surface-elevated border border-border px-2 py-0.5 rounded-full whitespace-nowrap">{strategy.tone}</span>
-                      </div>
-                      <p className="text-sm text-foreground leading-relaxed flex-1">
-                        <span className="font-normal text-muted-light">Target audience: </span>
+                      <div className="w-full h-px bg-border" />
+                      <p className="text-sm font-normal text-muted-light leading-relaxed flex-1">
+                        Target audience:{' '}
                         {strategy.audience.replace(/^(The target audience (are|is)\s*|Target audience:\s*)/i, '')}
                       </p>
                       {(strategy.engagementPotential || strategy.contentDifficulty || strategy.audienceSize) && (
@@ -1792,7 +1803,7 @@ export default function ChannelDashboard() {
                 </div>
                 <button
                   onClick={() => { setShowStyleEditor(true); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
-                  className="flex items-center gap-1.5 px-3 py-2.5 min-h-[44px] text-xs font-semibold text-muted border border-border rounded-lg hover:text-[#6b9fcc] hover:border-[#3d6fa8]/30 transition-all shrink-0"
+                  className="flex items-center gap-1.5 h-9 px-3 text-xs font-semibold text-muted border border-border rounded-lg hover:text-foreground hover:border-border-hover transition-all shrink-0"
                 >
                   <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                     <circle cx="8" cy="8" r="5.5" />
@@ -2012,11 +2023,11 @@ export default function ChannelDashboard() {
                                         <div className="relative px-2">
                                           <div className="min-w-0">
                                             {currentSlide?.imageUrl && (
-                                              <div className="relative w-full" style={{ maxHeight: 460 }}>
+                                              <div className="relative w-full aspect-[4/5] max-h-[420px] mx-auto" style={{ maxWidth: 'min(100%, calc(420px * 4 / 5))' }}>
                                                 <img
                                                   src={currentSlide.imageUrl}
                                                   alt={currentSlide.displayTitle || currentSlide.headline || `Slide ${currentSlideIdx + 1}`}
-                                                  className="w-full h-auto max-h-[420px] object-contain mx-auto rounded-lg"
+                                                  className="w-full h-full object-cover rounded-lg"
                                                 />
                                               </div>
                                             )}
@@ -2043,29 +2054,37 @@ export default function ChannelDashboard() {
                                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
                                           </button>
                                         </div>
-                                        {/* Regen buttons — below image for breathing room */}
+                                        {/* Regen buttons — compact segmented row */}
                                         {p.carouselJobId && (() => {
                                           const regenKey = `${p.id}-${currentSlideIdx}`
                                           const activeMode = regenLoading[regenKey]
+                                          const actions = [
+                                            { key: 'copy', label: 'Regen Text', loading: 'Rewriting...', onClick: () => handleRegenerateSlide(p.id, p.carouselJobId!, currentSlideIdx, 'copy') },
+                                            { key: 'image', label: 'Regen Image', loading: 'Rendering...', onClick: () => handleRegenerateSlide(p.id, p.carouselJobId!, currentSlideIdx, 'image') },
+                                            { key: 'full', label: 'Regen Both', loading: 'Both...', onClick: () => handleRegenerateSlide(p.id, p.carouselJobId!, currentSlideIdx, 'full') },
+                                            { key: 'wikipedia', label: 'Wiki Image', loading: 'Fetching...', onClick: () => handleRegenerateSlide(p.id, p.carouselJobId!, currentSlideIdx, 'image', 'wikipedia') },
+                                          ] as const
                                           return (
-                                            <div className="flex items-center justify-center gap-2 pt-3 px-2">
-                                              {(['copy', 'image', 'full'] as const).map(mode => (
-                                                <button
-                                                  key={mode}
-                                                  onClick={() => handleRegenerateSlide(p.id, p.carouselJobId!, currentSlideIdx, mode)}
-                                                  disabled={!!activeMode || p.carouselJobId === generatingCarouselJobId}
-                                                  className="px-3 py-1.5 text-xs font-semibold rounded-md border border-border bg-background hover:bg-surface-elevated hover:border-border-hover disabled:opacity-40 disabled:cursor-not-allowed transition-all text-muted hover:text-foreground"
-                                                >
-                                                  {activeMode === mode ? (
-                                                    <span className="flex items-center gap-1">
-                                                      <span className="w-3 h-3 border border-[#3d6fa8]/30 border-t-[#6b9fcc] rounded-full animate-spin" />
-                                                      {mode === 'copy' ? 'Rewriting...' : mode === 'image' ? 'Rendering...' : 'Both...'}
-                                                    </span>
-                                                  ) : (
-                                                    mode === 'copy' ? 'Regen text' : mode === 'image' ? 'Regen image' : 'Regen both'
-                                                  )}
-                                                </button>
-                                              ))}
+                                            <div className="pt-3 mx-auto w-full" style={{ maxWidth: 'min(100%, calc(420px * 4 / 5))' }}>
+                                              <div className="grid grid-cols-2 gap-px w-full rounded-lg border border-border overflow-hidden bg-border">
+                                                {actions.map((action) => (
+                                                  <button
+                                                    key={action.key}
+                                                    onClick={action.onClick}
+                                                    disabled={!!activeMode || p.carouselJobId === generatingCarouselJobId}
+                                                    className={`py-2 text-[11px] font-semibold rounded-none transition-all disabled:opacity-40 disabled:cursor-not-allowed hover:bg-foreground/5 hover:text-foreground bg-background ${
+                                                      activeMode === action.key ? 'bg-foreground/5 text-foreground' : 'text-muted'
+                                                    }`}
+                                                  >
+                                                    {activeMode === action.key ? (
+                                                      <span className="flex items-center justify-center gap-1.5">
+                                                        <span className="w-3 h-3 border border-[#3d6fa8]/30 border-t-[#6b9fcc] rounded-full animate-spin" />
+                                                        {action.loading}
+                                                      </span>
+                                                    ) : action.label}
+                                                  </button>
+                                                ))}
+                                              </div>
                                             </div>
                                           )
                                         })()}
@@ -2110,20 +2129,7 @@ export default function ChannelDashboard() {
               ) : null;
             })()}
 
-            {/* Generate next / first post button — outside streaming block so it shows on page load */}
-            {!isStreamingPosts && (hasPosts || completedPosts.length > 0) && (
-              <div className="mt-6 flex items-center gap-3">
-                <PrimaryButton
-                  onClick={handleGenerateBatch}
-                  disabled={actionLoading !== null || isStreamingPosts}
-                >
-                  Generate next post
-                </PrimaryButton>
-                {completedPosts.length > 0 && (
-                  <span className="text-sm text-muted">{(() => { const ids = new Set(completedPosts.map(cp => cp.id)); return channel.posts.filter(p => !ids.has(p.id)).length + completedPosts.length; })()} total posts</span>
-                )}
-              </div>
-            )}
+            {/* Generate first post button — only when no posts yet */}
             {!isStreamingPosts && !hasPosts && completedPosts.length === 0 && (
               <div className="mt-6">
                 <PrimaryButton
@@ -2273,27 +2279,33 @@ export default function ChannelDashboard() {
                                       }`}>
                                         {currentSlide?.role} — Slide {currentSlideIdx + 1} of {effectiveSlides.length || p.slideCount}
                                       </span>
-                                      {/* Regeneration buttons */}
+                                      {/* Regeneration buttons — compact segmented row */}
                                       {p.carouselJobId && (() => {
                                         const regenKey = `${p.id}-${currentSlideIdx}`
                                         const activeMode = regenLoading[regenKey]
+                                        const actions = [
+                                          { key: 'copy', label: 'Text', loading: 'Rewriting...', onClick: () => handleRegenerateSlide(p.id, p.carouselJobId!, currentSlideIdx, 'copy') },
+                                          { key: 'image', label: 'Image', loading: 'Rendering...', onClick: () => handleRegenerateSlide(p.id, p.carouselJobId!, currentSlideIdx, 'image') },
+                                          { key: 'full', label: 'Both', loading: 'Both...', onClick: () => handleRegenerateSlide(p.id, p.carouselJobId!, currentSlideIdx, 'full') },
+                                          { key: 'wikipedia', label: 'Wiki', loading: 'Fetching...', onClick: () => handleRegenerateSlide(p.id, p.carouselJobId!, currentSlideIdx, 'image', 'wikipedia') },
+                                        ] as const
                                         return (
-                                          <div className="flex items-center gap-1.5 flex-wrap">
-                                            {(['copy', 'image', 'full'] as const).map(mode => (
+                                          <div className="inline-flex rounded-lg border border-border overflow-hidden">
+                                            {actions.map((action, i) => (
                                               <button
-                                                key={mode}
-                                                onClick={() => handleRegenerateSlide(p.id, p.carouselJobId!, currentSlideIdx, mode)}
+                                                key={action.key}
+                                                onClick={action.onClick}
                                                 disabled={!!activeMode || p.carouselJobId === generatingCarouselJobId}
-                                                className="px-2 py-1 text-[11px] font-semibold rounded-md border border-border bg-background hover:bg-surface-elevated hover:border-border-hover disabled:opacity-40 disabled:cursor-not-allowed transition-all text-muted hover:text-foreground"
+                                                className={`px-2.5 py-1 text-[11px] font-semibold rounded-none transition-all disabled:opacity-40 disabled:cursor-not-allowed hover:bg-foreground/5 hover:text-foreground ${
+                                                  activeMode === action.key ? 'bg-foreground/5 text-foreground' : 'text-muted'
+                                                } ${i > 0 ? 'border-l border-border' : ''}`}
                                               >
-                                                {activeMode === mode ? (
+                                                {activeMode === action.key ? (
                                                   <span className="flex items-center gap-1">
-                                                    <span className="w-3 h-3 border border-[#3d6fa8]/30 border-t-[#6b9fcc] rounded-full animate-spin" />
-                                                    {mode === 'copy' ? 'Rewriting...' : mode === 'image' ? 'Rendering...' : 'Regen both...'}
+                                                    <span className="w-2.5 h-2.5 border border-[#3d6fa8]/30 border-t-[#6b9fcc] rounded-full animate-spin" />
+                                                    {action.loading}
                                                   </span>
-                                                ) : (
-                                                  mode === 'copy' ? 'Regen text' : mode === 'image' ? 'Regen image' : 'Regen both'
-                                                )}
+                                                ) : action.label}
                                               </button>
                                             ))}
                                           </div>
@@ -2515,21 +2527,22 @@ export default function ChannelDashboard() {
             </Section>
           )}
 
-          {/* Mobile bottom links */}
-          {hasPosts && (
-            <div className="lg:hidden flex gap-3 pt-4">
+          {/* Bottom CTAs — Generate next + View all */}
+          {!isStreamingPosts && (hasPosts || completedPosts.length > 0) && (
+            <div className="flex flex-col sm:flex-row gap-3 pt-6">
+              <PrimaryButton
+                onClick={handleGenerateBatch}
+                disabled={actionLoading !== null || isStreamingPosts}
+                className="flex-1"
+              >
+                Generate next post
+              </PrimaryButton>
               <Link
                 href={`/channels/${channelId}/posts`}
-                className="flex-1 text-center px-[30px] py-3 bg-surface hover:bg-surface-hover border border-border rounded-full text-sm font-semibold transition-all"
+                className="flex-1 text-center min-h-11 py-2.5 px-6 bg-surface hover:bg-surface-hover border border-border rounded-full text-sm font-semibold transition-all"
               >
                 View all posts
               </Link>
-              <button
-                onClick={() => setShowNaming(!showNaming)}
-                className="flex-1 text-center px-[30px] py-3 bg-surface hover:bg-surface-hover border border-border rounded-full text-sm font-semibold transition-all"
-              >
-                {channel.name !== 'Untitled Channel' ? 'Rename' : 'Name channel'}
-              </button>
             </div>
           )}
         </div>

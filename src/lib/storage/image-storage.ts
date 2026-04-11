@@ -74,3 +74,73 @@ export async function saveImage(
   fs.writeFileSync(path.join(dir, `${slideIndex}.png`), buffer);
   return `/${key}`;
 }
+
+/**
+ * Save the raw (pre-overlay) image for restyle operations.
+ * Stored alongside the final image with a `-raw` suffix.
+ */
+export async function saveRawImage(
+  jobId: string,
+  slideIndex: number,
+  rawImageBase64: string,
+): Promise<string> {
+  const buffer = Buffer.from(rawImageBase64, 'base64');
+  const key = `carousel-images/${jobId}/${slideIndex}-raw.png`;
+  const client = getR2Client();
+
+  if (client) {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { PutObjectCommand } = require('@aws-sdk/client-s3');
+    await client.send(
+      new PutObjectCommand({
+        Bucket: process.env.CLOUDFLARE_R2_BUCKET_NAME,
+        Key: key,
+        Body: buffer,
+        ContentType: 'image/png',
+      }),
+    );
+    return `${process.env.CLOUDFLARE_R2_PUBLIC_URL}/${key}`;
+  }
+
+  const dir = path.join(LOCAL_DIR, jobId);
+  fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(path.join(dir, `${slideIndex}-raw.png`), buffer);
+  return `/${key}`;
+}
+
+/**
+ * Load the raw (pre-overlay) image for restyle operations.
+ * Returns the image buffer or null if not found.
+ */
+export async function loadRawImage(
+  jobId: string,
+  slideIndex: number,
+): Promise<Buffer | null> {
+  const key = `carousel-images/${jobId}/${slideIndex}-raw.png`;
+  const client = getR2Client();
+
+  if (client) {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const { GetObjectCommand } = require('@aws-sdk/client-s3');
+      const res = await client.send(
+        new GetObjectCommand({
+          Bucket: process.env.CLOUDFLARE_R2_BUCKET_NAME,
+          Key: key,
+        }),
+      );
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const body = (res as any).Body;
+      if (!body) return null;
+      const chunks: Buffer[] = [];
+      for await (const chunk of body) chunks.push(Buffer.from(chunk));
+      return Buffer.concat(chunks);
+    } catch {
+      return null;
+    }
+  }
+
+  const localPath = path.join(LOCAL_DIR, jobId, `${slideIndex}-raw.png`);
+  if (fs.existsSync(localPath)) return fs.readFileSync(localPath);
+  return null;
+}

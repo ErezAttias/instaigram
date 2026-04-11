@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { regenerateCarouselSlideImage } from '@/lib/services/standalone-carousel-service';
+import { restyleCarouselSlide } from '@/lib/services/standalone-carousel-service';
 import { prisma } from '@/lib/db/prisma';
 
 /**
@@ -24,9 +24,11 @@ export async function POST(
       return NextResponse.json({ error: 'Carousel job not found' }, { status: 404 });
     }
 
-    // Re-render each slide image sequentially (avoids concurrency issues with font loading)
+    // Re-render each slide's text overlay using the channel's current visual style.
+    // Uses the saved raw image (before overlay) to avoid regenerating base images.
+    // Falls back to full regen if no raw image exists (older carousels).
     for (const slide of job.slides) {
-      await regenerateCarouselSlideImage(jobId, slide.slideIndex);
+      await restyleCarouselSlide(jobId, slide.slideIndex);
     }
 
     // Invalidate approval
