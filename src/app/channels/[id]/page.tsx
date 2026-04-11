@@ -1908,15 +1908,6 @@ export default function ChannelDashboard() {
                                   {retryLoading.has(p.id) ? 'Retrying...' : 'Retry'}
                                 </button>
                               )}
-                              {!isStuck && (
-                                <Link
-                                  href={p.carouselJobId ? `/carousel/${p.carouselJobId}` : `/channels/${channelId}/posts/${p.id}`}
-                                  onClick={(e) => e.stopPropagation()}
-                                  className="text-xs text-[#6b9fcc] hover:text-[#8bb8e0] font-semibold transition-colors"
-                                >
-                                  View carousel
-                                </Link>
-                              )}
                               <button
                                 onClick={(e) => { e.stopPropagation(); if (window.confirm('Delete this post and its carousel?')) handleDeletePost(p.id) }}
                                 disabled={deletingPostId === p.id}
@@ -2181,15 +2172,7 @@ export default function ChannelDashboard() {
                               Images ready
                             </span>
                           )}
-                          {p.carouselJobId ? (
-                            <Link
-                              href={`/carousel/${p.carouselJobId}`}
-                              onClick={(e) => e.stopPropagation()}
-                              className="text-xs text-[#6b9fcc] hover:text-[#8bb8e0] font-semibold transition-colors whitespace-nowrap"
-                            >
-                              View carousel
-                            </Link>
-                          ) : (
+                          {!p.carouselJobId && (
                             <Link
                               href={`/channels/${channelId}/posts/${p.id}`}
                               onClick={(e) => e.stopPropagation()}
