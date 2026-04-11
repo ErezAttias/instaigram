@@ -10,6 +10,8 @@ export type { FontOption } from './font-pairings-data';
 export { TITLE_FONTS, BODY_FONTS, getTitleFont, getBodyFont } from './font-pairings-data';
 import type { FontOption } from './font-pairings-data';
 
+// Resolve fonts relative to project root. On Vercel Lambda `process.cwd()`
+// may differ from the bundle root, so try __dirname-relative first, then cwd.
 const FONTS_DIR = path.join(process.cwd(), 'assets', 'fonts');
 
 /**
@@ -53,6 +55,10 @@ export function buildFontStyleBlock(
     }
   }
 
-  if (faces.length === 0) return '';
+  if (faces.length === 0) {
+    console.warn(`[FontPairings] WARNING: No font faces generated! titleFont=${titleFont.family}/${titleFont.file}, bodyFont=${bodyFont.family}/${bodyFont.file}, singleFont=${singleFont}`);
+    return '';
+  }
+  console.log(`[FontPairings] Embedded ${faces.length} font face(s) — total base64 size: ${faces.reduce((n, f) => n + f.length, 0)} chars`);
   return `<style>${faces.join(' ')}</style>`;
 }
