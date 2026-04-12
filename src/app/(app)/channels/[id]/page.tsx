@@ -8,6 +8,7 @@ import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import InstagramPreview from '@/components/InstagramPreview'
 import '@/components/instagram-preview.css'
+import { useChannelContext } from '@/components/ChannelProvider'
 import { TITLE_FONTS, BODY_FONTS, getTitleFont } from '@/lib/visual/font-pairings-data'
 import type { ChannelVisualStyleContext } from '@/lib/visual/visual-style'
 import { DEFAULT_VISUAL_STYLE } from '@/lib/visual/visual-style'
@@ -104,88 +105,6 @@ const STEP_LABELS = ['Topic', 'Strategy', 'Posts']
 /**
  * Returns a red→yellow→green color for a 1-10 score.
  */
-
-// ─── Sidebar Stepper ─────────────────────────────────────────
-
-function SidebarStepper({ currentStep }: { currentStep: number }) {
-  return (
-    <div className="flex flex-col">
-      {STEP_LABELS.map((label, i) => {
-        const done = currentStep > i
-        const active = currentStep === i
-        const connectorDone = currentStep >= i
-        return (
-          <div key={label}>
-            {i > 0 && (
-              <div className="w-9 flex justify-center">
-                <div className={`w-0.5 h-5 ${connectorDone ? 'bg-[#3d6fa8]/40' : 'bg-border'}`} />
-              </div>
-            )}
-            <div className="flex items-center gap-3">
-              <div
-                className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-semibold flex-none transition-all duration-300 ${done ? 'bg-[#3d6fa8]/15 text-[#6b9fcc]' : active ? 'text-white' : 'bg-surface-elevated text-muted border border-border'}`}
-                style={active ? { background: IG_GRADIENT, boxShadow: IG_GLOW } : undefined}
-              >
-                {done ? (
-                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M2.5 7.5L5.5 10.5L11.5 3.5" />
-                  </svg>
-                ) : (
-                  i + 1
-                )}
-              </div>
-              <span className={`text-sm font-medium transition-colors ${active ? 'text-foreground' : done ? 'text-muted-light' : 'text-muted-light'}`}>
-                {label}
-              </span>
-            </div>
-            {i < STEP_LABELS.length - 1 && (
-              <div className="w-9 flex justify-center">
-                <div className={`w-0.5 h-5 ${done ? 'bg-[#3d6fa8]/40' : 'bg-border'}`} />
-              </div>
-            )}
-          </div>
-        )
-      })}
-    </div>
-  )
-}
-
-// ─── Horizontal Stepper (Mobile) ────────────────────────────
-
-function HorizontalStepper({ currentStep }: { currentStep: number }) {
-  return (
-    <div className="flex items-center gap-1.5">
-      {STEP_LABELS.map((label, i) => {
-        const done = currentStep > i
-        const active = currentStep === i
-        return (
-          <div key={label} className="flex items-center gap-1.5">
-            <div className="flex items-center gap-1.5">
-              <div
-                className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold transition-all shrink-0 ${done ? 'bg-[#3d6fa8]/15 text-[#6b9fcc]' : active ? 'text-white' : 'bg-surface-elevated text-muted border border-border'}`}
-                style={active ? { background: IG_GRADIENT } : undefined}
-              >
-                {done ? (
-                  <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M2 6.5L4.5 9L10 3" />
-                  </svg>
-                ) : (
-                  i + 1
-                )}
-              </div>
-              {active && (
-                <span className="text-sm font-medium text-foreground whitespace-nowrap">{label}</span>
-              )}
-            </div>
-            {i < STEP_LABELS.length - 1 && (
-              <div className={`w-4 shrink-0 h-px ${done ? 'bg-[#3d6fa8]/40' : 'bg-border'}`} />
-            )}
-          </div>
-        )
-      })}
-    </div>
-  )
-}
 
 // ─── Primary Button ──────────────────────────────────────────
 
@@ -345,7 +264,13 @@ function LockedStep({ label, delay }: { label: string; delay?: number }) {
 export default function ChannelDashboard() {
   const params = useParams()
   const channelId = params.id as string
-  const [channel, setChannel] = useState<Channel | null>(null)
+  const ctx = useChannelContext()
+  const [channel, setChannelLocal] = useState<Channel | null>(null)
+  // Wrap setChannel to sync with context
+  const setChannel = useCallback((c: Channel | null) => {
+    setChannelLocal(c)
+    ctx.setChannel(c as Parameters<typeof ctx.setChannel>[0])
+  }, [ctx])
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
   const [error, setError] = useState('')
@@ -395,15 +320,18 @@ export default function ChannelDashboard() {
   // Derived: which carousel job is currently pipeline-rendering (null when idle)
   const generatingCarouselJobId = isStreamingPosts ? (carouselProgress?.carouselJobId ?? null) : null
 
-  // ─── Optional naming state ──────────────────────────────────
-  const [showNaming, setShowNaming] = useState(false)
+  // ─── Optional naming state (synced with sidebar via context) ─
+  const showNaming = ctx.showNaming
+  const setShowNaming = ctx.setShowNaming
   const [nameSuggestions, setNameSuggestions] = useState<NameSuggestion[]>([])
   const [customName, setCustomName] = useState('')
   const [selectedNameStyle, setSelectedNameStyle] = useState<NameStyle | null>(null)
 
-  // ─── Visual style state ──────────────────────────────────────
-  const [visualStyle, setVisualStyle] = useState<ChannelVisualStyleContext>(DEFAULT_VISUAL_STYLE)
-  const [showStyleEditor, setShowStyleEditor] = useState(false)
+  // ─── Visual style state (synced with sidebar via context) ────
+  const visualStyle = ctx.visualStyle
+  const setVisualStyle = ctx.setVisualStyle
+  const showStyleEditor = ctx.showStyleEditor
+  const setShowStyleEditor = ctx.setShowStyleEditor
   const [styleSaving, setStyleSaving] = useState(false)
   const [styleSaveNotice, setStyleSaveNotice] = useState<string | null>(null)
 
@@ -1111,7 +1039,7 @@ export default function ChannelDashboard() {
 
   if (loading) {
     return (
-      <div className="max-w-5xl mx-auto pt-12">
+      <div className="max-w-5xl pt-12">
         <div className="space-y-5">
           <div className="skeleton h-10 w-64" />
           <div className="skeleton h-5 w-40" />
@@ -1126,7 +1054,7 @@ export default function ChannelDashboard() {
 
   if (!channel) {
     return (
-      <div className="max-w-5xl mx-auto pt-16 text-center">
+      <div className="max-w-5xl pt-16 text-center">
         <p className="text-danger text-base">Channel not found</p>
       </div>
     )
@@ -1176,112 +1104,6 @@ export default function ChannelDashboard() {
 
   return (
     <div className="animate-fade-up">
-      <div className="flex gap-8 xl:gap-10">
-        {/* ─── Sidebar (Desktop) ──────────────────────────────── */}
-        <aside className="hidden lg:flex flex-col w-[280px] xl:w-[300px] shrink-0 sticky top-20 self-start pt-2 border-r border-border pr-8">
-          {/* Channel info */}
-          <div className="mb-6 pb-2">
-            {channel.name === 'Untitled Channel' ? (
-              <div className="mb-1">
-                <button
-                  onClick={() => setShowNaming(true)}
-                  className="flex items-center gap-2 group text-left rounded-lg p-0"
-                >
-                  <h1 className="text-xl font-bold tracking-tight text-foreground leading-tight">Untitled channel</h1>
-                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-muted group-hover:text-[#6b9fcc] transition-colors shrink-0">
-                    <path d="M3 13h2l8-8-2-2-8 8v2z" /><path d="M10 4l2 2" />
-                  </svg>
-                </button>
-                <p className="text-xs text-muted mt-1">Click to name your channel</p>
-              </div>
-            ) : (
-              <h1 className="text-2xl font-bold tracking-tight leading-tight mb-1">{channel.name}</h1>
-            )}
-            {channel.niche && (
-              <p className="text-sm text-muted-light leading-relaxed">{channel.niche}</p>
-            )}
-          </div>
-
-          {/* Stepper */}
-          <SidebarStepper currentStep={effectiveStep} />
-
-          {/* Bottom links */}
-          <div className="mt-10 pt-4 border-t border-border/40 space-y-0.5">
-            <p className="text-xs text-muted font-medium mb-3">Settings</p>
-            {hasPosts && (
-              <>
-                <Link
-                  href={`/channels/${channelId}/posts`}
-                  className="flex items-center !justify-start gap-2.5 h-10 rounded-xl text-sm font-medium text-muted-light hover:text-foreground transition-colors w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6b9fcc]/60"
-                >
-                  <svg className="w-4 h-4 shrink-0" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="2" y="2" width="12" height="12" rx="2" />
-                    <path d="M5 6h6M5 8.5h4" />
-                  </svg>
-                  View all posts
-                </Link>
-                <Link
-                  href={`/channels/${channelId}/validation`}
-                  className="flex items-center !justify-start gap-2.5 h-10 rounded-xl text-sm font-medium text-muted-light hover:text-foreground transition-colors w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6b9fcc]/60"
-                >
-                  <svg className="w-4 h-4 shrink-0" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M13.5 4.5L6 12L2.5 8.5" />
-                  </svg>
-                  Validation report
-                </Link>
-              </>
-            )}
-            {/* Name channel — optional later step */}
-            {hasStrategy && (
-              <button
-                onClick={() => setShowNaming(!showNaming)}
-                className={`flex items-center !justify-start gap-2.5 h-9 rounded-xl text-sm font-medium transition-colors w-full text-left ${showNaming ? 'text-foreground' : 'text-muted-light hover:text-foreground'}`}
-              >
-                <svg className="w-4 h-4 shrink-0" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M3 13h2l8-8-2-2-8 8v2z" />
-                  <path d="M10 4l2 2" />
-                </svg>
-                {channel.name !== 'Untitled Channel' ? 'Rename channel' : 'Name channel'}
-              </button>
-            )}
-            {/* Visual style — always accessible */}
-            <button
-              onClick={() => setShowStyleEditor(!showStyleEditor)}
-              className={`flex items-center !justify-start gap-2.5 h-9 rounded-xl text-sm font-medium transition-colors w-full text-left ${showStyleEditor ? 'text-foreground' : 'text-muted-light hover:text-foreground'}`}
-            >
-              <svg className="w-4 h-4 shrink-0" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="8" cy="8" r="5.5" />
-                <circle cx="5" cy="6" r="1" fill="currentColor" stroke="none" />
-                <circle cx="8" cy="4.5" r="1" fill="currentColor" stroke="none" />
-                <circle cx="11" cy="6" r="1" fill="currentColor" stroke="none" />
-              </svg>
-              <span className="whitespace-nowrap">Slide style</span>
-              <span className="ml-auto text-xs text-muted truncate min-w-0">{getTitleFont(visualStyle.titleFontId).label}</span>
-            </button>
-            <p className="text-xs text-muted -mt-0.5 pl-[26px]">Font and layout for new carousels</p>
-          </div>
-        </aside>
-
-        {/* ─── Main Content ───────────────────────────────────── */}
-        <div className="flex-1 min-w-0 lg:max-w-2xl">
-          {/* Mobile header */}
-          <div className="lg:hidden mb-6 flex items-center justify-between gap-3">
-            <HorizontalStepper currentStep={effectiveStep} />
-            {channel.name === 'Untitled Channel' ? (
-              <button
-                onClick={() => setShowNaming(true)}
-                className="flex items-center gap-1.5 min-h-[44px] px-3 rounded-lg border border-border text-xs font-semibold text-muted hover:text-foreground hover:border-border-hover transition-all shrink-0"
-              >
-                <svg width="13" height="13" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M2 10h2l6-6-2-2-6 6v2z" /><path d="M7.5 3.5l1 1" />
-                </svg>
-                Name channel
-              </button>
-            ) : (
-              <span className="text-sm font-semibold text-foreground truncate max-w-[140px]">{channel.name}</span>
-            )}
-          </div>
-
           {/* Error banner */}
           {error && (
             <div className="animate-scale-in bg-danger-dim border border-danger/20 px-5 py-4 rounded-2xl sticky top-20 z-10">
@@ -2546,8 +2368,6 @@ export default function ChannelDashboard() {
               </Link>
             </div>
           )}
-        </div>
-      </div>
     </div>
   )
 }

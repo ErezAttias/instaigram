@@ -63,7 +63,7 @@ export default function ValidationPage() {
 
   if (loading) {
     return (
-      <div className="max-w-3xl mx-auto pt-8">
+      <div className="max-w-3xl pt-8">
         <div className="skeleton h-4 w-24 mb-6" />
         <div className="skeleton h-8 w-48 mb-8" />
         <div className="skeleton h-48 w-full mb-8" />
@@ -77,7 +77,7 @@ export default function ValidationPage() {
 
   if (error) {
     return (
-      <div className="max-w-3xl mx-auto pt-16 text-center">
+      <div className="max-w-3xl pt-16 text-center">
         <p className="text-danger text-[15px]">{error}</p>
       </div>
     )
@@ -85,7 +85,7 @@ export default function ValidationPage() {
 
   if (!report) {
     return (
-      <div className="max-w-3xl mx-auto pt-16 text-center">
+      <div className="max-w-3xl pt-16 text-center">
         <p className="text-muted text-[15px]">No report available</p>
       </div>
     )
@@ -95,7 +95,7 @@ export default function ValidationPage() {
   const warningCount = report.issues.filter((i) => i.severity === 'warning').length
 
   return (
-    <div className="max-w-3xl mx-auto animate-fade-up">
+    <div className="max-w-3xl animate-fade-up">
       <Link
         href={`/channels/${channelId}`}
         className="text-muted hover:text-foreground text-[13px] transition-colors duration-200 inline-flex items-center gap-1.5"

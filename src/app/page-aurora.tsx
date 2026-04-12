@@ -391,7 +391,7 @@ export default function HomeAurora() {
   }
 
   return (
-    <div className="relative -mx-4 lg:-mx-8 -mt-6 lg:-mt-10 min-w-0">
+    <div className="relative min-w-0">
       {/* Background — Aurora in dark mode, CSS gradient in light mode */}
       <div className="fixed inset-0 z-0 overflow-hidden">
         {isLight ? (

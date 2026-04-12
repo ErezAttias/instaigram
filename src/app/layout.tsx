@@ -45,9 +45,7 @@ export default function RootLayout({
       >
         <ThemeProvider>
           <NavBar />
-          <main className="max-w-[1800px] mx-auto px-4 lg:px-8 py-6 lg:py-10">
-            {children}
-          </main>
+          {children}
         </ThemeProvider>
       </body>
     </html>

@@ -126,7 +126,7 @@ export default function BatchOrderDashboardPage() {
 
   if (loading) {
     return (
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-4xl">
         <div className="skeleton h-8 w-48 rounded-lg mb-4" />
         <div className="skeleton h-4 w-64 rounded mb-8" />
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
@@ -153,7 +153,7 @@ export default function BatchOrderDashboardPage() {
   const currentJobId = liveData?.currentJobId || null;
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="max-w-4xl">
       {/* Breadcrumb */}
       <nav className="flex items-center gap-2 text-xs text-muted mb-6">
         <Link href="/admin" className="hover:text-foreground transition-colors">Dashboard</Link>

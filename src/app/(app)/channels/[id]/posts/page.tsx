@@ -73,7 +73,7 @@ export default function PostsPage() {
 
   if (loading) {
     return (
-      <div className="max-w-5xl mx-auto pt-8">
+      <div className="max-w-5xl pt-8">
         <div className="skeleton h-8 w-32 mb-8" />
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {Array.from({ length: 9 }).map((_, i) => (
@@ -86,7 +86,7 @@ export default function PostsPage() {
 
   if (error) {
     return (
-      <div className="max-w-5xl mx-auto pt-16 text-center">
+      <div className="max-w-5xl pt-16 text-center">
         <p className="text-danger text-[15px]">{error}</p>
       </div>
     )

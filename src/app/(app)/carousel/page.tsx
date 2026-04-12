@@ -44,7 +44,7 @@ export default function CarouselInputPage() {
   }
 
   return (
-    <div className="max-w-xl mx-auto mt-16 animate-fade-up">
+    <div className="max-w-xl mt-16 animate-fade-up">
       <div className="mb-8">
         <h1 className="text-2xl font-bold tracking-tight mb-2">Create Carousel</h1>
         <p className="text-muted-light text-sm">
