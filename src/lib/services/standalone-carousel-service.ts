@@ -1076,7 +1076,7 @@ export async function runCarouselGeneration(
         // Try rendering (UnifiedImageProvider handles Gemini → Stability fallback internally)
         try {
           console.log(`[ImageStage] Slide ${slideNum} attempt ${attempt} — calling renderSlideImage`);
-          const renderOutput = await renderSlideImage(slide, displayTitle, displaySupport, job.topic, imageProvider, finalSlides, undefined, job.direction, channelVisualStyle, undefined, preSelectedConcept, channelExploreTopic);
+          const renderOutput = await renderSlideImage(slide, displayTitle, displaySupport, job.topic, imageProvider, finalSlides, undefined, job.direction, channelVisualStyle, undefined, preSelectedConcept, channelExploreTopic, true);
           imageBase64 = renderOutput.imageBase64;
           rawImageBase64 = renderOutput.rawImageBase64;
           resolvedImageSource = renderOutput.resolvedImageSource;
