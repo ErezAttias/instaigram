@@ -409,7 +409,7 @@ async function renderSlideImage(
       },
       imageGen,
     );
-    if (!result.image) {
+    if (!result.image || result.visualMissing) {
       throw new Error(`OPENER render returned no usable image (visualMissing: ${result.visualMissing}, source: ${result.imageSource}, error: ${result.error || 'none'})`);
     }
     return {
@@ -532,8 +532,8 @@ async function renderSlideImage(
       },
       imageGen,
     );
-    if (!result.image) {
-      throw new Error(`FACT render returned no image (source: ${result.imageSource}, approved: ${result.approved}, error: ${result.error || 'none'})`);
+    if (!result.image || result.visualMissing) {
+      throw new Error(`FACT render returned no usable image (visualMissing: ${result.visualMissing}, source: ${result.imageSource}, approved: ${result.approved}, error: ${result.error || 'none'})`);
     }
     return {
       imageBase64: result.image.toString('base64'),
@@ -618,8 +618,8 @@ async function renderSlideImage(
       },
       imageGen,
     );
-    if (!result.image) {
-      throw new Error(`CTA render returned no image (source: ${result.imageSource}, approved: ${result.approved}, error: ${result.error || 'none'})`);
+    if (!result.image || result.visualMissing) {
+      throw new Error(`CTA render returned no usable image (visualMissing: ${result.visualMissing}, source: ${result.imageSource}, approved: ${result.approved}, error: ${result.error || 'none'})`);
     }
     return {
       imageBase64: result.image.toString('base64'),
@@ -1146,6 +1146,39 @@ export async function runCarouselGeneration(
 
       if (postRenderReport) {
         postRenderReports.push(postRenderReport);
+      }
+
+      // ── Last-resort fallback: if all retries exhausted with no image,
+      // render a documentary-style text slide so every slide has an image.
+      if (!imageBase64) {
+        console.warn(`[ImageStage] Slide ${slideNum} (${slide.role}) — all retries exhausted, generating text-only fallback`);
+        try {
+          const fallbackResult = await renderFactSlide(
+            {
+              imagePrompt: 'solid dark background',
+              slideType: 'fact',
+              displayTitle,
+              displaySupport,
+              textZone: 'bottom_right',
+              slideRole: slide.role === 'OPENER' ? 'HOOK' : slide.role === 'CTA' ? 'CTA' : 'FACT',
+              ...(slide.role === 'OPENER' && { forceT1FontSize: 86 }),
+              ...(slide.role === 'CTA' && { textMode: 'light-on-dark' as const }),
+              subjectName: conceptHint || topic,
+              visualStyle: channelVisualStyle ?? DEFAULT_VISUAL_STYLE,
+            },
+            // No image provider — forces documentary gradient fallback
+            undefined,
+          );
+          if (fallbackResult.image) {
+            imageBase64 = fallbackResult.image.toString('base64');
+            rawImageBase64 = undefined; // No raw image for fallback
+            resolvedImageSource = 'generated';
+            imageError = (imageError ? imageError + ' | ' : '') + 'FALLBACK_GRADIENT: used text-only fallback after provider failure';
+            console.log(`[ImageStage] Slide ${slideNum} — fallback text slide generated successfully`);
+          }
+        } catch (fallbackErr) {
+          console.error(`[ImageStage] Slide ${slideNum} — even fallback generation failed: ${fallbackErr}`);
+        }
       }
 
       // ── Determine terminal slide status ──────────────────
