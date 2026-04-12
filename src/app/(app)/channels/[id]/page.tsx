@@ -13,6 +13,7 @@ import { TITLE_FONTS, BODY_FONTS, getTitleFont } from '@/lib/visual/font-pairing
 import type { ChannelVisualStyleContext } from '@/lib/visual/visual-style'
 import { DEFAULT_VISUAL_STYLE } from '@/lib/visual/visual-style'
 import { SlidePreview } from '@/components/admin/visual/SlidePreview'
+import { SwipeToDelete } from '@/components/SwipeToDelete'
 
 interface NicheOption {
   id: string
@@ -382,6 +383,33 @@ export default function ChannelDashboard() {
       setError(err instanceof Error ? err.message : 'Failed to save style')
     } finally {
       setStyleSaving(false)
+    }
+  }
+
+  const [restyleAllLoading, setRestyleAllLoading] = useState(false)
+
+  async function handleRestyleAllPosts() {
+    if (!channel) return
+    const postsWithCarousels = channel.posts.filter((p: any) => p.carouselJobId)
+    if (postsWithCarousels.length === 0) return
+    if (!window.confirm(`Apply current style to all ${postsWithCarousels.length} post(s)? This will re-render all slides.`)) return
+
+    setRestyleAllLoading(true)
+    setError('')
+    try {
+      for (const p of postsWithCarousels) {
+        await fetch(`/api/carousel/${(p as any).carouselJobId}/restyle-all`, { method: 'POST' })
+      }
+      // Reload all slides
+      for (const p of postsWithCarousels) {
+        await fetchCarouselSlides((p as any).id, (p as any).carouselJobId)
+      }
+      setStyleSaveNotice(`Style applied to ${postsWithCarousels.length} post(s)`)
+      setTimeout(() => setStyleSaveNotice(null), 4000)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to apply style to all posts')
+    } finally {
+      setRestyleAllLoading(false)
     }
   }
 
@@ -1524,9 +1552,9 @@ export default function ChannelDashboard() {
               <div className="mb-6 space-y-4">
                 <div>
                   <h2 className="text-xl font-bold tracking-tight">Slide style</h2>
-                  <p className="text-sm text-muted-light mt-1">Applies to new posts. Existing carousel images are unchanged.</p>
+                  <p className="text-sm text-muted-light mt-1">Applies to new posts. Use &ldquo;Apply to all posts&rdquo; to update existing carousels.</p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <PrimaryButton
                     onClick={handleSaveVisualStyle}
                     loading={styleSaving}
@@ -1536,6 +1564,14 @@ export default function ChannelDashboard() {
                   >
                     Save style
                   </PrimaryButton>
+                  {hasPosts && (
+                    <GhostButton
+                      onClick={handleRestyleAllPosts}
+                      disabled={restyleAllLoading || styleSaving}
+                    >
+                      {restyleAllLoading ? 'Applying...' : 'Apply to all posts'}
+                    </GhostButton>
+                  )}
                   <GhostButton onClick={() => setShowStyleEditor(false)} disabled={false}>
                     Close
                   </GhostButton>
@@ -1720,7 +1756,8 @@ export default function ChannelDashboard() {
                       && p.carouselJobId !== generatingCarouselJobId
 
                     return (
-                      <div key={p.id} className={`bg-background border border-border rounded-2xl overflow-hidden transition-all ${isExpanded ? 'border-border-hover' : 'hover:border-border-hover hover:bg-surface-elevated/50'}`}>
+                      <SwipeToDelete key={p.id} onDelete={() => handleDeletePost(p.id)} disabled={deletingPostId === p.id}>
+                      <div className={`bg-background border border-border rounded-2xl overflow-hidden transition-all ${isExpanded ? 'border-border-hover' : 'hover:border-border-hover hover:bg-surface-elevated/50'}`}>
                         <div
                           onClick={() => togglePostExpanded(p.id, p.carouselJobId)}
                           onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') togglePostExpanded(p.id, p.carouselJobId); }}
@@ -1744,29 +1781,8 @@ export default function ChannelDashboard() {
                               </span>
                             )}
 
-                            {/* Post actions — Restyle, Retry, Delete */}
+                            {/* Post actions — Retry, Delete */}
                             <div className="flex items-center gap-2 sm:gap-3">
-                              {p.carouselJobId && !isStuck && (
-                                <button
-                                  onClick={(e) => { e.stopPropagation(); handleRestyleAllSlides(p.id, p.carouselJobId!) }}
-                                  disabled={restyleLoading.has(p.id) || p.carouselJobId === generatingCarouselJobId}
-                                  className="flex items-center gap-1.5 text-xs text-muted hover:text-[#6b9fcc] font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                                  title="Re-render all slides with current saved style"
-                                  aria-label="Restyle all slides"
-                                >
-                                  {restyleLoading.has(p.id) ? (
-                                    <span className="w-3 h-3 border border-[#3d6fa8]/30 border-t-[#6b9fcc] rounded-full animate-spin" />
-                                  ) : (
-                                    <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                                      <circle cx="8" cy="8" r="5.5" />
-                                      <circle cx="5" cy="6" r="1" fill="currentColor" stroke="none" />
-                                      <circle cx="8" cy="4.5" r="1" fill="currentColor" stroke="none" />
-                                      <circle cx="11" cy="6" r="1" fill="currentColor" stroke="none" />
-                                    </svg>
-                                  )}
-                                  <span className="hidden sm:inline">{restyleLoading.has(p.id) ? 'Restyling...' : 'Restyle'}</span>
-                                </button>
-                              )}
                               {isStuck && (
                                 <button
                                   onClick={(e) => { e.stopPropagation(); handleRetryCarousel(p.id, p.carouselJobId!) }}
@@ -1788,7 +1804,7 @@ export default function ChannelDashboard() {
                               <button
                                 onClick={(e) => { e.stopPropagation(); if (window.confirm('Delete this post and its carousel?')) handleDeletePost(p.id) }}
                                 disabled={deletingPostId === p.id}
-                                className="flex items-center text-muted hover:text-red-400 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                                className="hidden lg:flex items-center text-muted hover:text-red-400 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                                 title="Delete post"
                                 aria-label="Delete post"
                               >
@@ -1989,6 +2005,7 @@ export default function ChannelDashboard() {
                           )
                         })()}
                       </div>
+                      </SwipeToDelete>
                     )
                   })}
                 </div>
