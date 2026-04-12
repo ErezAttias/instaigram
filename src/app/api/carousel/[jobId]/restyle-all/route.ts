@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { restyleCarouselSlide } from '@/lib/services/standalone-carousel-service';
 import { prisma } from '@/lib/db/prisma';
 
+// Restyling all slides sequentially can take 30-120s
+export const maxDuration = 180;
+
 /**
  * POST /api/carousel/[jobId]/restyle-all
  *

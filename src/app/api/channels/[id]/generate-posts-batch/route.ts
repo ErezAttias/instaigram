@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server';
 import { generateChannelPostsBatch, type ChannelPostStreamEvent } from '@/lib/services/channel-carousel-bridge';
 import { handleApiError, buildDebugMeta } from '@/lib/utils/api-helpers';
 
+// Full carousel generation (6 slides × ~15s each) needs extended timeout
+export const maxDuration = 300;
+
 /**
  * POST /api/channels/:id/generate-posts-batch
  *

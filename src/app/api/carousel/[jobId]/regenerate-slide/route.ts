@@ -6,6 +6,9 @@ import {
 } from '@/lib/services/standalone-carousel-service';
 import { prisma } from '@/lib/db/prisma';
 
+// Image generation + rendering can take 20-30s — extend Vercel function timeout
+export const maxDuration = 60;
+
 /**
  * POST /api/carousel/[jobId]/regenerate-slide — Regenerate a slide.
  *
