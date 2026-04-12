@@ -1914,7 +1914,7 @@ export default function ChannelDashboard() {
                                                   key={action.key}
                                                   onClick={action.onClick}
                                                   disabled={!!activeMode || p.carouselJobId === generatingCarouselJobId}
-                                                  className={`flex items-center justify-center gap-1.5 min-h-[44px] text-[13px] sm:text-xs font-medium whitespace-nowrap transition-all disabled:opacity-40 disabled:cursor-not-allowed hover:bg-foreground/[0.03] hover:text-foreground/80 border-border/40 ${ai % 2 === 0 ? 'border-r' : ''} ${ai < 2 ? 'sm:border-r border-b sm:border-b-0' : ai < 3 ? 'sm:border-r' : ''} ${
+                                                  className={`flex items-center justify-center gap-1.5 min-h-[44px] text-[13px] sm:text-xs font-medium whitespace-nowrap rounded-none transition-all disabled:opacity-40 disabled:cursor-not-allowed hover:bg-foreground/[0.03] hover:text-foreground/80 border-border/40 ${ai % 2 === 0 ? 'border-r' : ''} ${ai < 2 ? 'sm:border-r border-b sm:border-b-0' : ai < 3 ? 'sm:border-r' : ''} ${
                                                     activeMode === action.key ? 'bg-foreground/[0.03] text-foreground/80' : 'text-muted-light'
                                                   }`}
                                                 >
