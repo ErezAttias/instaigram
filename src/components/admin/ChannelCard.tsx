@@ -44,7 +44,7 @@ export function ChannelCard({
   return (
     <Link
       href={`/admin/channels/${id}`}
-      className="group !flex flex-col justify-start items-stretch h-full bg-surface rounded-xl border border-border p-5 hover:border-border-hover hover:bg-surface-hover transition-all duration-200"
+      className="group !flex !flex-col !justify-start !items-stretch !text-left h-full bg-surface rounded-xl border border-border p-5 hover:border-border-hover hover:bg-surface-hover transition-all duration-200"
     >
       <div className="flex items-start gap-2 mb-3">
         <h3 className="flex-1 text-base font-semibold text-foreground truncate transition-colors duration-200 group-hover:text-[#6b9fcc]">
