@@ -26,7 +26,7 @@ import { generateCarousel } from '@/lib/pipeline/carousel-pipeline';
 import { fetchTopicKnowledge } from '@/lib/external/topic-knowledge';
 import { renderFactSlide } from '@/lib/visual/fact-slide-renderer';
 import { DEFAULT_VISUAL_STYLE, type ChannelVisualStyleContext } from '@/lib/visual/visual-style';
-import { getImageProviderForTopic, UnifiedImageProvider, isCelebrityTopic, type ImageGenerator, type ImageSourceProvider } from '@/lib/ai/image-provider';
+import { getImageProviderForTopic, getUnifiedImageProvider, UnifiedImageProvider, isCelebrityTopic, type ImageGenerator, type ImageSourceProvider } from '@/lib/ai/image-provider';
 import { WikipediaImageProvider, resolveWikipediaConcept } from '@/lib/ai/wikipedia-image-provider';
 import { ProviderFailedError } from '@/lib/ai/retry';
 import { buildSlidePrompt, isRealPlaceSlide, extractPlaceSearchTerm } from '@/lib/visual/prompt-builder';
@@ -1506,7 +1506,11 @@ export async function regenerateCarouselSlideImage(
 
   const displayTitle = slide.displayTitle || slide.headline || '';
   const displaySupport = slide.displaySupport || '';
-  const imageProvider = getImageProviderForTopic(job.topic, job.direction);
+  // When user explicitly clicks "Regen Image" (imageSource='generated'), use the standard
+  // Gemini provider — not the celebrity provider which routes to Wikipedia as primary.
+  const imageProvider = imageSource === 'generated'
+    ? getUnifiedImageProvider()
+    : getImageProviderForTopic(job.topic, job.direction);
 
   // Load channel visual style for regeneration.
   // If the job has no channelId (older jobs), look it up via the Post that references this job.
