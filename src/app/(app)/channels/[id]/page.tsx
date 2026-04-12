@@ -206,7 +206,7 @@ function Section({
       <div className={wrapperClass} style={delay ? { animationDelay: `${delay}ms` } : undefined}>
         <button
           onClick={() => setCollapsed(c => !c)}
-          className="w-full flex items-center justify-between gap-4 group rounded-2xl p-0 py-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6b9fcc]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+          className="w-full flex items-center justify-between gap-4 group rounded-2xl p-0 py-6 lg:py-8 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6b9fcc]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         >
           <div className="flex-1 min-w-0 text-left">
             {collapsedTitle}
