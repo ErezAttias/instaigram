@@ -1908,13 +1908,13 @@ export default function ChannelDashboard() {
                                             { key: 'full', label: 'Regenerate all', loading: 'Regenerating...', onClick: () => handleRegenerateSlide(p.id, p.carouselJobId!, currentSlideIdx, 'full', 'generated'), icon: <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M2 8a6 6 0 1 0 1.5-4"/><path d="M2 4v4h4"/></svg> },
                                           ] as const
                                           return (
-                                            <div className="flex border-t border-border/40">
+                                            <div className="grid grid-cols-2 sm:grid-cols-4 border-t border-border/40">
                                               {actions.map((action, ai) => (
                                                 <button
                                                   key={action.key}
                                                   onClick={action.onClick}
                                                   disabled={!!activeMode || p.carouselJobId === generatingCarouselJobId}
-                                                  className={`flex-1 flex items-center justify-center gap-1.5 min-h-[44px] text-[13px] font-medium transition-all disabled:opacity-40 disabled:cursor-not-allowed hover:bg-foreground/[0.03] hover:text-foreground/80 ${ai < actions.length - 1 ? 'border-r border-border/40' : ''} ${
+                                                  className={`flex items-center justify-center gap-1.5 min-h-[44px] text-[13px] sm:text-xs font-medium whitespace-nowrap transition-all disabled:opacity-40 disabled:cursor-not-allowed hover:bg-foreground/[0.03] hover:text-foreground/80 border-border/40 ${ai % 2 === 0 ? 'border-r' : ''} ${ai < 2 ? 'sm:border-r border-b sm:border-b-0' : ai < 3 ? 'sm:border-r' : ''} ${
                                                     activeMode === action.key ? 'bg-foreground/[0.03] text-foreground/80' : 'text-muted-light'
                                                   }`}
                                                 >
