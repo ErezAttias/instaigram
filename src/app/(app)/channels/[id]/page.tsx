@@ -1100,7 +1100,7 @@ export default function ChannelDashboard() {
   })()
 
   return (
-    <div className="animate-fade-up">
+    <div className="animate-fade-up max-w-3xl">
           {/* Error banner */}
           {error && (
             <div className="animate-scale-in bg-danger-dim border border-danger/20 px-5 py-4 rounded-2xl sticky top-20 z-10">
