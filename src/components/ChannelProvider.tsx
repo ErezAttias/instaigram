@@ -1,19 +1,20 @@
 'use client'
 
-import { createContext, useContext, useState, useCallback, useEffect } from 'react'
+import { createContext, useContext, useState, useCallback, useEffect, type Dispatch, type SetStateAction } from 'react'
 import type { ChannelVisualStyleContext } from '@/lib/visual/visual-style'
 import { DEFAULT_VISUAL_STYLE } from '@/lib/visual/visual-style'
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 interface Channel {
   id: string
   name: string
   niche: string | null
   nicheMode: 'DISCOVER' | 'EXPLORE' | 'DIRECT'
   exploreTopic: string | null
-  contentStrategy: unknown
+  contentStrategy: any
   status: string
-  nicheOptions: unknown[]
-  posts: unknown[]
+  nicheOptions: any[]
+  posts: any[]
 }
 
 interface ChannelContextValue {
@@ -27,9 +28,9 @@ interface ChannelContextValue {
   setShowNaming: (v: boolean) => void
   showStyleEditor: boolean
   setShowStyleEditor: (v: boolean) => void
-  // Allow the page component to push updates
-  setChannel: (c: Channel | null) => void
-  setVisualStyle: (v: ChannelVisualStyleContext) => void
+  // Allow the page component to push updates (supports updater pattern)
+  setChannel: Dispatch<SetStateAction<Channel | null>>
+  setVisualStyle: Dispatch<SetStateAction<ChannelVisualStyleContext>>
 }
 
 const ChannelContext = createContext<ChannelContextValue | null>(null)
@@ -46,6 +47,10 @@ export function ChannelProvider({ channelId, children }: { channelId: string; ch
   const [showNaming, setShowNaming] = useState(false)
   const [showStyleEditor, setShowStyleEditor] = useState(false)
 
+  // Channel and visual style fetching is handled by the page component,
+  // which calls setChannel/setVisualStyle to push data into context.
+  // Sub-pages (posts, validation) that don't fetch themselves will see
+  // data populated by the initial context fetch below.
   const fetchChannel = useCallback(async () => {
     try {
       const res = await fetch(`/api/channels/${channelId}`)

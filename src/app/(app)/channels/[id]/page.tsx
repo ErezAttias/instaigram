@@ -265,12 +265,9 @@ export default function ChannelDashboard() {
   const params = useParams()
   const channelId = params.id as string
   const ctx = useChannelContext()
-  const [channel, setChannelLocal] = useState<Channel | null>(null)
-  // Wrap setChannel to sync with context
-  const setChannel = useCallback((c: Channel | null) => {
-    setChannelLocal(c)
-    ctx.setChannel(c as Parameters<typeof ctx.setChannel>[0])
-  }, [ctx])
+  // Use context state directly so sidebar stays in sync
+  const channel = ctx.channel
+  const setChannel = ctx.setChannel
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
   const [error, setError] = useState('')
