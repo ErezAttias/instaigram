@@ -425,7 +425,7 @@ export default function HomeAurora() {
       <div className="relative z-10 min-h-screen flex flex-col">
 
         {/* ── Section 1: Hero text + Form ─────────────────────────────────── */}
-        <section className="pt-4 pb-8 px-4 sm:px-6 text-center">
+        <section className="pt-4 sm:pt-14 pb-8 px-4 sm:px-6 text-center">
           <div className="max-w-4xl mx-auto animate-fade-up">
             <h1 className="text-[2.625rem] sm:text-5xl lg:text-[3.5rem] font-bold tracking-tight leading-[1.1] mb-3">
               Create your<br className="sm:hidden" />{' '}

@@ -1263,7 +1263,7 @@ export default function ChannelDashboard() {
         </aside>
 
         {/* ─── Main Content ───────────────────────────────────── */}
-        <div className="flex-1 min-w-0 lg:max-w-5xl">
+        <div className="flex-1 min-w-0 lg:max-w-2xl">
           {/* Mobile header */}
           <div className="lg:hidden mb-6 flex items-center justify-between gap-3">
             <HorizontalStepper currentStep={effectiveStep} />
