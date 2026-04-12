@@ -520,7 +520,7 @@ export async function renderFactSlide(
 
   // ── Step 2: Visual Presence Gate ────────────────────────────────
   currentStep = 'visual_presence';
-  if (imageSource === 'fallback') {
+  if (imageSource === 'fallback' && !input.skipReadabilityGate) {
     console.warn(`[FactRenderer] VISUAL_MISSING — no meaningful visual subject (source: fallback)`);
 
     let previewImage: Buffer | undefined;
