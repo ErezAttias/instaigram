@@ -33,7 +33,7 @@ export function ChannelGrid({ channels, onDelete }: { channels: Channel[]; onDel
           placeholder="Search channels..."
           value={search}
           onChange={e => setSearch(e.target.value)}
-          className="w-full max-w-sm bg-surface border border-border rounded-lg px-4 py-2.5 text-sm text-foreground placeholder:text-muted focus:outline-none"
+          className="w-full max-w-lg bg-surface border border-border rounded-lg px-4 py-2.5 text-sm text-foreground placeholder:text-muted focus:outline-none focus:border-[#3d6fa8]/40"
         />
       </div>
 

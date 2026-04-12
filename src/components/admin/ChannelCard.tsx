@@ -44,27 +44,11 @@ export function ChannelCard({
   return (
     <Link
       href={`/admin/channels/${id}`}
-      className="group flex flex-col h-full bg-surface rounded-xl border border-border p-5 hover:border-border-hover hover:bg-surface-hover transition-all duration-200"
+      className="group !flex flex-col justify-start items-stretch h-full bg-surface rounded-xl border border-border p-5 hover:border-border-hover hover:bg-surface-hover transition-all duration-200"
     >
       <div className="flex items-start gap-2 mb-3">
-        <h3 className="flex-1 text-base font-semibold text-foreground truncate transition-all duration-200 group-hover:bg-clip-text group-hover:text-transparent"
-          style={{ ['--tw-gradient' as string]: 'none' }}
-          onMouseEnter={e => {
-            const el = e.currentTarget;
-            el.style.backgroundImage = 'linear-gradient(135deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888)';
-            el.style.webkitBackgroundClip = 'text';
-            el.style.backgroundClip = 'text';
-            el.style.color = 'transparent';
-          }}
-          onMouseLeave={e => {
-            const el = e.currentTarget;
-            el.style.backgroundImage = '';
-            el.style.webkitBackgroundClip = '';
-            el.style.backgroundClip = '';
-            el.style.color = '';
-          }}
-        >
-          {name}
+        <h3 className="flex-1 text-base font-semibold text-foreground truncate transition-colors duration-200 group-hover:text-[#6b9fcc]">
+          {name === 'Untitled Channel' && niche ? niche : name}
         </h3>
         <div className="flex items-center gap-1.5 flex-shrink-0">
           <StatusBadge status={status} />
@@ -89,9 +73,11 @@ export function ChannelCard({
       </div>
 
       <div className="flex-1">
-        {niche && (
+        {name === 'Untitled Channel' && niche ? (
+          <p className="text-xs text-muted">Unnamed channel</p>
+        ) : niche ? (
           <p className="text-sm text-muted-light line-clamp-2">{niche}</p>
-        )}
+        ) : null}
       </div>
 
       <div className="flex items-center justify-between text-xs text-muted mt-4">
@@ -102,11 +88,21 @@ export function ChannelCard({
             </svg>
             {carouselCount} carousel{carouselCount !== 1 ? 's' : ''}
           </span>
-          <span className="uppercase tracking-wide">{language}</span>
         </div>
         {lastCarouselAt && (
           <span>
-            Last: {new Date(lastCarouselAt).toLocaleDateString()}
+            {(() => {
+              const d = new Date(lastCarouselAt);
+              const now = new Date();
+              const diffMs = now.getTime() - d.getTime();
+              const diffH = Math.floor(diffMs / 3600000);
+              const diffD = Math.floor(diffMs / 86400000);
+              if (diffH < 1) return 'Just now';
+              if (diffH < 24) return `${diffH}h ago`;
+              if (diffD === 1) return 'Yesterday';
+              if (diffD < 7) return `${diffD}d ago`;
+              return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            })()}
           </span>
         )}
       </div>

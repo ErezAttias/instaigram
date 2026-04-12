@@ -47,15 +47,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             All Channels
           </Link>
           <Link
-            href="/admin/channels/new"
-            className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-muted-light hover:text-foreground hover:bg-surface-hover transition-colors"
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-            </svg>
-            New Channel
-          </Link>
-          <Link
             href="/carousel"
             className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-muted-light hover:text-foreground hover:bg-surface-hover transition-colors"
           >
