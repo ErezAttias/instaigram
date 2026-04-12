@@ -2034,8 +2034,8 @@ export default function ChannelDashboard() {
                                               const activeMode = regenLoading[regenKey]
                                               const actions = [
                                                 { key: 'copy', label: 'Regen Text', loading: 'Rewriting...', onClick: () => handleRegenerateSlide(p.id, p.carouselJobId!, currentSlideIdx, 'copy') },
-                                                { key: 'image', label: 'Regen Image', loading: 'Rendering...', onClick: () => handleRegenerateSlide(p.id, p.carouselJobId!, currentSlideIdx, 'image') },
-                                                { key: 'full', label: 'Regen Both', loading: 'Both...', onClick: () => handleRegenerateSlide(p.id, p.carouselJobId!, currentSlideIdx, 'full') },
+                                                { key: 'image', label: 'Regen Image', loading: 'Rendering...', onClick: () => handleRegenerateSlide(p.id, p.carouselJobId!, currentSlideIdx, 'image', 'generated') },
+                                                { key: 'full', label: 'Regen Both', loading: 'Both...', onClick: () => handleRegenerateSlide(p.id, p.carouselJobId!, currentSlideIdx, 'full', 'generated') },
                                                 { key: 'wikipedia', label: 'Wiki Image', loading: 'Fetching...', onClick: () => handleRegenerateSlide(p.id, p.carouselJobId!, currentSlideIdx, 'image', 'wikipedia') },
                                               ] as const
                                               return (
@@ -2268,8 +2268,8 @@ export default function ChannelDashboard() {
                                         const activeMode = regenLoading[regenKey]
                                         const actions = [
                                           { key: 'copy', label: 'Regen Text', loading: 'Rewriting...', onClick: () => handleRegenerateSlide(p.id, p.carouselJobId!, currentSlideIdx, 'copy') },
-                                          { key: 'image', label: 'Regen Image', loading: 'Rendering...', onClick: () => handleRegenerateSlide(p.id, p.carouselJobId!, currentSlideIdx, 'image') },
-                                          { key: 'full', label: 'Regen Both', loading: 'Both...', onClick: () => handleRegenerateSlide(p.id, p.carouselJobId!, currentSlideIdx, 'full') },
+                                          { key: 'image', label: 'Regen Image', loading: 'Rendering...', onClick: () => handleRegenerateSlide(p.id, p.carouselJobId!, currentSlideIdx, 'image', 'generated') },
+                                          { key: 'full', label: 'Regen Both', loading: 'Both...', onClick: () => handleRegenerateSlide(p.id, p.carouselJobId!, currentSlideIdx, 'full', 'generated') },
                                           { key: 'wikipedia', label: 'Wiki Image', loading: 'Fetching...', onClick: () => handleRegenerateSlide(p.id, p.carouselJobId!, currentSlideIdx, 'image', 'wikipedia') },
                                         ] as const
                                         return (
