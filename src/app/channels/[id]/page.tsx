@@ -753,7 +753,14 @@ export default function ChannelDashboard() {
       await fetchChannel()
       setActionLoading(null)
       // Auto-advance: start generating first post after strategy is approved
-      setTimeout(() => handleGenerateBatch(), 100)
+      setTimeout(() => {
+        handleGenerateBatch()
+        // Scroll to Generate posts section so user sees progress
+        const genSection = document.querySelector('h2')
+        const sections = document.querySelectorAll('h2')
+        const generateHeader = Array.from(sections).find(h => h.textContent?.includes('Generate posts'))
+        generateHeader?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }, 100)
       return
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to approve strategy')
@@ -1675,7 +1682,7 @@ export default function ChannelDashboard() {
               </div>
 
               {/* Two-column: controls + live preview */}
-              <div className="flex flex-col-reverse lg:flex-row gap-8">
+              <div className="flex flex-col lg:flex-row gap-8">
                 {/* Controls */}
                 <div className="flex-1 space-y-6">
                   {/* Fonts */}
@@ -1897,7 +1904,7 @@ export default function ChannelDashboard() {
                                       <circle cx="11" cy="6" r="1" fill="currentColor" stroke="none" />
                                     </svg>
                                   )}
-                                  {restyleLoading.has(p.id) ? 'Restyling...' : 'Restyle'}
+                                  <span className="hidden sm:inline">{restyleLoading.has(p.id) ? 'Restyling...' : 'Restyle'}</span>
                                 </button>
                               )}
                               {isStuck && (
@@ -1915,7 +1922,7 @@ export default function ChannelDashboard() {
                                       <path d="M2 4v4h4" />
                                     </svg>
                                   )}
-                                  {retryLoading.has(p.id) ? 'Retrying...' : 'Retry'}
+                                  <span className="hidden sm:inline">{retryLoading.has(p.id) ? 'Retrying...' : 'Retry'}</span>
                                 </button>
                               )}
                               <button
