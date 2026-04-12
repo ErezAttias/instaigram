@@ -1163,7 +1163,7 @@ export async function runCarouselGeneration(
               slideRole: slide.role === 'OPENER' ? 'HOOK' : slide.role === 'CTA' ? 'CTA' : 'FACT',
               ...(slide.role === 'OPENER' && { forceT1FontSize: 86 }),
               ...(slide.role === 'CTA' && { textMode: 'light-on-dark' as const }),
-              subjectName: conceptHint || topic,
+              subjectName: preSelectedConcept || job.topic,
               visualStyle: channelVisualStyle ?? DEFAULT_VISUAL_STYLE,
             },
             // No image provider — forces documentary gradient fallback
