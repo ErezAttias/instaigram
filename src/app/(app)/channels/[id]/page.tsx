@@ -1692,8 +1692,7 @@ export default function ChannelDashboard() {
                             <span className="text-sm font-bold text-[#6b9fcc]">#{p.dayIndex + 1}</span>
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-base font-semibold text-foreground truncate">{p.title}</p>
-                            <p className="text-sm text-muted truncate">{p.hook}</p>
+                            <p className="text-[15px] font-semibold text-foreground truncate">{p.title}</p>
                           </div>
                           <div className="flex items-center gap-2 shrink-0">
                             {/* Failed badge — always visible */}
@@ -1798,32 +1797,39 @@ export default function ChannelDashboard() {
                             : `#${(channel.niche || 'history').replace(/\s+/g, '').toLowerCase()} #facts #didyouknow #education`
 
                           return (
-                            <div className="px-4 pb-4 animate-fade-up">
-                              <div className="border-t border-border pt-4 lg:bg-surface/50 lg:rounded-xl lg:border lg:border-border/60 lg:p-5 lg:mt-1">
+                            <div className="animate-fade-up border-t border-border/40">
+                              <div>
                                 {isLoadingSlides ? (
-                                  <div className="flex items-center gap-3 p-6 bg-surface-elevated rounded-xl">
+                                  <div className="flex items-center gap-3 p-6">
                                     <span className="w-4 h-4 border-2 border-[#3d6fa8]/30 border-t-[#6b9fcc] rounded-full animate-spin" />
                                     <span className="text-sm text-muted">Loading slides...</span>
                                   </div>
                                 ) : slides && slides.length > 0 ? (
                                   <div>
-                                    {/* View mode toggle — segmented control */}
-                                    <div className="flex items-center gap-0 mb-4 bg-surface-elevated rounded-lg border border-border p-0.5 w-fit">
-                                      <button
-                                        onClick={() => setPreviewMode(prev => { const n = new Set(prev); n.delete(p.id); return n })}
-                                        className={`flex items-center gap-1.5 h-9 px-4 text-sm font-semibold rounded-md transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6b9fcc]/60 ${!isPreview ? 'bg-[#3d6fa8] text-white shadow-sm' : 'text-muted hover:text-foreground'}`}
-                                      >
-                                        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="4" height="10" rx="1"/><rect x="9" y="3" width="5" height="10" rx="1"/></svg>
-                                        Review slides
-                                      </button>
-                                      <button
-                                        onClick={() => setPreviewMode(prev => new Set(prev).add(p.id))}
-                                        disabled={slideImages.length === 0}
-                                        className={`flex items-center gap-1.5 h-9 px-4 text-sm font-semibold rounded-md transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6b9fcc]/60 ${isPreview ? 'bg-[#3d6fa8] text-white shadow-sm' : 'text-muted hover:text-foreground'} disabled:opacity-30 disabled:cursor-not-allowed`}
-                                      >
-                                        <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M1 8s3-5 7-5 7 5 7 5-3 5-7 5-7-5-7-5z"/><circle cx="8" cy="8" r="2"/></svg>
-                                        Preview
-                                      </button>
+                                    {/* Top toolbar — view toggle + slide counter */}
+                                    <div className="flex items-center justify-between px-4 py-2.5">
+                                      <div className="flex gap-px bg-foreground/[0.03] rounded-lg p-0.5">
+                                        <button
+                                          onClick={() => setPreviewMode(prev => { const n = new Set(prev); n.delete(p.id); return n })}
+                                          className={`flex items-center gap-1.5 min-h-[36px] px-3.5 text-xs font-semibold rounded-md transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6b9fcc]/60 ${!isPreview ? 'bg-foreground/[0.06] text-foreground/80' : 'text-muted-light hover:text-foreground/70'}`}
+                                        >
+                                          <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="4" height="10" rx="1"/><rect x="9" y="3" width="5" height="10" rx="1"/></svg>
+                                          Slides
+                                        </button>
+                                        <button
+                                          onClick={() => setPreviewMode(prev => new Set(prev).add(p.id))}
+                                          disabled={slideImages.length === 0}
+                                          className={`flex items-center gap-1.5 min-h-[36px] px-3.5 text-xs font-semibold rounded-md transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6b9fcc]/60 ${isPreview ? 'bg-foreground/[0.06] text-foreground/80' : 'text-muted-light hover:text-foreground/70'} disabled:opacity-30 disabled:cursor-not-allowed`}
+                                        >
+                                          <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M1 8s3-5 7-5 7 5 7 5-3 5-7 5-7-5-7-5z"/><circle cx="8" cy="8" r="2"/></svg>
+                                          Preview
+                                        </button>
+                                      </div>
+                                      {!isPreview && (
+                                        <span className="text-xs font-medium text-muted-light uppercase tracking-wide">
+                                          <strong className="text-foreground/50">{currentSlide?.role}</strong> &middot; {currentSlideIdx + 1} / {slides.length}
+                                        </span>
+                                      )}
                                     </div>
 
                                     {isPreview ? (
@@ -1841,14 +1847,9 @@ export default function ChannelDashboard() {
                                         </div>
                                       </div>
                                     ) : (
-                                      /* Slide-by-slide viewer */
-                                      <div className="bg-surface-elevated rounded-xl overflow-hidden">
-                                        <div className="px-4 pt-3 pb-2">
-                                          <span className="text-xs font-medium text-muted">
-                                            {currentSlide?.role} — Slide {currentSlideIdx + 1} of {slides.length}
-                                          </span>
-                                        </div>
-                                        <div className="relative px-2">
+                                      /* Slide-by-slide viewer — flat, no inner card */
+                                      <div>
+                                        <div className="relative px-2 py-4">
                                           <div className="min-w-0 mx-auto w-full" style={{ maxWidth: 'min(100%, calc(350px * 4 / 5))' }}>
                                             {currentSlide?.imageUrl && (
                                               <img
@@ -1881,40 +1882,8 @@ export default function ChannelDashboard() {
                                           </button>
                                         </div>
                                         {/* Regen buttons — outside image container for scroll access */}
-                                        {p.carouselJobId && (() => {
-                                          const regenKey = `${p.id}-${currentSlideIdx}`
-                                          const activeMode = regenLoading[regenKey]
-                                          const actions = [
-                                            { key: 'copy', label: 'Regen Text', loading: 'Rewriting...', onClick: () => handleRegenerateSlide(p.id, p.carouselJobId!, currentSlideIdx, 'copy') },
-                                            { key: 'image', label: 'Regen Image', loading: 'Rendering...', onClick: () => handleRegenerateSlide(p.id, p.carouselJobId!, currentSlideIdx, 'image', 'generated') },
-                                            { key: 'full', label: 'Regen Both', loading: 'Both...', onClick: () => handleRegenerateSlide(p.id, p.carouselJobId!, currentSlideIdx, 'full', 'generated') },
-                                            { key: 'wikipedia', label: 'Wiki Image', loading: 'Fetching...', onClick: () => handleRegenerateSlide(p.id, p.carouselJobId!, currentSlideIdx, 'image', 'wikipedia') },
-                                          ] as const
-                                          return (
-                                            <div className="pt-3 px-2 mx-auto w-full" style={{ maxWidth: 'min(100%, calc(350px * 4 / 5))' }}>
-                                              <div className="grid grid-cols-2 gap-px w-full rounded-lg border border-border overflow-hidden bg-border">
-                                                {actions.map((action) => (
-                                                  <button
-                                                    key={action.key}
-                                                    onClick={action.onClick}
-                                                    disabled={!!activeMode || p.carouselJobId === generatingCarouselJobId}
-                                                    className={`py-2 text-[11px] font-semibold rounded-none transition-all disabled:opacity-40 disabled:cursor-not-allowed hover:bg-foreground/5 hover:text-foreground bg-background ${
-                                                      activeMode === action.key ? 'bg-foreground/5 text-foreground' : 'text-muted'
-                                                    }`}
-                                                  >
-                                                    {activeMode === action.key ? (
-                                                      <span className="flex items-center justify-center gap-1.5">
-                                                        <span className="w-3 h-3 border border-[#3d6fa8]/30 border-t-[#6b9fcc] rounded-full animate-spin" />
-                                                        {action.loading}
-                                                      </span>
-                                                    ) : action.label}
-                                                  </button>
-                                                ))}
-                                              </div>
-                                            </div>
-                                          )
-                                        })()}
-                                        <div className="flex items-center justify-center gap-1.5 pt-3 pb-4">
+                                        {/* Dots */}
+                                        <div className="flex items-center justify-center gap-1.5 pt-2 pb-3">
                                           {slides.map((_, i) => (
                                             <div
                                               key={i}
@@ -1922,20 +1891,49 @@ export default function ChannelDashboard() {
                                               tabIndex={0}
                                               onClick={() => setSlideViewerIndex(prev => ({ ...prev, [p.id]: i }))}
                                               onKeyDown={(e) => e.key === 'Enter' && setSlideViewerIndex(prev => ({ ...prev, [p.id]: i }))}
-                                              style={{
-                                                width: 8,
-                                                height: 8,
-                                                borderRadius: '50%',
-                                                flexShrink: 0,
-                                                cursor: 'pointer',
-                                                transition: 'transform 0.15s ease, background-color 0.15s ease',
-                                                transform: i === currentSlideIdx ? 'scale(1.25)' : 'scale(1)',
-                                                backgroundColor: i === currentSlideIdx ? '#3d6fa8' : undefined,
-                                              }}
-                                              className={i === currentSlideIdx ? '' : 'bg-border'}
+                                              className={`rounded-full cursor-pointer transition-all duration-150 ${i === currentSlideIdx ? 'bg-[#6b9fcc] scale-125' : 'bg-border'}`}
+                                              style={{ width: 6, height: 6, flexShrink: 0 }}
                                             />
                                           ))}
                                         </div>
+
+                                        {/* Footer toolbar — regen actions */}
+                                        {p.carouselJobId && (() => {
+                                          const regenKey = `${p.id}-${currentSlideIdx}`
+                                          const activeMode = regenLoading[regenKey]
+                                          const actions = [
+                                            { key: 'copy', label: 'Rewrite text', loading: 'Rewriting...', onClick: () => handleRegenerateSlide(p.id, p.carouselJobId!, currentSlideIdx, 'copy'), icon: <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M13 3L3 13M8 3h5v5"/></svg> },
+                                            { key: 'image', label: <span>New image &middot; <span className="text-[#6b9fcc] font-semibold">AI</span></span>, loading: 'Rendering...', onClick: () => handleRegenerateSlide(p.id, p.carouselJobId!, currentSlideIdx, 'image', 'generated'), icon: <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><rect x="2" y="2" width="12" height="12" rx="2"/><circle cx="5.5" cy="5.5" r="1.2"/><path d="M14 10l-3.5-3.5L4 13"/></svg> },
+                                            { key: 'wikipedia', label: <span>New image &middot; <span className="text-[#6b9fcc] font-semibold">Wikipedia</span></span>, loading: 'Fetching...', onClick: () => handleRegenerateSlide(p.id, p.carouselJobId!, currentSlideIdx, 'image', 'wikipedia'), icon: <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><circle cx="8" cy="8" r="6"/><path d="M2 8h12"/><path d="M8 2a10 10 0 0 1 3 6 10 10 0 0 1-3 6"/><path d="M8 2a10 10 0 0 0-3 6 10 10 0 0 0 3 6"/></svg> },
+                                            { key: 'full', label: 'Regenerate all', loading: 'Regenerating...', onClick: () => handleRegenerateSlide(p.id, p.carouselJobId!, currentSlideIdx, 'full', 'generated'), icon: <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M2 8a6 6 0 1 0 1.5-4"/><path d="M2 4v4h4"/></svg> },
+                                          ] as const
+                                          return (
+                                            <div className="flex border-t border-border/40">
+                                              {actions.map((action, ai) => (
+                                                <button
+                                                  key={action.key}
+                                                  onClick={action.onClick}
+                                                  disabled={!!activeMode || p.carouselJobId === generatingCarouselJobId}
+                                                  className={`flex-1 flex items-center justify-center gap-1.5 min-h-[44px] text-[13px] font-medium transition-all disabled:opacity-40 disabled:cursor-not-allowed hover:bg-foreground/[0.03] hover:text-foreground/80 ${ai < actions.length - 1 ? 'border-r border-border/40' : ''} ${
+                                                    activeMode === action.key ? 'bg-foreground/[0.03] text-foreground/80' : 'text-muted-light'
+                                                  }`}
+                                                >
+                                                  {activeMode === action.key ? (
+                                                    <span className="flex items-center gap-1.5">
+                                                      <span className="w-3 h-3 border border-[#3d6fa8]/30 border-t-[#6b9fcc] rounded-full animate-spin" />
+                                                      {action.loading}
+                                                    </span>
+                                                  ) : (
+                                                    <>
+                                                      <span className="opacity-40">{action.icon}</span>
+                                                      {action.label}
+                                                    </>
+                                                  )}
+                                                </button>
+                                              ))}
+                                            </div>
+                                          )
+                                        })()}
                                       </div>
                                     )}
                                   </div>
@@ -1992,8 +1990,7 @@ export default function ChannelDashboard() {
                           <span className="text-sm font-bold text-[#6b9fcc]">#{p.dayIndex + 1}</span>
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-base font-semibold text-foreground truncate">{p.title}</p>
-                          <p className="text-sm text-muted truncate">{p.hook}</p>
+                          <p className="text-[15px] font-semibold text-foreground truncate">{p.title}</p>
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
                           <span className="hidden sm:inline text-xs font-medium text-muted bg-surface-elevated px-2.5 py-1 rounded-lg">
@@ -2039,30 +2036,37 @@ export default function ChannelDashboard() {
                           : `#${(channel.niche || 'history').replace(/\s+/g, '').toLowerCase()} #facts #didyouknow #education`
 
                         return (
-                          <div className="px-4 pb-4 animate-fade-up">
-                            <div className="border-t border-border pt-4 lg:bg-surface/50 lg:rounded-xl lg:border lg:border-border/60 lg:p-5 lg:mt-1">
-                              {/* View mode toggle — segmented control */}
-                              <div className="flex items-center gap-0 mb-4 bg-surface-elevated rounded-lg border border-border p-0.5 w-fit">
-                                <button
-                                  onClick={() => setPreviewMode(prev => { const n = new Set(prev); n.delete(p.id); return n })}
-                                  className={`flex items-center gap-1.5 h-9 px-4 text-sm font-semibold rounded-md transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6b9fcc]/60 ${!isPreview ? 'bg-[#3d6fa8] text-white shadow-sm' : 'text-muted hover:text-foreground'}`}
-                                >
-                                  <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="4" height="10" rx="1"/><rect x="9" y="3" width="5" height="10" rx="1"/></svg>
-                                  Review slides
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    setPreviewMode(prev => new Set(prev).add(p.id))
-                                    if (p.carouselJobId && !carouselSlides) {
-                                      fetchCarouselSlides(p.id, p.carouselJobId)
-                                    }
-                                  }}
-                                  disabled={!p.carouselJobId}
-                                  className={`flex items-center gap-1.5 h-9 px-4 text-sm font-semibold rounded-md transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6b9fcc]/60 ${isPreview ? 'bg-[#3d6fa8] text-white shadow-sm' : 'text-muted hover:text-foreground'} disabled:opacity-30 disabled:cursor-not-allowed`}
-                                >
-                                  <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M1 8s3-5 7-5 7 5 7 5-3 5-7 5-7-5-7-5z"/><circle cx="8" cy="8" r="2"/></svg>
-                                  Preview
-                                </button>
+                          <div className="animate-fade-up border-t border-border/40">
+                            <div>
+                              {/* Top toolbar — view toggle + slide counter */}
+                              <div className="flex items-center justify-between px-4 py-2.5">
+                                <div className="flex gap-px bg-foreground/[0.03] rounded-lg p-0.5">
+                                  <button
+                                    onClick={() => setPreviewMode(prev => { const n = new Set(prev); n.delete(p.id); return n })}
+                                    className={`flex items-center gap-1.5 min-h-[36px] px-3.5 text-xs font-semibold rounded-md transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6b9fcc]/60 ${!isPreview ? 'bg-foreground/[0.06] text-foreground/80' : 'text-muted-light hover:text-foreground/70'}`}
+                                  >
+                                    <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="4" height="10" rx="1"/><rect x="9" y="3" width="5" height="10" rx="1"/></svg>
+                                    Slides
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      setPreviewMode(prev => new Set(prev).add(p.id))
+                                      if (p.carouselJobId && !carouselSlides) {
+                                        fetchCarouselSlides(p.id, p.carouselJobId)
+                                      }
+                                    }}
+                                    disabled={!p.carouselJobId}
+                                    className={`flex items-center gap-1.5 min-h-[36px] px-3.5 text-xs font-semibold rounded-md transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6b9fcc]/60 ${isPreview ? 'bg-foreground/[0.06] text-foreground/80' : 'text-muted-light hover:text-foreground/70'} disabled:opacity-30 disabled:cursor-not-allowed`}
+                                  >
+                                    <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M1 8s3-5 7-5 7 5 7 5-3 5-7 5-7-5-7-5z"/><circle cx="8" cy="8" r="2"/></svg>
+                                    Preview
+                                  </button>
+                                </div>
+                                {!isPreview && effectiveSlides.length > 0 && (
+                                  <span className="text-xs font-medium text-muted-light uppercase tracking-wide">
+                                    <strong className="text-foreground/50">{currentSlide?.role}</strong> &middot; {currentSlideIdx + 1} / {effectiveSlides.length || p.slideCount}
+                                  </span>
+                                )}
                               </div>
 
                               {effectiveSlides.length === 0 ? (
@@ -2084,22 +2088,13 @@ export default function ChannelDashboard() {
                                   </div>
                                 </div>
                               ) : isPreview && dbPostSlidesLoading.has(p.id) ? (
-                                <div className="flex items-center gap-3 p-6 bg-surface-elevated rounded-xl">
+                                <div className="flex items-center gap-3 p-6">
                                   <span className="w-4 h-4 border-2 border-[#3d6fa8]/30 border-t-[#6b9fcc] rounded-full animate-spin" />
                                   <span className="text-sm text-muted">Loading preview...</span>
                                 </div>
                               ) : (
-                                <div className="bg-surface-elevated rounded-xl overflow-hidden">
-                                  <div className="px-4 pt-3 pb-2">
-                                    <span className={`text-xs font-bold tracking-wider uppercase ${
-                                      currentSlide?.role === 'OPENER' ? 'text-[#6b9fcc]' :
-                                      currentSlide?.role === 'CTA' ? 'text-violet' :
-                                      'text-muted'
-                                    }`}>
-                                      {currentSlide?.role} — Slide {currentSlideIdx + 1} of {effectiveSlides.length || p.slideCount}
-                                    </span>
-                                  </div>
-                                  <div className="flex items-center justify-center gap-2.5 lg:gap-4 px-2">
+                                <div>
+                                  <div className="flex items-center justify-center gap-2.5 lg:gap-4 px-2 py-4">
                                     <button
                                       onClick={() => setSlideViewerIndex(prev => ({ ...prev, [p.id]: Math.max(0, currentSlideIdx - 1) }))}
                                       disabled={currentSlideIdx === 0}
@@ -2123,58 +2118,62 @@ export default function ChannelDashboard() {
                                       {!displaySlide?.imageUrl && currentSlide?.body && (
                                         <p className="px-4 text-sm text-muted-light leading-relaxed">{currentSlide.body}</p>
                                       )}
-                                      {/* Regen buttons — below image, same container width */}
-                                      {p.carouselJobId && (() => {
-                                        const regenKey = `${p.id}-${currentSlideIdx}`
-                                        const activeMode = regenLoading[regenKey]
-                                        const actions = [
-                                          { key: 'copy', label: 'Regen Text', loading: 'Rewriting...', onClick: () => handleRegenerateSlide(p.id, p.carouselJobId!, currentSlideIdx, 'copy') },
-                                          { key: 'image', label: 'Regen Image', loading: 'Rendering...', onClick: () => handleRegenerateSlide(p.id, p.carouselJobId!, currentSlideIdx, 'image', 'generated') },
-                                          { key: 'full', label: 'Regen Both', loading: 'Both...', onClick: () => handleRegenerateSlide(p.id, p.carouselJobId!, currentSlideIdx, 'full', 'generated') },
-                                          { key: 'wikipedia', label: 'Wiki Image', loading: 'Fetching...', onClick: () => handleRegenerateSlide(p.id, p.carouselJobId!, currentSlideIdx, 'image', 'wikipedia') },
-                                        ] as const
-                                        return (
-                                          <div className="pt-3 w-full">
-                                            <div className="grid grid-cols-2 gap-px w-full rounded-lg border border-border overflow-hidden bg-border">
-                                              {actions.map((action) => (
-                                                <button
-                                                  key={action.key}
-                                                  onClick={action.onClick}
-                                                  disabled={!!activeMode || p.carouselJobId === generatingCarouselJobId}
-                                                  className={`py-2 text-[11px] font-semibold rounded-none transition-all disabled:opacity-40 disabled:cursor-not-allowed hover:bg-foreground/5 hover:text-foreground bg-background ${
-                                                    activeMode === action.key ? 'bg-foreground/5 text-foreground' : 'text-muted'
-                                                  }`}
-                                                >
-                                                  {activeMode === action.key ? (
-                                                    <span className="flex items-center justify-center gap-1.5">
-                                                      <span className="w-3 h-3 border border-[#3d6fa8]/30 border-t-[#6b9fcc] rounded-full animate-spin" />
-                                                      {action.loading}
-                                                    </span>
-                                                  ) : action.label}
-                                                </button>
-                                              ))}
-                                            </div>
-                                          </div>
-                                        )
-                                      })()}
                                     </div>
                                     <button
                                       onClick={() => setSlideViewerIndex(prev => ({ ...prev, [p.id]: Math.min((effectiveSlides.length || p.slideCount) - 1, currentSlideIdx + 1) }))}
                                       disabled={currentSlideIdx >= (effectiveSlides.length || p.slideCount) - 1}
-                                      className="shrink-0 p-2 lg:p-3 rounded-full bg-background/80 lg:bg-surface-elevated border border-border hover:bg-surface-elevated disabled:opacity-30 disabled:cursor-not-allowed transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6b9fcc]/60"
+                                      className="shrink-0 p-2 lg:p-3 rounded-full bg-background/80 border border-border/40 hover:bg-surface-elevated disabled:opacity-0 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6b9fcc]/60"
                                     >
-                                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
                                     </button>
                                   </div>
-                                  <div className="flex items-center justify-center gap-1.5 pt-[15px] pb-[24px]">
+                                  {/* Dots */}
+                                  <div className="flex items-center justify-center gap-1.5 pt-2 pb-3">
                                     {effectiveSlides.map((_, si) => (
                                       <button
                                         key={si}
                                         onClick={() => setSlideViewerIndex(prev => ({ ...prev, [p.id]: si }))}
-                                        className={`w-2 h-2 rounded-full transition-all ${si === currentSlideIdx ? 'bg-[#3d6fa8] scale-125' : 'bg-border hover:bg-muted'}`}
+                                        className={`w-1.5 h-1.5 rounded-full transition-all ${si === currentSlideIdx ? 'bg-[#6b9fcc] scale-125' : 'bg-border hover:bg-muted'}`}
                                       />
                                     ))}
                                   </div>
+                                  {/* Footer toolbar — regen actions */}
+                                  {p.carouselJobId && (() => {
+                                    const regenKey = `${p.id}-${currentSlideIdx}`
+                                    const activeMode = regenLoading[regenKey]
+                                    const actions = [
+                                      { key: 'copy', label: 'Rewrite text', loading: 'Rewriting...', onClick: () => handleRegenerateSlide(p.id, p.carouselJobId!, currentSlideIdx, 'copy'), icon: <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M13 3L3 13M8 3h5v5"/></svg> },
+                                      { key: 'image', label: <span>New image &middot; <span className="text-[#6b9fcc] font-semibold">AI</span></span>, loading: 'Rendering...', onClick: () => handleRegenerateSlide(p.id, p.carouselJobId!, currentSlideIdx, 'image', 'generated'), icon: <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><rect x="2" y="2" width="12" height="12" rx="2"/><circle cx="5.5" cy="5.5" r="1.2"/><path d="M14 10l-3.5-3.5L4 13"/></svg> },
+                                      { key: 'wikipedia', label: <span>New image &middot; <span className="text-[#6b9fcc] font-semibold">Wikipedia</span></span>, loading: 'Fetching...', onClick: () => handleRegenerateSlide(p.id, p.carouselJobId!, currentSlideIdx, 'image', 'wikipedia'), icon: <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><circle cx="8" cy="8" r="6"/><path d="M2 8h12"/><path d="M8 2a10 10 0 0 1 3 6 10 10 0 0 1-3 6"/><path d="M8 2a10 10 0 0 0-3 6 10 10 0 0 0 3 6"/></svg> },
+                                      { key: 'full', label: 'Regenerate all', loading: 'Regenerating...', onClick: () => handleRegenerateSlide(p.id, p.carouselJobId!, currentSlideIdx, 'full', 'generated'), icon: <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M2 8a6 6 0 1 0 1.5-4"/><path d="M2 4v4h4"/></svg> },
+                                    ] as const
+                                    return (
+                                      <div className="flex border-t border-border/40">
+                                        {actions.map((action, ai) => (
+                                          <button
+                                            key={action.key}
+                                            onClick={action.onClick}
+                                            disabled={!!activeMode || p.carouselJobId === generatingCarouselJobId}
+                                            className={`flex-1 flex items-center justify-center gap-1.5 min-h-[44px] text-[13px] font-medium transition-all disabled:opacity-40 disabled:cursor-not-allowed hover:bg-foreground/[0.03] hover:text-foreground/80 ${ai < actions.length - 1 ? 'border-r border-border/40' : ''} ${
+                                              activeMode === action.key ? 'bg-foreground/[0.03] text-foreground/80' : 'text-muted-light'
+                                            }`}
+                                          >
+                                            {activeMode === action.key ? (
+                                              <span className="flex items-center gap-1.5">
+                                                <span className="w-3 h-3 border border-[#3d6fa8]/30 border-t-[#6b9fcc] rounded-full animate-spin" />
+                                                {action.loading}
+                                              </span>
+                                            ) : (
+                                              <>
+                                                <span className="opacity-40">{action.icon}</span>
+                                                {action.label}
+                                              </>
+                                            )}
+                                          </button>
+                                        ))}
+                                      </div>
+                                    )
+                                  })()}
                                 </div>
                               )}
                             </div>
