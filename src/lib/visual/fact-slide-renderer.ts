@@ -103,6 +103,8 @@ export interface FactSlideInput {
   visualStyle?: ChannelVisualStyleContext;
   /** Pre-existing base image buffer — when provided, skips image generation and re-composites overlay only (restyle) */
   baseImage?: Buffer;
+  /** Skip readability gate — accept any generated image even with layout issues (for manual regen) */
+  skipReadabilityGate?: boolean;
 }
 
 export type RenderStep =
@@ -593,7 +595,7 @@ export async function renderFactSlide(
   // If the gate fires → BLOCKED_PROVIDER_LAYOUT (slide not approved)
   //
   currentStep = 'readability_gate';
-  if (zoneAnalysis) {
+  if (zoneAnalysis && !input.skipReadabilityGate) {
     const selectedZoneResult = zoneAnalysis.zones.find(z => z.zone === selectedZone);
     const anyUsableZone = zoneAnalysis.zones.find(z => !z.rejected && z.score >= 40);
 

@@ -321,6 +321,8 @@ async function renderSlideImage(
   conceptHint?: string,
   /** Raw search term from channel (e.g. "kanye west") — used for Wikipedia person lookups */
   exploreTopic?: string,
+  /** Skip readability gate — accept any generated image (for manual regen) */
+  skipReadabilityGate?: boolean,
 ): Promise<SlideRenderOutput> {
   if (slide.role === 'OPENER') {
     // Always render OPENER with layout-first composition (same as FACT slides).
@@ -403,6 +405,7 @@ async function renderSlideImage(
         forceT1FontSize: 86, // OPENER title is 20% larger than FACT slides
         subjectName: conceptHint || topic,
         visualStyle: visualStyle ?? DEFAULT_VISUAL_STYLE,
+        skipReadabilityGate,
       },
       imageGen,
     );
@@ -525,6 +528,7 @@ async function renderSlideImage(
         textZone: 'bottom_right',
         slideRole: 'FACT',
         visualStyle: visualStyle ?? DEFAULT_VISUAL_STYLE,
+        skipReadabilityGate,
       },
       imageGen,
     );
@@ -610,6 +614,7 @@ async function renderSlideImage(
         textMode: 'light-on-dark',
         subjectName: topic,
         visualStyle: visualStyle ?? DEFAULT_VISUAL_STYLE,
+        skipReadabilityGate,
       },
       imageGen,
     );
@@ -1584,6 +1589,7 @@ export async function regenerateCarouselSlideImage(
       excludeUrls,
       conceptHint,
       regenExploreTopic,
+      true, // skipReadabilityGate — manual regen should accept any image
     );
 
     const regenImageUrl = await saveImage(jobId, slideIndex, renderOutput.imageBase64);
