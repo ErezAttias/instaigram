@@ -384,6 +384,10 @@ button:active:not(:disabled) {
     animation: none !important;
   }
 
+  [style*="grid-template-rows"] {
+    transition: none !important;
+  }
+
   html {
     scroll-behavior: auto;
   }

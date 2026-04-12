@@ -117,13 +117,13 @@ function SidebarStepper({ currentStep }: { currentStep: number }) {
         return (
           <div key={label}>
             {i > 0 && (
-              <div className="w-8 flex justify-center">
-                <div className={`w-0.5 h-4 ${connectorDone ? 'bg-[#3d6fa8]/40' : 'bg-border'}`} />
+              <div className="w-9 flex justify-center">
+                <div className={`w-0.5 h-5 ${connectorDone ? 'bg-[#3d6fa8]/40' : 'bg-border'}`} />
               </div>
             )}
             <div className="flex items-center gap-3">
               <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold flex-none transition-all duration-300 ${done ? 'bg-[#3d6fa8]/15 text-[#6b9fcc]' : active ? 'text-white' : 'bg-surface-elevated text-muted border border-border'}`}
+                className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-semibold flex-none transition-all duration-300 ${done ? 'bg-[#3d6fa8]/15 text-[#6b9fcc]' : active ? 'text-white' : 'bg-surface-elevated text-muted border border-border'}`}
                 style={active ? { background: IG_GRADIENT, boxShadow: IG_GLOW } : undefined}
               >
                 {done ? (
@@ -139,8 +139,8 @@ function SidebarStepper({ currentStep }: { currentStep: number }) {
               </span>
             </div>
             {i < STEP_LABELS.length - 1 && (
-              <div className="w-8 flex justify-center">
-                <div className={`w-px h-4 ${done ? 'bg-[#3d6fa8]/40' : 'bg-border'}`} />
+              <div className="w-9 flex justify-center">
+                <div className={`w-0.5 h-5 ${done ? 'bg-[#3d6fa8]/40' : 'bg-border'}`} />
               </div>
             )}
           </div>
@@ -208,7 +208,7 @@ function PrimaryButton({
     <button
       onClick={onClick}
       disabled={disabled || loading}
-      className={`min-h-11 py-2.5 px-6 text-white rounded-full text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed transition-all hover:opacity-90 active:scale-[0.98]${className ? ` ${className}` : ''}`}
+      className={`min-h-11 py-2.5 px-6 text-white rounded-full text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed transition-all hover:opacity-90 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6b9fcc]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background${className ? ` ${className}` : ''}`}
       style={{ background: IG_GRADIENT, boxShadow: IG_GLOW }}
     >
       {loading ? (
@@ -238,7 +238,7 @@ function GhostButton({
     <button
       onClick={onClick}
       disabled={disabled}
-      className={`h-11 px-6 border rounded-full text-sm font-semibold transition-all duration-200 disabled:opacity-40 ${
+      className={`h-11 px-6 border rounded-full text-sm font-semibold transition-all duration-200 disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6b9fcc]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
         active
           ? 'border-[#3d6fa8]/30 bg-[#3d6fa8]/10 text-foreground'
           : 'border-border hover:border-[#3d6fa8]/25 hover:bg-[#3d6fa8]/8'
@@ -280,14 +280,14 @@ function Section({
   const isUtility = variant === 'utility'
   const wrapperClass = isUtility
     ? 'animate-fade-up bg-surface rounded-2xl border border-border p-5 lg:p-6'
-    : 'animate-fade-up border-t border-border lg:border-t-0'
+    : 'animate-fade-up border-t border-border lg:border-t-0 lg:border-b lg:border-b-border/40'
 
   if (collapsible) {
     return (
       <div className={wrapperClass} style={delay ? { animationDelay: `${delay}ms` } : undefined}>
         <button
           onClick={() => setCollapsed(c => !c)}
-          className="w-full flex items-center justify-between gap-4 group rounded-2xl p-0 py-4"
+          className="w-full flex items-center justify-between gap-4 group rounded-2xl p-0 py-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6b9fcc]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         >
           <div className="flex-1 min-w-0 text-left">
             {collapsedTitle}
@@ -304,7 +304,7 @@ function Section({
           style={{ gridTemplateRows: collapsed ? '0fr' : '1fr', opacity: collapsed ? 0 : 1 }}
         >
           <div className="overflow-hidden">
-            <div className={compact ? 'pb-4' : 'pb-6'}>
+            <div className={compact ? 'pb-4 lg:pb-5' : 'pb-6 lg:pb-8'}>
               {children}
             </div>
           </div>
@@ -318,7 +318,7 @@ function Section({
       className={wrapperClass}
       style={delay ? { animationDelay: `${delay}ms` } : undefined}
     >
-      <div className={isUtility ? '' : compact ? 'py-4' : 'py-6'}>
+      <div className={isUtility ? '' : compact ? 'py-4 lg:py-5' : 'py-6 lg:py-8'}>
         {children}
       </div>
     </div>
@@ -1168,7 +1168,7 @@ export default function ChannelDashboard() {
     <div className="animate-fade-up">
       <div className="flex gap-8 xl:gap-10">
         {/* ─── Sidebar (Desktop) ──────────────────────────────── */}
-        <aside className="hidden lg:flex flex-col w-[240px] xl:w-[260px] shrink-0 sticky top-20 self-start pt-2 border-r border-border pr-8">
+        <aside className="hidden lg:flex flex-col w-[280px] xl:w-[300px] shrink-0 sticky top-20 self-start pt-2 border-r border-border pr-8">
           {/* Channel info */}
           <div className="mb-6 pb-2">
             {channel.name === 'Untitled Channel' ? (
@@ -1177,7 +1177,7 @@ export default function ChannelDashboard() {
                   onClick={() => setShowNaming(true)}
                   className="flex items-center gap-2 group text-left rounded-lg p-0"
                 >
-                  <span className="text-xl font-bold tracking-tight text-foreground leading-tight">Untitled channel</span>
+                  <h1 className="text-xl font-bold tracking-tight text-foreground leading-tight">Untitled channel</h1>
                   <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-muted group-hover:text-[#6b9fcc] transition-colors shrink-0">
                     <path d="M3 13h2l8-8-2-2-8 8v2z" /><path d="M10 4l2 2" />
                   </svg>
@@ -1196,13 +1196,13 @@ export default function ChannelDashboard() {
           <SidebarStepper currentStep={effectiveStep} />
 
           {/* Bottom links */}
-          <div className="mt-8 pt-2 space-y-0.5">
-            <p className="text-xs text-muted font-medium mb-2">Settings</p>
+          <div className="mt-10 pt-4 border-t border-border/40 space-y-0.5">
+            <p className="text-xs text-muted font-medium mb-3">Settings</p>
             {hasPosts && (
               <>
                 <Link
                   href={`/channels/${channelId}/posts`}
-                  className="flex items-center !justify-start gap-2.5 h-9 rounded-xl text-sm font-medium text-muted-light hover:text-foreground transition-colors w-full"
+                  className="flex items-center !justify-start gap-2.5 h-10 rounded-xl text-sm font-medium text-muted-light hover:text-foreground transition-colors w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6b9fcc]/60"
                 >
                   <svg className="w-4 h-4 shrink-0" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                     <rect x="2" y="2" width="12" height="12" rx="2" />
@@ -1212,7 +1212,7 @@ export default function ChannelDashboard() {
                 </Link>
                 <Link
                   href={`/channels/${channelId}/validation`}
-                  className="flex items-center !justify-start gap-2.5 h-9 rounded-xl text-sm font-medium text-muted-light hover:text-foreground transition-colors w-full"
+                  className="flex items-center !justify-start gap-2.5 h-10 rounded-xl text-sm font-medium text-muted-light hover:text-foreground transition-colors w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6b9fcc]/60"
                 >
                   <svg className="w-4 h-4 shrink-0" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M13.5 4.5L6 12L2.5 8.5" />
@@ -1248,19 +1248,19 @@ export default function ChannelDashboard() {
               <span className="whitespace-nowrap">Slide style</span>
               <span className="ml-auto text-xs text-muted truncate min-w-0">{getTitleFont(visualStyle.titleFontId).label}</span>
             </button>
-            <p className="text-xs text-muted mt-1">Font and layout for new carousels</p>
+            <p className="text-xs text-muted -mt-0.5 pl-[26px]">Font and layout for new carousels</p>
           </div>
         </aside>
 
         {/* ─── Main Content ───────────────────────────────────── */}
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0 lg:max-w-5xl">
           {/* Mobile header */}
           <div className="lg:hidden mb-6 flex items-center justify-between gap-3">
             <HorizontalStepper currentStep={effectiveStep} />
             {channel.name === 'Untitled Channel' ? (
               <button
                 onClick={() => setShowNaming(true)}
-                className="flex items-center gap-1.5 h-9 px-3 rounded-lg border border-border text-xs font-semibold text-muted hover:text-foreground hover:border-border-hover transition-all shrink-0"
+                className="flex items-center gap-1.5 min-h-[44px] px-3 rounded-lg border border-border text-xs font-semibold text-muted hover:text-foreground hover:border-border-hover transition-all shrink-0"
               >
                 <svg width="13" height="13" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M2 10h2l6-6-2-2-6 6v2z" /><path d="M7.5 3.5l1 1" />
@@ -1407,8 +1407,10 @@ export default function ChannelDashboard() {
                     )}
                   </div>
                 ) : (
-                  /* Multiple niches — horizontal scroll */
+                  /* Multiple niches — horizontal scroll on mobile, grid on desktop */
                   <div className="relative group/scroll -mx-2 px-2 py-2 -my-2">
+                  {/* Scroll arrows — mobile/tablet only */}
+                  <div className="lg:hidden">
                   {canScrollLeft && (
                     <button
                       onClick={() => nicheScrollRef.current?.scrollBy({ left: -320, behavior: 'smooth' })}
@@ -1427,14 +1429,15 @@ export default function ChannelDashboard() {
                       ›
                     </button>
                   )}
-                  <div ref={nicheScrollRef} className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x">
+                  </div>
+                  <div ref={nicheScrollRef} className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x lg:grid lg:grid-cols-3 lg:overflow-x-visible lg:pb-0">
                     {niches.map((niche, i) => (
                       <button
                         key={niche.id}
                         onClick={() => !niche.selected && handleSelectNiche(niche.id)}
                         disabled={actionLoading !== null || niche.selected}
                         className={`
-                          animate-fade-up snap-start shrink-0 w-[280px] lg:w-[320px] text-left border rounded-2xl p-5 transition-all duration-200 flex flex-col disabled:opacity-100
+                          animate-fade-up snap-start shrink-0 w-[280px] lg:w-auto text-left border rounded-2xl p-5 transition-all duration-200 flex flex-col disabled:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6b9fcc]/60
                           ${niche.selected
                             ? 'border-[#3d6fa8]/40 bg-[#3d6fa8]/10'
                             : 'border-border bg-background hover:border-[#3d6fa8]/25 hover:bg-[#3d6fa8]/8'
@@ -1452,7 +1455,8 @@ export default function ChannelDashboard() {
                       </button>
                     ))}
                   </div>
-                  <div className="flex justify-center gap-1.5 pt-3">
+                  {/* Dot indicators — mobile/tablet only */}
+                  <div className="flex justify-center gap-1.5 pt-3 lg:hidden">
                     {niches.map((niche, i) => (
                       <div
                         key={niche.id}
@@ -1504,7 +1508,7 @@ export default function ChannelDashboard() {
               }
             >
               <div className="flex items-center justify-between mb-3">
-                <h2 className="text-base font-semibold text-muted-light">Content Strategy</h2>
+                <h2 className="text-base font-semibold text-muted-light">Content strategy</h2>
                 <GhostButton onClick={handleGenerateStrategy} disabled={actionLoading !== null}>
                   Redefine
                 </GhostButton>
@@ -1803,7 +1807,7 @@ export default function ChannelDashboard() {
                 </div>
                 <button
                   onClick={() => { setShowStyleEditor(true); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
-                  className="flex items-center gap-1.5 h-9 px-3 text-xs font-semibold text-muted border border-border rounded-lg hover:text-foreground hover:border-border-hover transition-all shrink-0"
+                  className="items-center gap-1.5 min-h-[44px] px-3 text-xs font-semibold text-muted border border-border rounded-lg hover:text-foreground hover:border-border-hover transition-all shrink-0 flex lg:!hidden"
                 >
                   <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                     <circle cx="8" cy="8" r="5.5" />
@@ -1851,9 +1855,11 @@ export default function ChannelDashboard() {
                           onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') togglePostExpanded(p.id, p.carouselJobId); }}
                           role="button"
                           tabIndex={0}
+                          aria-expanded={isExpanded}
+                          aria-label={`Post ${p.dayIndex + 1}: ${p.title}`}
                           className="w-full text-left flex items-center gap-4 p-4 transition-all group cursor-pointer"
                         >
-                          <div className="w-10 h-10 rounded-xl bg-[#3d6fa8]/10 flex items-center justify-center shrink-0">
+                          <div className="w-10 h-10 rounded-xl bg-[#3d6fa8]/10 flex items-center justify-center shrink-0" aria-hidden="true">
                             <span className="text-sm font-bold text-[#6b9fcc]">#{p.dayIndex + 1}</span>
                           </div>
                           <div className="flex-1 min-w-0">
@@ -1876,6 +1882,7 @@ export default function ChannelDashboard() {
                                   disabled={restyleLoading.has(p.id) || p.carouselJobId === generatingCarouselJobId}
                                   className="flex items-center gap-1.5 text-xs text-muted hover:text-[#6b9fcc] font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                                   title="Re-render all slides with current saved style"
+                                  aria-label="Restyle all slides"
                                 >
                                   {restyleLoading.has(p.id) ? (
                                     <span className="w-3 h-3 border border-[#3d6fa8]/30 border-t-[#6b9fcc] rounded-full animate-spin" />
@@ -1913,6 +1920,7 @@ export default function ChannelDashboard() {
                                 disabled={deletingPostId === p.id}
                                 className="flex items-center text-muted hover:text-red-400 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                                 title="Delete post"
+                                aria-label="Delete post"
                               >
                                 {deletingPostId === p.id ? (
                                   <span className="w-3.5 h-3.5 border border-red-400/30 border-t-red-400 rounded-full animate-spin" />
@@ -1962,7 +1970,7 @@ export default function ChannelDashboard() {
 
                           return (
                             <div className="px-4 pb-4 animate-fade-up">
-                              <div className="border-t border-border pt-4">
+                              <div className="border-t border-border pt-4 lg:bg-surface/50 lg:rounded-xl lg:border lg:border-border/60 lg:p-5 lg:mt-1">
                                 {isLoadingSlides ? (
                                   <div className="flex items-center gap-3 p-6 bg-surface-elevated rounded-xl">
                                     <span className="w-4 h-4 border-2 border-[#3d6fa8]/30 border-t-[#6b9fcc] rounded-full animate-spin" />
@@ -1970,19 +1978,19 @@ export default function ChannelDashboard() {
                                   </div>
                                 ) : slides && slides.length > 0 ? (
                                   <div>
-                                    {/* View mode toggle */}
-                                    <div className="flex items-center gap-2 mb-4">
+                                    {/* View mode toggle — segmented control */}
+                                    <div className="flex items-center gap-0 mb-4 bg-surface-elevated rounded-lg border border-border p-0.5 w-fit">
                                       <button
                                         onClick={() => setPreviewMode(prev => { const n = new Set(prev); n.delete(p.id); return n })}
-                                        className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${!isPreview ? 'bg-[#3d6fa8] text-white' : 'bg-surface-elevated text-muted hover:text-foreground border border-border'}`}
+                                        className={`flex items-center gap-1.5 h-9 px-4 text-sm font-semibold rounded-md transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6b9fcc]/60 ${!isPreview ? 'bg-[#3d6fa8] text-white shadow-sm' : 'text-muted hover:text-foreground'}`}
                                       >
-                                        <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="4" height="10" rx="1"/><rect x="9" y="3" width="5" height="10" rx="1"/></svg>
+                                        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="4" height="10" rx="1"/><rect x="9" y="3" width="5" height="10" rx="1"/></svg>
                                         Review slides
                                       </button>
                                       <button
                                         onClick={() => setPreviewMode(prev => new Set(prev).add(p.id))}
                                         disabled={slideImages.length === 0}
-                                        className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${isPreview ? 'bg-[#3d6fa8] text-white' : 'bg-surface-elevated text-muted hover:text-foreground border border-border'} disabled:opacity-30 disabled:cursor-not-allowed`}
+                                        className={`flex items-center gap-1.5 h-9 px-4 text-sm font-semibold rounded-md transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6b9fcc]/60 ${isPreview ? 'bg-[#3d6fa8] text-white shadow-sm' : 'text-muted hover:text-foreground'} disabled:opacity-30 disabled:cursor-not-allowed`}
                                       >
                                         <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M1 8s3-5 7-5 7 5 7 5-3 5-7 5-7-5-7-5z"/><circle cx="8" cy="8" r="2"/></svg>
                                         Preview
@@ -2014,7 +2022,7 @@ export default function ChannelDashboard() {
                                         <div className="relative px-2">
                                           <div className="min-w-0 mx-auto w-full" style={{ maxWidth: 'min(100%, calc(420px * 4 / 5))' }}>
                                             {currentSlide?.imageUrl && (
-                                              <div className="w-full aspect-[4/5] max-h-[420px]">
+                                              <div className="w-full aspect-[4/5] max-h-[420px] bg-surface-elevated rounded-lg">
                                                 <img
                                                   src={currentSlide.imageUrl}
                                                   alt={currentSlide.displayTitle || currentSlide.headline || `Slide ${currentSlideIdx + 1}`}
@@ -2067,16 +2075,16 @@ export default function ChannelDashboard() {
                                           <button
                                             onClick={() => setSlideViewerIndex(prev => ({ ...prev, [p.id]: Math.max(0, currentSlideIdx - 1) }))}
                                             disabled={currentSlideIdx === 0}
-                                            className="absolute left-3 top-1/2 -translate-y-1/2 p-2.5 rounded-full bg-background/80 border border-border hover:bg-surface-elevated disabled:opacity-0 transition-all"
+                                            className="absolute left-3 top-1/2 -translate-y-1/2 p-2.5 lg:p-3 rounded-full bg-background/80 lg:bg-surface-elevated border border-border hover:bg-surface-elevated disabled:opacity-0 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6b9fcc]/60"
                                           >
-                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="lg:w-5 lg:h-5"><polyline points="15 18 9 12 15 6"/></svg>
                                           </button>
                                           <button
                                             onClick={() => setSlideViewerIndex(prev => ({ ...prev, [p.id]: Math.min(slides.length - 1, currentSlideIdx + 1) }))}
                                             disabled={currentSlideIdx === slides.length - 1}
-                                            className="absolute right-3 top-1/2 -translate-y-1/2 p-2.5 rounded-full bg-background/80 border border-border hover:bg-surface-elevated disabled:opacity-0 transition-all"
+                                            className="absolute right-3 top-1/2 -translate-y-1/2 p-2.5 lg:p-3 rounded-full bg-background/80 lg:bg-surface-elevated border border-border hover:bg-surface-elevated disabled:opacity-0 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6b9fcc]/60"
                                           >
-                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="lg:w-5 lg:h-5"><polyline points="9 18 15 12 9 6"/></svg>
                                           </button>
                                         </div>
                                         <div className="flex items-center justify-center gap-1.5 pt-3 pb-4">
@@ -2149,9 +2157,11 @@ export default function ChannelDashboard() {
                     <div key={i} className={`animate-fade-up bg-background border rounded-2xl overflow-hidden transition-all ${isGenerating ? 'border-[#3d6fa8]/40 animate-pulse' : 'border-border'} ${isExpanded ? 'border-border-hover' : 'hover:border-border-hover hover:bg-surface-elevated/50'}`}>
                       <button
                         onClick={() => togglePostExpanded(p.id, p.carouselJobId)}
-                        className="w-full text-left flex items-center gap-4 p-4 transition-all group"
+                        aria-expanded={isExpanded}
+                        aria-label={`Post ${p.dayIndex + 1}: ${p.title}`}
+                        className="w-full text-left flex items-center gap-4 p-4 transition-all group cursor-pointer"
                       >
-                        <div className="w-10 h-10 rounded-xl bg-[#3d6fa8]/10 flex items-center justify-center shrink-0">
+                        <div className="w-10 h-10 rounded-xl bg-[#3d6fa8]/10 flex items-center justify-center shrink-0" aria-hidden="true">
                           <span className="text-sm font-bold text-[#6b9fcc]">#{p.dayIndex + 1}</span>
                         </div>
                         <div className="flex-1 min-w-0">
@@ -2203,14 +2213,14 @@ export default function ChannelDashboard() {
 
                         return (
                           <div className="px-4 pb-4 animate-fade-up">
-                            <div className="border-t border-border pt-4">
-                              {/* View mode toggle */}
-                              <div className="flex items-center gap-2 mb-4">
+                            <div className="border-t border-border pt-4 lg:bg-surface/50 lg:rounded-xl lg:border lg:border-border/60 lg:p-5 lg:mt-1">
+                              {/* View mode toggle — segmented control */}
+                              <div className="flex items-center gap-0 mb-4 bg-surface-elevated rounded-lg border border-border p-0.5 w-fit">
                                 <button
                                   onClick={() => setPreviewMode(prev => { const n = new Set(prev); n.delete(p.id); return n })}
-                                  className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${!isPreview ? 'bg-[#3d6fa8] text-white' : 'bg-surface-elevated text-muted hover:text-foreground border border-border'}`}
+                                  className={`flex items-center gap-1.5 h-9 px-4 text-sm font-semibold rounded-md transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6b9fcc]/60 ${!isPreview ? 'bg-[#3d6fa8] text-white shadow-sm' : 'text-muted hover:text-foreground'}`}
                                 >
-                                  <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="4" height="10" rx="1"/><rect x="9" y="3" width="5" height="10" rx="1"/></svg>
+                                  <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="4" height="10" rx="1"/><rect x="9" y="3" width="5" height="10" rx="1"/></svg>
                                   Review slides
                                 </button>
                                 <button
@@ -2221,7 +2231,7 @@ export default function ChannelDashboard() {
                                     }
                                   }}
                                   disabled={!p.carouselJobId}
-                                  className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${isPreview ? 'bg-[#3d6fa8] text-white' : 'bg-surface-elevated text-muted hover:text-foreground border border-border'} disabled:opacity-30 disabled:cursor-not-allowed`}
+                                  className={`flex items-center gap-1.5 h-9 px-4 text-sm font-semibold rounded-md transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6b9fcc]/60 ${isPreview ? 'bg-[#3d6fa8] text-white shadow-sm' : 'text-muted hover:text-foreground'} disabled:opacity-30 disabled:cursor-not-allowed`}
                                 >
                                   <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M1 8s3-5 7-5 7 5 7 5-3 5-7 5-7-5-7-5z"/><circle cx="8" cy="8" r="2"/></svg>
                                   Preview
@@ -2296,17 +2306,17 @@ export default function ChannelDashboard() {
                                       })()}
                                     </div>
                                   </div>
-                                  <div className="flex items-center justify-center gap-2.5 px-2">
+                                  <div className="flex items-center justify-center gap-2.5 lg:gap-4 px-2">
                                     <button
                                       onClick={() => setSlideViewerIndex(prev => ({ ...prev, [p.id]: Math.max(0, currentSlideIdx - 1) }))}
                                       disabled={currentSlideIdx === 0}
-                                      className="shrink-0 p-2 rounded-full bg-background/80 border border-border hover:bg-surface-elevated disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                                      className="shrink-0 p-2 lg:p-3 rounded-full bg-background/80 lg:bg-surface-elevated border border-border hover:bg-surface-elevated disabled:opacity-30 disabled:cursor-not-allowed transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6b9fcc]/60"
                                     >
                                       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
                                     </button>
                                     <div className="min-w-0">
                                       {displaySlide?.imageUrl && (
-                                        <div className="relative w-full aspect-[4/5] max-h-[420px] mx-auto" style={{ maxWidth: 'min(100%, calc(420px * 4 / 5))' }}>
+                                        <div className="relative w-full aspect-[4/5] max-h-[420px] mx-auto bg-surface-elevated rounded-lg" style={{ maxWidth: 'min(100%, calc(420px * 4 / 5))' }}>
                                           <img
                                             src={displaySlide.imageUrl}
                                             alt={currentSlide?.headline || `Slide ${currentSlideIdx + 1}`}
@@ -2324,7 +2334,7 @@ export default function ChannelDashboard() {
                                     <button
                                       onClick={() => setSlideViewerIndex(prev => ({ ...prev, [p.id]: Math.min((effectiveSlides.length || p.slideCount) - 1, currentSlideIdx + 1) }))}
                                       disabled={currentSlideIdx >= (effectiveSlides.length || p.slideCount) - 1}
-                                      className="shrink-0 p-2 rounded-full bg-background/80 border border-border hover:bg-surface-elevated disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                                      className="shrink-0 p-2 lg:p-3 rounded-full bg-background/80 lg:bg-surface-elevated border border-border hover:bg-surface-elevated disabled:opacity-30 disabled:cursor-not-allowed transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6b9fcc]/60"
                                     >
                                       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
                                     </button>
@@ -2522,7 +2532,7 @@ export default function ChannelDashboard() {
               </PrimaryButton>
               <Link
                 href={`/channels/${channelId}/posts`}
-                className="flex-1 text-center min-h-11 py-2.5 px-6 bg-surface hover:bg-surface-hover border border-border rounded-full text-sm font-semibold transition-all"
+                className="flex-1 text-center min-h-11 py-2.5 px-6 bg-surface hover:bg-surface-hover border border-border-hover rounded-full text-sm font-semibold transition-all"
               >
                 View all posts
               </Link>
