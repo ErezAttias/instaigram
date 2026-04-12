@@ -2264,47 +2264,13 @@ export default function ChannelDashboard() {
                               ) : (
                                 <div className="bg-surface-elevated rounded-xl overflow-hidden">
                                   <div className="px-4 pt-3 pb-2">
-                                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                                      <span className={`text-xs font-bold tracking-wider uppercase ${
-                                        currentSlide?.role === 'OPENER' ? 'text-[#6b9fcc]' :
-                                        currentSlide?.role === 'CTA' ? 'text-violet' :
-                                        'text-muted'
-                                      }`}>
-                                        {currentSlide?.role} — Slide {currentSlideIdx + 1} of {effectiveSlides.length || p.slideCount}
-                                      </span>
-                                      {/* Regeneration buttons — 2x2 grid */}
-                                      {p.carouselJobId && (() => {
-                                        const regenKey = `${p.id}-${currentSlideIdx}`
-                                        const activeMode = regenLoading[regenKey]
-                                        const actions = [
-                                          { key: 'copy', label: 'Regen Text', loading: 'Rewriting...', onClick: () => handleRegenerateSlide(p.id, p.carouselJobId!, currentSlideIdx, 'copy') },
-                                          { key: 'image', label: 'Regen Image', loading: 'Rendering...', onClick: () => handleRegenerateSlide(p.id, p.carouselJobId!, currentSlideIdx, 'image', 'generated') },
-                                          { key: 'full', label: 'Regen Both', loading: 'Both...', onClick: () => handleRegenerateSlide(p.id, p.carouselJobId!, currentSlideIdx, 'full', 'generated') },
-                                          { key: 'wikipedia', label: 'Wiki Image', loading: 'Fetching...', onClick: () => handleRegenerateSlide(p.id, p.carouselJobId!, currentSlideIdx, 'image', 'wikipedia') },
-                                        ] as const
-                                        return (
-                                          <div className="mx-auto w-full grid grid-cols-2 gap-px rounded-lg border border-border overflow-hidden bg-border" style={{ maxWidth: 'min(100%, calc(420px * 4 / 5))' }}>
-                                            {actions.map((action) => (
-                                              <button
-                                                key={action.key}
-                                                onClick={action.onClick}
-                                                disabled={!!activeMode || p.carouselJobId === generatingCarouselJobId}
-                                                className={`py-1.5 text-[11px] font-semibold rounded-none transition-all disabled:opacity-40 disabled:cursor-not-allowed hover:bg-foreground/5 hover:text-foreground bg-background ${
-                                                  activeMode === action.key ? 'bg-foreground/5 text-foreground' : 'text-muted'
-                                                }`}
-                                              >
-                                                {activeMode === action.key ? (
-                                                  <span className="flex items-center justify-center gap-1">
-                                                    <span className="w-2.5 h-2.5 border border-[#3d6fa8]/30 border-t-[#6b9fcc] rounded-full animate-spin" />
-                                                    {action.loading}
-                                                  </span>
-                                                ) : action.label}
-                                              </button>
-                                            ))}
-                                          </div>
-                                        )
-                                      })()}
-                                    </div>
+                                    <span className={`text-xs font-bold tracking-wider uppercase ${
+                                      currentSlide?.role === 'OPENER' ? 'text-[#6b9fcc]' :
+                                      currentSlide?.role === 'CTA' ? 'text-violet' :
+                                      'text-muted'
+                                    }`}>
+                                      {currentSlide?.role} — Slide {currentSlideIdx + 1} of {effectiveSlides.length || p.slideCount}
+                                    </span>
                                   </div>
                                   <div className="flex items-center justify-center gap-2.5 lg:gap-4 px-2">
                                     <button
@@ -2330,6 +2296,40 @@ export default function ChannelDashboard() {
                                       {!displaySlide?.imageUrl && currentSlide?.body && (
                                         <p className="px-4 text-sm text-muted-light leading-relaxed">{currentSlide.body}</p>
                                       )}
+                                      {/* Regen buttons — below image, same container width */}
+                                      {p.carouselJobId && (() => {
+                                        const regenKey = `${p.id}-${currentSlideIdx}`
+                                        const activeMode = regenLoading[regenKey]
+                                        const actions = [
+                                          { key: 'copy', label: 'Regen Text', loading: 'Rewriting...', onClick: () => handleRegenerateSlide(p.id, p.carouselJobId!, currentSlideIdx, 'copy') },
+                                          { key: 'image', label: 'Regen Image', loading: 'Rendering...', onClick: () => handleRegenerateSlide(p.id, p.carouselJobId!, currentSlideIdx, 'image', 'generated') },
+                                          { key: 'full', label: 'Regen Both', loading: 'Both...', onClick: () => handleRegenerateSlide(p.id, p.carouselJobId!, currentSlideIdx, 'full', 'generated') },
+                                          { key: 'wikipedia', label: 'Wiki Image', loading: 'Fetching...', onClick: () => handleRegenerateSlide(p.id, p.carouselJobId!, currentSlideIdx, 'image', 'wikipedia') },
+                                        ] as const
+                                        return (
+                                          <div className="pt-3 w-full">
+                                            <div className="grid grid-cols-2 gap-px w-full rounded-lg border border-border overflow-hidden bg-border">
+                                              {actions.map((action) => (
+                                                <button
+                                                  key={action.key}
+                                                  onClick={action.onClick}
+                                                  disabled={!!activeMode || p.carouselJobId === generatingCarouselJobId}
+                                                  className={`py-2 text-[11px] font-semibold rounded-none transition-all disabled:opacity-40 disabled:cursor-not-allowed hover:bg-foreground/5 hover:text-foreground bg-background ${
+                                                    activeMode === action.key ? 'bg-foreground/5 text-foreground' : 'text-muted'
+                                                  }`}
+                                                >
+                                                  {activeMode === action.key ? (
+                                                    <span className="flex items-center justify-center gap-1.5">
+                                                      <span className="w-3 h-3 border border-[#3d6fa8]/30 border-t-[#6b9fcc] rounded-full animate-spin" />
+                                                      {action.loading}
+                                                    </span>
+                                                  ) : action.label}
+                                                </button>
+                                              ))}
+                                            </div>
+                                          </div>
+                                        )
+                                      })()}
                                     </div>
                                     <button
                                       onClick={() => setSlideViewerIndex(prev => ({ ...prev, [p.id]: Math.min((effectiveSlides.length || p.slideCount) - 1, currentSlideIdx + 1) }))}
