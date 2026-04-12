@@ -24,7 +24,7 @@ function ShellInner({ children }: { children: React.ReactNode }) {
       </aside>
 
       {/* Main content */}
-      <div className="flex-1 min-w-0 max-w-5xl mx-auto">
+      <div className="flex-1 min-w-0 max-w-5xl lg:mx-auto">
         {children}
       </div>
     </div>
