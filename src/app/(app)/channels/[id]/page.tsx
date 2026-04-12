@@ -907,6 +907,48 @@ export default function ChannelDashboard() {
     fetchChannel()
   }
 
+  // ─── Mobile tab recovery ─────────────────────────────────────
+  // When the user switches apps and comes back, the fetch stream is dead.
+  // Re-fetch channel data to see if posts were generated while away.
+  useEffect(() => {
+    function handleVisibilityChange() {
+      if (document.visibilityState !== 'visible') return
+      if (!isStreamingPosts) return // Only relevant during active generation
+
+      // Tab just became visible — check if posts were generated while away
+      fetch(`/api/channels/${channelId}`)
+        .then(r => r.ok ? r.json() : null)
+        .then(data => {
+          if (!data) return
+          const hadPostsBefore = completedPosts.length + (postStreamProgress?.current ?? 0)
+          const hasPostsNow = data.posts?.length ?? 0
+
+          if (hasPostsNow > hadPostsBefore || data.status === 'CONTENT_GENERATED' || data.status === 'COMPLETE') {
+            // Posts were generated while we were away — recover gracefully
+            postAbortRef.current?.abort()
+            stopCarouselPolling()
+            setIsStreamingPosts(false)
+            setPostStreamProgress(null)
+            setError('')
+            setChannel(data)
+            if (data.nicheOptions?.length > 0) setNiches(data.nicheOptions)
+
+            // Refresh slides for the new posts
+            for (const p of data.posts) {
+              if (p.carouselJobId && !dbPostSlides[p.id]) {
+                fetchCarouselSlides(p.id, p.carouselJobId)
+                setExpandedPosts(prev => new Set(prev).add(p.id))
+              }
+            }
+          }
+        })
+        .catch(() => { /* ignore — will retry on next visibility change */ })
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
+  }, [channelId, isStreamingPosts, completedPosts.length, postStreamProgress])
+
   // ─── Optional naming handlers ──────────────────────────────────
 
   async function handleGenerateNames(style?: NameStyle) {
@@ -1883,7 +1925,7 @@ export default function ChannelDashboard() {
                                         </div>
                                         {/* Regen buttons — outside image container for scroll access */}
                                         {/* Dots */}
-                                        <div className="flex items-center justify-center gap-1.5 pt-2 pb-3">
+                                        <div className="flex items-center justify-center gap-1.5 py-5">
                                           {slides.map((_, i) => (
                                             <div
                                               key={i}
@@ -2128,7 +2170,7 @@ export default function ChannelDashboard() {
                                     </button>
                                   </div>
                                   {/* Dots */}
-                                  <div className="flex items-center justify-center gap-1.5 pt-2 pb-3">
+                                  <div className="flex items-center justify-center gap-1.5 py-5">
                                     {effectiveSlides.map((_, si) => (
                                       <button
                                         key={si}

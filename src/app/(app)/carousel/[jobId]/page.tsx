@@ -1044,6 +1044,44 @@ export default function CarouselJobPage() {
     }
   }, [jobId]);
 
+  // Start or restart SSE connection
+  const startSSE = useCallback(() => {
+    // Close any existing connection
+    eventSourceRef.current?.close();
+
+    const es = new EventSource(`/api/carousel/${jobId}/status`);
+    eventSourceRef.current = es;
+
+    es.onmessage = (event) => {
+      try {
+        const data: ProgressEvent = JSON.parse(event.data);
+        setProgress(data);
+
+        // When entering render phase or slide counts change, poll for slides
+        if (data.slides && data.slides.total > 0 && !slidesPollRef.current) {
+          fetchJob();
+          slidesPollRef.current = setInterval(() => {
+            fetchJob();
+          }, 2000);
+        }
+
+        if (data.status === 'COMPLETE') {
+          es.close();
+          fetchJob();
+        } else if (data.status === 'FAILED' || data.step === 'error') {
+          es.close();
+          setError(data.message);
+          fetchJob();
+        }
+      } catch {}
+    };
+
+    es.onerror = () => {
+      es.close();
+      fetchJob();
+    };
+  }, [jobId, fetchJob]);
+
   // SSE connection for progress + slide polling during render
   useEffect(() => {
     // First check current status
@@ -1051,41 +1089,7 @@ export default function CarouselJobPage() {
       if (data && (data.status === 'COMPLETE' || data.status === 'FAILED')) {
         return; // Already done, no need for SSE
       }
-
-      // Start SSE
-      const es = new EventSource(`/api/carousel/${jobId}/status`);
-      eventSourceRef.current = es;
-
-      es.onmessage = (event) => {
-        try {
-          const data: ProgressEvent = JSON.parse(event.data);
-          setProgress(data);
-
-          // When entering render phase or slide counts change, poll for slides
-          if (data.slides && data.slides.total > 0 && !slidesPollRef.current) {
-            // Fetch immediately then poll every 2s
-            fetchJob();
-            slidesPollRef.current = setInterval(() => {
-              fetchJob();
-            }, 2000);
-          }
-
-          if (data.status === 'COMPLETE') {
-            es.close();
-            fetchJob();
-          } else if (data.status === 'FAILED' || data.step === 'error') {
-            es.close();
-            setError(data.message);
-            fetchJob();
-          }
-        } catch {}
-      };
-
-      es.onerror = () => {
-        es.close();
-        // Fetch final state
-        fetchJob();
-      };
+      startSSE();
     });
 
     return () => {
@@ -1095,7 +1099,35 @@ export default function CarouselJobPage() {
         slidesPollRef.current = null;
       }
     };
-  }, [jobId, fetchJob]);
+  }, [jobId, fetchJob, startSSE]);
+
+  // ─── Mobile tab recovery ─────────────────────────────────────
+  // When the user switches apps and comes back, the SSE connection is dead.
+  // Re-fetch job status and reconnect if still in progress.
+  useEffect(() => {
+    function handleVisibilityChange() {
+      if (document.visibilityState !== 'visible') return;
+      // Tab just became visible again — check the real status
+      fetchJob().then(data => {
+        if (!data) return;
+        if (data.status === 'COMPLETE' || data.status === 'FAILED') {
+          // Job finished while we were away — SSE is already dead, no need to reconnect
+          eventSourceRef.current?.close();
+          if (slidesPollRef.current) {
+            clearInterval(slidesPollRef.current);
+            slidesPollRef.current = null;
+          }
+          setError(data.status === 'FAILED' ? (data.errorMessage || 'Generation failed') : null);
+        } else {
+          // Job is still running — reconnect SSE
+          startSSE();
+        }
+      });
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [fetchJob, startSSE]);
 
   // Transition to preview: generate caption then switch phase
   const handleTransitionToPreview = useCallback(async () => {
