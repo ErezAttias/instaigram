@@ -1181,8 +1181,7 @@ export default function ChannelDashboard() {
               <img
                 src={lightboxUrl}
                 alt="Preview"
-                className="max-w-[90vw] max-h-[90vh] object-contain rounded-xl shadow-2xl"
-                onClick={(e) => e.stopPropagation()}
+                className="max-w-[90vw] max-h-[90vh] object-contain rounded-xl shadow-2xl cursor-zoom-out"
               />
               <button
                 onClick={() => setLightboxUrl(null)}
