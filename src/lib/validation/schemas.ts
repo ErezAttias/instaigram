@@ -413,6 +413,7 @@ export const CompressedSlideDisplay = z.object({
   slideNumber:     z.number().int().min(0).max(6),
   displayTitle:    z.string().min(1).max(80),   // 5–10 words, punchy
   displaySupport:  z.string().max(200),          // FACT: 2-3 sentence flowing paragraph. Others: 8–15 words.
+  swipeCta:        z.string().max(40).optional(), // OPENER only: contextual CTA e.g. "Swipe to learn why"
 });
 
 export const CompressedCarousel = z.object({

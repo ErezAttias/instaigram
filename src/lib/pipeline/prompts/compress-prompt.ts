@@ -57,6 +57,15 @@ Role-specific behavior:
      ✓ "Why Honey Never Expires" — direct intrigue pattern
   displaySupport = always empty string for OPENER.
      ✓ "" (always empty)
+  swipeCta = a short, contextual call-to-action that matches the hook's promise. 3–6 words starting with "Swipe to".
+  The CTA must match what the carousel actually delivers. Examples:
+     "Why X Does Y" → swipeCta: "Swipe to learn why"
+     "How X Works" → swipeCta: "Swipe to find out how"
+     "5 Foods That Destroy Your Gut" → swipeCta: "Swipe to see them"
+     "Everything You Think About X Is Wrong" → swipeCta: "Swipe to see the truth"
+     "What Happens When You Stop Eating Sugar" → swipeCta: "Swipe to see what happens"
+     "The Hidden Cost of X" → swipeCta: "Swipe to find out"
+  IMPORTANT: The CTA must feel natural for the specific hook. Do NOT always default to "Swipe to learn why".
 
 - FACT: Transform into a FLOWING PARAGRAPH — one cohesive thought, not a list of disconnected sentences.
 
@@ -164,11 +173,14 @@ Return exactly this JSON structure:
     {
       "slideNumber": 0,
       "displayTitle": "string (5–10 words)",
-      "displaySupport": "string (8–15 words, or empty string for OPENER if not needed)"
+      "displaySupport": "string (8–15 words, or empty string for OPENER if not needed)",
+      "swipeCta": "string (OPENER slides only, e.g. 'Swipe to learn why')"
     },
     ...one entry per input slide, same order...
   ]
 }
 
-CRITICAL: Return one entry per slide. slideNumber must match the input slide numbers exactly.`;
+CRITICAL:
+- Return one entry per slide. slideNumber must match the input slide numbers exactly.
+- Include swipeCta ONLY for OPENER slides. Omit for all other roles.`;
 }

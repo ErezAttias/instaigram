@@ -283,6 +283,7 @@ export default function ChannelDashboard() {
   const [previewMode, setPreviewMode] = useState<Set<string>>(new Set())
   const [regenLoading, setRegenLoading] = useState<Record<string, string | null>>({})
   const [restyleLoading, setRestyleLoading] = useState<Set<string>>(new Set()) // postId -> mode ('copy'|'image'|'full') or null
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null)
 
   // ─── Content Strategy state ─────────────────────────────────
   const [strategyOptions, setStrategyOptions] = useState<ContentStrategy[]>([])
@@ -1171,6 +1172,26 @@ export default function ChannelDashboard() {
 
   return (
     <div className="animate-fade-up max-w-3xl">
+          {/* Lightbox overlay */}
+          {lightboxUrl && (
+            <div
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm cursor-zoom-out animate-fade-in"
+              onClick={() => setLightboxUrl(null)}
+            >
+              <img
+                src={lightboxUrl}
+                alt="Preview"
+                className="max-w-[90vw] max-h-[90vh] object-contain rounded-xl shadow-2xl"
+                onClick={(e) => e.stopPropagation()}
+              />
+              <button
+                onClick={() => setLightboxUrl(null)}
+                className="absolute top-6 right-6 p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors text-white"
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+              </button>
+            </div>
+          )}
           {/* Error banner */}
           {error && (
             <div className="animate-scale-in bg-danger-dim border border-danger/20 px-5 py-4 rounded-2xl sticky top-20 z-10">
@@ -1913,7 +1934,8 @@ export default function ChannelDashboard() {
                                               <img
                                                 src={currentSlide.imageUrl}
                                                 alt={currentSlide.displayTitle || currentSlide.headline || `Slide ${currentSlideIdx + 1}`}
-                                                className="w-full h-auto max-h-[350px] object-contain mx-auto rounded-lg"
+                                                className="w-full h-auto max-h-[350px] object-contain mx-auto rounded-lg cursor-zoom-in hover:brightness-[1.03] transition-all"
+                                                onClick={() => setLightboxUrl(currentSlide.imageUrl)}
                                               />
                                             )}
                                             {!currentSlide?.imageUrl && currentSlide?.headline && (
@@ -1941,7 +1963,7 @@ export default function ChannelDashboard() {
                                         </div>
                                         {/* Regen buttons — outside image container for scroll access */}
                                         {/* Dots */}
-                                        <div className="flex items-center justify-center gap-1.5 py-5">
+                                        <div className="flex items-center justify-center gap-1.5 pt-1.5 pb-3">
                                           {slides.map((_, i) => (
                                             <div
                                               key={i}

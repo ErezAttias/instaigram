@@ -323,6 +323,8 @@ async function renderSlideImage(
   exploreTopic?: string,
   /** Skip readability gate — accept any generated image (for manual regen) */
   skipReadabilityGate?: boolean,
+  /** Contextual swipe CTA for OPENER slides (e.g. "Swipe to learn why") */
+  swipeCta?: string,
 ): Promise<SlideRenderOutput> {
   if (slide.role === 'OPENER') {
     // Always render OPENER with layout-first composition (same as FACT slides).
@@ -368,6 +370,7 @@ async function renderSlideImage(
             subjectName: personName,
             excludeUrls,
             visualStyle: visualStyle ?? DEFAULT_VISUAL_STYLE,
+            swipeCta,
           },
           wikiGen,
         );
@@ -406,6 +409,7 @@ async function renderSlideImage(
         subjectName: conceptHint || topic,
         visualStyle: visualStyle ?? DEFAULT_VISUAL_STYLE,
         skipReadabilityGate,
+        swipeCta,
       },
       imageGen,
     );
@@ -1076,7 +1080,7 @@ export async function runCarouselGeneration(
         // Try rendering (UnifiedImageProvider handles Gemini → Stability fallback internally)
         try {
           console.log(`[ImageStage] Slide ${slideNum} attempt ${attempt} — calling renderSlideImage`);
-          const renderOutput = await renderSlideImage(slide, displayTitle, displaySupport, job.topic, imageProvider, finalSlides, undefined, job.direction, channelVisualStyle, undefined, preSelectedConcept, channelExploreTopic, true);
+          const renderOutput = await renderSlideImage(slide, displayTitle, displaySupport, job.topic, imageProvider, finalSlides, undefined, job.direction, channelVisualStyle, undefined, preSelectedConcept, channelExploreTopic, true, compressed?.swipeCta);
           imageBase64 = renderOutput.imageBase64;
           rawImageBase64 = renderOutput.rawImageBase64;
           resolvedImageSource = renderOutput.resolvedImageSource;

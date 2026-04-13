@@ -105,6 +105,8 @@ export interface FactSlideInput {
   baseImage?: Buffer;
   /** Skip readability gate — accept any generated image even with layout issues (for manual regen) */
   skipReadabilityGate?: boolean;
+  /** Custom swipe CTA text for OPENER/HOOK slides (e.g. "Swipe to see them"). Auto-derived from headline if omitted. */
+  swipeCta?: string;
 }
 
 export type RenderStep =
@@ -184,6 +186,37 @@ export interface RenderedLayout {
   verticalCenterNorm: number;
   /** Horizontal center as fraction of canvas width (0–1) */
   horizontalCenterNorm: number;
+}
+
+// ─── Swipe CTA Derivation ──────────────────────────────────────
+
+/**
+ * Derive a contextual swipe CTA from the headline text.
+ * Matches common hook patterns to pick the most natural prompt.
+ */
+function deriveSwipeCta(headline: string): string {
+  const h = headline.toLowerCase();
+
+  // "Why X" / "The reason X" → learn why
+  if (/\bwhy\b/.test(h) || /\breason\b/.test(h)) return 'Swipe to learn why';
+
+  // "How X" / "The way X" → find out how
+  if (/\bhow\b/.test(h)) return 'Swipe to find out how';
+
+  // Number lists: "5 Foods", "3 Signs", "10 Things" → see them all
+  if (/^\d+\s/.test(h) || /\b\d+\s+(things|foods|ways|signs|habits|mistakes|facts|secrets|tips|rules)\b/.test(h)) return 'Swipe to see them all';
+
+  // "What happens" / "What X does" → see what happens
+  if (/\bwhat\s+(happens|really|actually)\b/.test(h)) return 'Swipe to see what happens';
+
+  // "Nobody" / "No one" / "Most people don't" → find out
+  if (/\bnobody\b|\bno one\b|\bmost people don.t\b/.test(h)) return 'Swipe to find out';
+
+  // "Stop doing X" / "Don't X" / "Never X" → learn what to do instead
+  if (/\bstop\b|\bdon.t\b|\bnever\b/.test(h)) return 'Swipe to learn more';
+
+  // Default
+  return 'Swipe to learn why';
 }
 
 // ─── SVG Helpers ────────────────────────────────────────────────
@@ -368,22 +401,40 @@ function buildDocumentaryOverlay(
     );
   }
 
-  // "Swipe to discover →" CTA for OPENER/HOOK slides
-  // Uses T2 typography (body font, same size/weight) for design consistency
-  // Arrow is a text character (→) — clean, scales with font, no SVG drawing artifacts
+  // Swipe CTA with long line + arrowhead for OPENER/HOOK slides
+  // Line extends from text to near the right edge, creating a strong visual pull
+  // CTA text adapts to the hook: explicit swipeCta field, or auto-derived from headline
   if (isOpener) {
     const ctaFontSize = Math.round(t2Size * 1.25); // T2 size + 25%
     const ctaColor = t2Color;   // match T2 color
+    const lineColor = 'rgba(208,208,208,0.5)';
     const ctaX = TEXT_PAD;
     // Position after the T1/T2 block + gap
     const textBlockEnd = startY + t1BlockHeight + gapHeight + t2BlockHeight;
     const ctaY = Math.round(textBlockEnd + ctaGapHeight + ctaFontSize);
 
+    const ctaText = input.swipeCta ?? deriveSwipeCta(input.displayTitle);
+    // Estimate text width (~0.5em per char for body font)
+    const textWidth = ctaText.length * ctaFontSize * 0.5;
+    const gap = 20;
+    const arrowHeadSize = 10;
+    const lineStartX = ctaX + textWidth + gap;
+    const lineEndX = CANVAS.width - TEXT_PAD - arrowHeadSize - 4;
+    const lineY = ctaY - ctaFontSize * 0.35; // vertically center with text
+
     elements.push(
       `<text x="${ctaX}" y="${ctaY}" `
       + `font-family="${bodyFontFamily}" `
       + `font-size="${ctaFontSize}" font-weight="${FONT.t2.weight}" `
-      + `fill="${ctaColor}">Swipe to discover &#x2192;</text>`
+      + `fill="${ctaColor}">${escapeXml(ctaText)}</text>`
+    );
+    elements.push(
+      `<line x1="${lineStartX}" y1="${lineY}" x2="${lineEndX}" y2="${lineY}" `
+      + `stroke="${lineColor}" stroke-width="1.5" stroke-linecap="round"/>`
+    );
+    elements.push(
+      `<polygon points="${lineEndX},${lineY - arrowHeadSize / 2} ${lineEndX + arrowHeadSize},${lineY} ${lineEndX},${lineY + arrowHeadSize / 2}" `
+      + `fill="${lineColor}"/>`
     );
   }
 
