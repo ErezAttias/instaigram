@@ -1801,19 +1801,19 @@ export default function ChannelDashboard() {
                           })
                         } catch { /* non-blocking */ }
                       }}
-                      className={`relative flex flex-col gap-3 p-4 rounded-2xl border-2 transition-all text-left ${
+                      className={`relative flex flex-col gap-3 p-4 rounded-2xl border transition-all text-left ${
                         isSelected
-                          ? 'border-[#dc2743] bg-[#dc2743]/5'
-                          : 'border-border hover:border-border-hover bg-surface/50'
+                          ? 'border-[#3d6fa8]/40 bg-[#3d6fa8]/10'
+                          : 'border-border hover:border-[#3d6fa8]/25 hover:bg-[#3d6fa8]/8 bg-surface/50'
                       }`}
                     >
-                      {isRecommended && !isSelected && (
-                        <span className="absolute top-2 right-2 px-2 py-0.5 text-[10px] font-semibold rounded-full bg-[#3d6fa8]/20 text-[#6b9fcc] border border-[#3d6fa8]/40">
-                          Recommended
-                        </span>
-                      )}
                       {/* Mini preview */}
-                      <div className="w-full aspect-[4/5] rounded-xl overflow-hidden bg-surface-elevated">
+                      <div className="relative w-full aspect-[4/5] rounded-xl overflow-hidden bg-surface-elevated">
+                        {isRecommended && (
+                          <span className="absolute top-2 right-2 z-10 px-2 py-0.5 text-[10px] font-semibold rounded-full bg-[#3d6fa8]/80 text-white border border-[#3d6fa8]/60">
+                            Recommended
+                          </span>
+                        )}
                         {layoutKey === 'DETAILED' ? (
                           <div className="flex flex-col h-full">
                             <div className="flex-1 bg-gradient-to-br from-zinc-700 to-zinc-900" />
@@ -1834,7 +1834,7 @@ export default function ChannelDashboard() {
                         <div className="text-sm font-semibold text-foreground flex items-center gap-2">
                           {layoutKey === 'DETAILED' ? 'Detailed' : 'Bold'}
                           {isSelected && (
-                            <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-[#dc2743] text-white">
+                            <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-[#3d6fa8]/20 text-[#6b9fcc]">
                               <svg width="8" height="8" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                                 <path d="M2 5.5L4 7.5L8 3" />
                               </svg>
