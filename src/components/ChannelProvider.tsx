@@ -31,6 +31,8 @@ interface ChannelContextValue {
   setShowNaming: (v: boolean) => void
   showStyleEditor: boolean
   setShowStyleEditor: (v: boolean) => void
+  autosaved: boolean
+  markAutosaved: () => void
   // Allow the page component to push updates (supports updater pattern)
   setChannel: Dispatch<SetStateAction<Channel | null>>
   setVisualStyle: Dispatch<SetStateAction<ChannelVisualStyleContext>>
@@ -51,6 +53,12 @@ export function ChannelProvider({ channelId, children }: { channelId: string; ch
   const [showStyleEditor, setShowStyleEditor] = useState(false)
   const [activeTab, setActiveTabState] = useState<number>(0)
   const [userNavigated, setUserNavigated] = useState(false)
+  const [autosaved, setAutosaved] = useState(false)
+
+  const markAutosaved = useCallback(() => {
+    setAutosaved(true)
+    setTimeout(() => setAutosaved(false), 3000)
+  }, [])
 
   const setActiveTab = useCallback((tab: number) => {
     setUserNavigated(true)
@@ -123,6 +131,8 @@ export function ChannelProvider({ channelId, children }: { channelId: string; ch
         setShowNaming,
         showStyleEditor,
         setShowStyleEditor,
+        autosaved,
+        markAutosaved,
         setChannel,
         setVisualStyle,
       }}

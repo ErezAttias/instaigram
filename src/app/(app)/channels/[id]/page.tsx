@@ -9,7 +9,6 @@ import Link from 'next/link'
 import InstagramPreview from '@/components/InstagramPreview'
 import '@/components/instagram-preview.css'
 import { useChannelContext } from '@/components/ChannelProvider'
-import { DecisionsRail } from '@/components/channel/DecisionsRail'
 import { classifyDomainStyle } from '@/lib/utils/topic-classifier'
 import { TITLE_FONTS, BODY_FONTS, getTitleFont } from '@/lib/visual/font-pairings-data'
 import type { ChannelVisualStyleContext } from '@/lib/visual/visual-style'
@@ -275,6 +274,7 @@ export default function ChannelDashboard() {
   const setChannel = ctx.setChannel
   const activeTab = ctx.activeTab
   const setActiveTab = ctx.setActiveTab
+  const markAutosaved = ctx.markAutosaved
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
   const [error, setError] = useState('')
@@ -595,6 +595,7 @@ export default function ChannelDashboard() {
         throw new Error(data.error || 'Failed to select niche')
       }
       await fetchChannel()
+      markAutosaved()
       setActionLoading(null)
       // Auto-generate content strategy after niche selection
       handleGenerateStrategy()
@@ -711,6 +712,7 @@ export default function ChannelDashboard() {
       setEditingStrategy(null)
       setIsEditingStrategy(false)
       await fetchChannel()
+      markAutosaved()
       setActionLoading(null)
       // Auto-advance to Style tab so user picks their carousel layout
       setActiveTab(2)
@@ -1238,9 +1240,6 @@ export default function ChannelDashboard() {
             </div>
           )}
 
-          {/* Decisions rail — sticky summary of completed steps */}
-          <DecisionsRail />
-
           {/* ═══════════════════════════════════════════════════════
               Step 1: Topic (activeTab === 0)
               ═══════════════════════════════════════════════════════ */}
@@ -1273,6 +1272,7 @@ export default function ChannelDashboard() {
             completed={effectiveStep > 0}
             active={effectiveStep === 0}
           >
+            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] mb-1.5 bg-clip-text text-transparent" style={{ backgroundImage: IG_GRADIENT }}>Topic · Step 1 of 4</p>
             <div className="flex items-start justify-between gap-3 mb-6">
               <div>
                 <h2 className="text-xl font-bold tracking-tight">{step1Title}</h2>
@@ -1492,6 +1492,7 @@ export default function ChannelDashboard() {
             <Section delay={120} active={effectiveStep === 1}>
               <div className="flex flex-col gap-3 mb-5">
                 <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.08em] mb-1.5 bg-clip-text text-transparent" style={{ backgroundImage: IG_GRADIENT }}>Strategy · Step 2 of 4</p>
                   <h2 className="text-xl font-bold tracking-tight">Content strategy</h2>
                   <p className="text-sm text-muted-light mt-1 max-w-prose">
                     {strategyOptions.length > 0
@@ -1763,6 +1764,7 @@ export default function ChannelDashboard() {
             return (
             <Section delay={120} active={effectiveStep === 2}>
               <div className="flex flex-col gap-1 mb-6">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.08em] mb-1.5 bg-clip-text text-transparent" style={{ backgroundImage: IG_GRADIENT }}>Style · Step 3 of 4</p>
                 <h2 className="text-xl font-bold tracking-tight">Choose your carousel style</h2>
                 <p className="text-sm text-muted-light">
                   Sets how your slides look and how content is written for this channel. You can change it anytime.
@@ -1799,6 +1801,7 @@ export default function ChannelDashboard() {
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ carouselLayout: layoutKey }),
                           })
+                          markAutosaved()
                         } catch { /* non-blocking */ }
                       }}
                       className={`relative flex flex-col gap-3 p-4 rounded-2xl border transition-all text-left ${
@@ -1879,6 +1882,7 @@ export default function ChannelDashboard() {
             <div className="flex flex-col gap-3">
               <div className="flex items-start justify-between gap-3">
                 <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.08em] mb-1.5 bg-clip-text text-transparent" style={{ backgroundImage: IG_GRADIENT }}>Posts · Step 4 of 4</p>
                   <h2 className="text-xl font-bold tracking-tight">Generate posts</h2>
                   {hasPosts && !isStreamingPosts && (
                     <p className="text-sm text-muted-light mt-1">{channel.posts.length} post{channel.posts.length !== 1 ? 's' : ''} generated</p>

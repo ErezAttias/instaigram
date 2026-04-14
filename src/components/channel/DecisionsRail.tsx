@@ -60,7 +60,7 @@ export function DecisionsRail() {
   ]
 
   return (
-    <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-sm border-b border-border flex items-center gap-2 py-2.5 overflow-x-auto">
+    <div className="sticky top-[108px] z-20 bg-background/95 backdrop-blur-sm border-b border-border flex items-center gap-2 py-2.5 overflow-x-auto">
       {/* Chips */}
       <div className="flex items-center gap-2 flex-nowrap">
         {chips.map(chip => {
