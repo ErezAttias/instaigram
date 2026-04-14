@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Option C - Mobile Mockup</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0a0a0a; color: #e5e5e5; }
+
+  .mockup-label { text-align: center; font-size: 11px; color: #666; margin-top: 16px; margin-bottom: 4px; letter-spacing: 2px; text-transform: uppercase; }
+  .mockup-title { text-align: center; font-size: 18px; font-weight: 700; margin-bottom: 20px; color: #fff; }
+
+  /* ═══ Mobile frame ═══ */
+  .phone-frame {
+    width: 375px;
+    margin: 0 auto 60px;
+    background: #0a0a0a;
+    border: 1px solid #1a1a1a;
+    border-radius: 20px;
+    overflow: hidden;
+  }
+
+  /* ─── Top nav bar ─── */
+  .top-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px;
+    border-bottom: 1px solid #1a1a1a;
+  }
+  .top-nav .logo { font-size: 16px; font-weight: 700; }
+  .top-nav .icons { display: flex; gap: 12px; }
+  .top-nav .icon { width: 20px; height: 20px; border-radius: 50%; background: #1a1a1a; }
+
+  /* ─── Channel header (compact) ─── */
+  .channel-header {
+    padding: 16px 16px 12px;
+  }
+  .channel-header .name { font-size: 16px; font-weight: 700; }
+  .channel-header .niche { font-size: 12px; color: #666; margin-top: 2px; }
+
+  /* ─── Scrollable tabs ─── */
+  .tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid #1a1a1a;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding: 0 16px;
+  }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab {
+    padding: 12px 14px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #555;
+    border-bottom: 2px solid transparent;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .tab.active { color: #fff; border-bottom-color: #dc2743; }
+  .tab .check { color: #6b9fcc; margin-right: 4px; font-size: 11px; }
+
+  /* ─── Content area ─── */
+  .content { padding: 20px 16px 32px; }
+  .content h2 { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
+  .content .subtitle { font-size: 13px; color: #555; margin-bottom: 20px; line-height: 1.4; }
+
+  /* ─── Layout picker ─── */
+  .layout-picker { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .layout-option {
+    border: 2px solid #2a2a2a;
+    border-radius: 14px;
+    padding: 14px;
+    text-align: center;
+  }
+  .layout-option.selected { border-color: #dc2743; background: rgba(220,39,67,0.05); }
+  .layout-preview {
+    width: 100%;
+    aspect-ratio: 4/5;
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 10px;
+  }
+  .layout-preview.detailed {
+    background: #1a1a1a;
+    display: flex;
+    flex-direction: column;
+  }
+  .layout-preview.detailed .img-area { flex: 1; background: linear-gradient(135deg, #2a2a3e, #1a1a2e); }
+  .layout-preview.detailed .text-bar {
+    height: 24%;
+    background: #000;
+    padding: 6px 8px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 3px;
+  }
+  .layout-preview.detailed .text-bar .line { height: 2.5px; border-radius: 2px; background: rgba(255,255,255,0.7); }
+  .layout-preview.detailed .text-bar .line.w75 { width: 75%; }
+  .layout-preview.detailed .text-bar .line.w100 { width: 100%; background: rgba(255,255,255,0.3); height: 2px; }
+  .layout-preview.detailed .text-bar .line.w60 { width: 60%; background: rgba(255,255,255,0.3); height: 2px; }
+
+  .layout-preview.bold {
+    background: linear-gradient(180deg, #2a2a3e 0%, #1a1a2e 40%, #000 100%);
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: 10px;
+    gap: 3px;
+    align-items: center;
+  }
+  .layout-preview.bold .line { height: 3.5px; border-radius: 2px; background: rgba(255,255,255,0.85); }
+  .layout-preview.bold .line.w80 { width: 80%; }
+  .layout-preview.bold .line.w55 { width: 55%; }
+
+  .layout-option .name { font-size: 13px; font-weight: 600; margin-bottom: 1px; }
+  .layout-option .desc { font-size: 10px; color: #666; }
+
+  .btn-primary {
+    display: flex; align-items: center; justify-content: center;
+    width: 100%;
+    height: 48px;
+    background: linear-gradient(135deg, #f09433, #e6683c, #dc2743);
+    color: white; font-size: 15px; font-weight: 600;
+    border: none; border-radius: 999px;
+    margin-top: 24px;
+  }
+
+  /* ─── Posts view ─── */
+  .post-card {
+    background: #0d1117;
+    border: 1px solid #1e2a3a;
+    border-radius: 12px;
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 10px;
+  }
+  .post-number {
+    width: 28px; height: 28px; border-radius: 7px;
+    background: rgba(61,111,168,0.15); color: #6b9fcc;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 600; flex-shrink: 0;
+  }
+  .post-title { font-size: 13px; font-weight: 500; }
+  .post-chevron { margin-left: auto; color: #444; flex-shrink: 0; }
+
+  .divider { border-bottom: 2px solid #222; margin: 40px 0; }
+</style>
+</head>
+<body>
+
+<!-- ═══ Mockup 1: Carousel Style tab active ═══ -->
+<p class="mockup-label">Mobile — Carousel Style Step</p>
+<p class="mockup-title">Choosing Layout</p>
+
+<div class="phone-frame">
+  <div class="top-nav">
+    <span class="logo">InstAIgram</span>
+    <div class="icons">
+      <div class="icon"></div>
+      <div class="icon"></div>
+    </div>
+  </div>
+
+  <div class="channel-header">
+    <div class="name">Untitled channel</div>
+    <div class="niche">amazing animal facts</div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab"><span class="check">&#10003;</span> Topic</div>
+    <div class="tab"><span class="check">&#10003;</span> Strategy</div>
+    <div class="tab active">Style</div>
+    <div class="tab">Posts</div>
+  </div>
+
+  <div class="content">
+    <h2>Choose your carousel style</h2>
+    <p class="subtitle">Sets how your slides look and how content is written for this channel.</p>
+
+    <div class="layout-picker">
+      <div class="layout-option selected">
+        <div class="layout-preview detailed">
+          <div class="img-area"></div>
+          <div class="text-bar">
+            <div class="line w75"></div>
+            <div class="line w100"></div>
+            <div class="line w60"></div>
+          </div>
+        </div>
+        <div class="name">Detailed</div>
+        <div class="desc">Headline + paragraph</div>
+      </div>
+      <div class="layout-option">
+        <div class="layout-preview bold">
+          <div class="line w80"></div>
+          <div class="line w55"></div>
+        </div>
+        <div class="name">Bold</div>
+        <div class="desc">Big text, easy to read</div>
+      </div>
+    </div>
+
+    <button class="btn-primary">Continue</button>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- ═══ Mockup 2: Posts tab active ═══ -->
+<p class="mockup-label">Mobile — Posts Tab</p>
+<p class="mockup-title">After Generating Posts</p>
+
+<div class="phone-frame">
+  <div class="top-nav">
+    <span class="logo">InstAIgram</span>
+    <div class="icons">
+      <div class="icon"></div>
+      <div class="icon"></div>
+    </div>
+  </div>
+
+  <div class="channel-header">
+    <div class="name">Untitled channel</div>
+    <div class="niche">amazing animal facts</div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab"><span class="check">&#10003;</span> Topic</div>
+    <div class="tab"><span class="check">&#10003;</span> Strategy</div>
+    <div class="tab"><span class="check">&#10003;</span> Style</div>
+    <div class="tab active">Posts</div>
+  </div>
+
+  <div class="content">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <div>
+        <h2 style="margin-bottom:2px;">Posts</h2>
+        <p style="font-size:12px;color:#555;">3 posts generated · Detailed</p>
+      </div>
+    </div>
+
+    <div class="post-card">
+      <div class="post-number">#1</div>
+      <div class="post-title">Octopuses have three hearts</div>
+      <span class="post-chevron">&#8250;</span>
+    </div>
+    <div class="post-card">
+      <div class="post-number">#2</div>
+      <div class="post-title">Pistol shrimp snaps louder than a gunshot</div>
+      <span class="post-chevron">&#8250;</span>
+    </div>
+    <div class="post-card">
+      <div class="post-number">#3</div>
+      <div class="post-title">Tardigrades survive the vacuum of space</div>
+      <span class="post-chevron">&#8250;</span>
+    </div>
+
+    <button class="btn-primary">Generate next post</button>
+  </div>
+</div>
+
+</body>
+</html>

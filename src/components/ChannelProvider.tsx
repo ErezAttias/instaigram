@@ -22,6 +22,8 @@ interface ChannelContextValue {
   channel: Channel | null
   channelId: string
   effectiveStep: number
+  activeTab: number
+  setActiveTab: (tab: number) => void
   hasPosts: boolean
   hasStrategy: boolean
   visualStyle: ChannelVisualStyleContext
@@ -47,6 +49,13 @@ export function ChannelProvider({ channelId, children }: { channelId: string; ch
   const [visualStyle, setVisualStyle] = useState<ChannelVisualStyleContext>(DEFAULT_VISUAL_STYLE)
   const [showNaming, setShowNaming] = useState(false)
   const [showStyleEditor, setShowStyleEditor] = useState(false)
+  const [activeTab, setActiveTabState] = useState<number>(0)
+  const [userNavigated, setUserNavigated] = useState(false)
+
+  const setActiveTab = useCallback((tab: number) => {
+    setUserNavigated(true)
+    setActiveTabState(tab)
+  }, [])
 
   // Channel and visual style fetching is handled by the page component,
   // which calls setChannel/setVisualStyle to push data into context.
@@ -75,15 +84,29 @@ export function ChannelProvider({ channelId, children }: { channelId: string; ch
     fetchVisualStyle()
   }, [fetchChannel, fetchVisualStyle])
 
-  // Derive step
+  // Derive step — 4 steps now: 0=Topic, 1=Strategy, 2=Style, 3=Posts
   const stepOrder = ['DRAFT', 'NICHE_SELECTED', 'STRATEGY_DEFINED', 'CONTENT_GENERATED', 'COMPLETE']
   const statusIndex = channel ? stepOrder.indexOf(channel.status) : 0
-  const currentStep = statusIndex <= 0 ? 0 : statusIndex === 1 ? 1 : statusIndex >= 2 ? 2 : 0
+  const hasPostsLocal = (channel?.posts?.length ?? 0) > 0
+  // statusIndex: 0=DRAFT, 1=NICHE_SELECTED, 2=STRATEGY_DEFINED, 3=CONTENT_GENERATED, 4=COMPLETE
+  // derived step: 0=Topic, 1=Strategy, 2=Style (strategy defined, no posts yet), 3=Posts (has content)
+  let currentStep = 0
+  if (statusIndex >= 3 || hasPostsLocal) currentStep = 3
+  else if (statusIndex === 2) currentStep = 2
+  else if (statusIndex === 1) currentStep = 1
+  else currentStep = 0
   const isLegacyStatus = channel ? ['NAMED', 'HOOKS_GENERATED', 'POSITIONED'].includes(channel.status) : false
-  const effectiveStep = isLegacyStatus ? 2 : currentStep
+  const effectiveStep = isLegacyStatus ? 3 : currentStep
 
   const hasStrategy = !!channel?.contentStrategy
-  const hasPosts = (channel?.posts?.length ?? 0) > 0
+  const hasPosts = hasPostsLocal
+
+  // Auto-sync activeTab to effectiveStep until the user manually navigates
+  useEffect(() => {
+    if (!userNavigated) {
+      setActiveTabState(effectiveStep)
+    }
+  }, [effectiveStep, userNavigated])
 
   return (
     <ChannelContext.Provider
@@ -91,6 +114,8 @@ export function ChannelProvider({ channelId, children }: { channelId: string; ch
         channel,
         channelId,
         effectiveStep,
+        activeTab,
+        setActiveTab,
         hasPosts,
         hasStrategy,
         visualStyle,

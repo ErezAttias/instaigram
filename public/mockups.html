@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Channel Studio - Layout Mockups</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0a0a0a; color: #e5e5e5; }
+
+  .mockup-container { max-width: 1400px; margin: 0 auto; padding: 40px 20px; }
+  .mockup-label { text-align: center; font-size: 14px; color: #888; margin-bottom: 12px; letter-spacing: 2px; text-transform: uppercase; }
+  .mockup-title { text-align: center; font-size: 28px; font-weight: 700; margin-bottom: 40px; color: #fff; }
+
+  /* ═══ Option A: Cards ═══ */
+  .option-a { margin-bottom: 80px; border-bottom: 1px solid #222; padding-bottom: 80px; }
+  .option-a .page { display: flex; gap: 0; min-height: 700px; background: #0a0a0a; border-radius: 16px; overflow: hidden; border: 1px solid #1a1a1a; }
+  .option-a .sidebar { width: 240px; border-right: 1px solid #1a1a1a; padding: 28px 20px; flex-shrink: 0; }
+  .option-a .main { flex: 1; padding: 32px 40px; overflow-y: auto; }
+  .option-a .channel-name { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+  .option-a .channel-niche { font-size: 13px; color: #777; margin-bottom: 24px; }
+  .option-a .stepper { margin-bottom: 32px; }
+  .option-a .step { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+  .option-a .step-dot { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; flex-shrink: 0; }
+  .option-a .step-dot.done { background: rgba(61,111,168,0.15); color: #6b9fcc; }
+  .option-a .step-dot.active { background: linear-gradient(135deg, #f09433, #dc2743, #bc1888); color: white; }
+  .option-a .step-dot.pending { background: #1a1a1a; color: #555; border: 1px solid #2a2a2a; }
+  .option-a .step-label { font-size: 13px; font-weight: 500; color: #888; }
+  .option-a .step-connector { width: 28px; display: flex; justify-content: center; }
+  .option-a .step-connector div { width: 2px; height: 16px; background: #1a1a1a; }
+  .option-a .step-connector.done div { background: rgba(61,111,168,0.3); }
+
+  .option-a .card {
+    background: #111;
+    border: 1px solid #1e1e1e;
+    border-radius: 16px;
+    padding: 28px 32px;
+    margin-bottom: 16px;
+  }
+  .option-a .card h2 { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
+  .option-a .card .subtitle { font-size: 13px; color: #666; margin-bottom: 16px; }
+  .option-a .card.collapsed { padding: 20px 32px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; }
+  .option-a .card.collapsed h2 { margin-bottom: 0; font-size: 16px; color: #999; }
+  .option-a .chevron { color: #555; font-size: 18px; }
+
+  /* Layout picker card */
+  .layout-picker { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px; }
+  .layout-option {
+    border: 2px solid #2a2a2a;
+    border-radius: 14px;
+    padding: 20px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+  }
+  .layout-option:hover { border-color: #444; }
+  .layout-option.selected { border-color: #dc2743; background: rgba(220,39,67,0.05); }
+  .layout-preview {
+    width: 100%;
+    aspect-ratio: 4/5;
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 12px;
+  }
+  .layout-preview.detailed {
+    background: #1a1a1a;
+    display: flex;
+    flex-direction: column;
+  }
+  .layout-preview.detailed .img-area { flex: 1; background: linear-gradient(135deg, #2a2a3e 0%, #1a1a2e 100%); }
+  .layout-preview.detailed .text-bar {
+    height: 24%;
+    background: #000;
+    padding: 8px 10px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 4px;
+  }
+  .layout-preview.detailed .text-bar .line { height: 3px; border-radius: 2px; background: rgba(255,255,255,0.7); }
+  .layout-preview.detailed .text-bar .line.w75 { width: 75%; }
+  .layout-preview.detailed .text-bar .line.w100 { width: 100%; background: rgba(255,255,255,0.3); height: 2px; }
+  .layout-preview.detailed .text-bar .line.w60 { width: 60%; background: rgba(255,255,255,0.3); height: 2px; }
+
+  .layout-preview.bold {
+    background: linear-gradient(180deg, #2a2a3e 0%, #1a1a2e 40%, #000 100%);
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: 12px;
+    gap: 4px;
+    align-items: center;
+  }
+  .layout-preview.bold .line { height: 4px; border-radius: 2px; background: rgba(255,255,255,0.85); }
+  .layout-preview.bold .line.w80 { width: 80%; }
+  .layout-preview.bold .line.w55 { width: 55%; }
+
+  .layout-option .name { font-size: 14px; font-weight: 600; margin-bottom: 2px; }
+  .layout-option .desc { font-size: 11px; color: #666; }
+
+  /* Post card */
+  .post-card {
+    background: #0d1117;
+    border: 1px solid #1e2a3a;
+    border-radius: 14px;
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .post-number { width: 32px; height: 32px; border-radius: 8px; background: rgba(61,111,168,0.15); color: #6b9fcc; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; flex-shrink: 0; }
+  .post-title { font-size: 14px; font-weight: 500; }
+
+  .btn-primary {
+    display: inline-flex; align-items: center; justify-content: center;
+    height: 44px; padding: 0 24px;
+    background: linear-gradient(135deg, #f09433, #e6683c, #dc2743);
+    color: white; font-size: 14px; font-weight: 600;
+    border: none; border-radius: 999px; cursor: pointer;
+    margin-top: 16px;
+  }
+
+  .settings-label { font-size: 11px; color: #555; font-weight: 500; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
+  .settings-item { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #777; padding: 6px 0; cursor: pointer; }
+  .settings-item:hover { color: #ccc; }
+  .settings-icon { width: 16px; height: 16px; border-radius: 50%; border: 1px solid #444; flex-shrink: 0; }
+
+  /* ═══ Option B: Minimal with stronger separation ═══ */
+  .option-b { margin-bottom: 80px; border-bottom: 1px solid #222; padding-bottom: 80px; }
+  .option-b .page { display: flex; gap: 0; min-height: 700px; background: #0a0a0a; border-radius: 16px; overflow: hidden; border: 1px solid #1a1a1a; }
+  .option-b .sidebar { width: 240px; border-right: 1px solid #1a1a1a; padding: 28px 20px; flex-shrink: 0; }
+  .option-b .main { flex: 1; padding: 0 40px; overflow-y: auto; }
+
+  .option-b .section {
+    padding: 32px 0;
+    border-bottom: 1px solid #1a1a1a;
+  }
+  .option-b .section:last-child { border-bottom: none; }
+  .option-b .section-header {
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 4px;
+  }
+  .option-b .section-number {
+    width: 24px; height: 24px; border-radius: 50%; font-size: 11px; font-weight: 600;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .option-b .section-number.done { background: rgba(61,111,168,0.15); color: #6b9fcc; }
+  .option-b .section-number.active { background: linear-gradient(135deg, #f09433, #dc2743); color: white; }
+  .option-b .section h2 { font-size: 17px; font-weight: 600; }
+  .option-b .section .section-subtitle { font-size: 13px; color: #555; margin-top: 2px; margin-left: 36px; }
+  .option-b .section.collapsed { cursor: pointer; padding: 24px 0; }
+  .option-b .section.collapsed h2 { color: #777; font-size: 16px; }
+
+  /* ═══ Option C: Grouped with header tabs ═══ */
+  .option-c .page { display: flex; gap: 0; min-height: 700px; background: #0a0a0a; border-radius: 16px; overflow: hidden; border: 1px solid #1a1a1a; }
+  .option-c .sidebar { width: 260px; border-right: 1px solid #1a1a1a; padding: 28px 20px; flex-shrink: 0; }
+  .option-c .main { flex: 1; }
+
+  .option-c .top-bar {
+    display: flex; align-items: center; gap: 0;
+    border-bottom: 1px solid #1a1a1a;
+    padding: 0 40px;
+  }
+  .option-c .tab {
+    padding: 16px 20px;
+    font-size: 13px; font-weight: 500;
+    color: #666;
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+  }
+  .option-c .tab.active { color: #fff; border-bottom-color: #dc2743; }
+  .option-c .tab .check { color: #6b9fcc; margin-right: 6px; font-size: 12px; }
+
+  .option-c .content-area {
+    padding: 32px 40px;
+  }
+
+  /* Shared reuse */
+  .option-b .channel-name, .option-c .channel-name { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+  .option-b .channel-niche, .option-c .channel-niche { font-size: 13px; color: #777; margin-bottom: 24px; }
+
+  /* Divider between mockups */
+  .divider { height: 1px; background: #333; margin: 60px 0; }
+</style>
+</head>
+<body>
+
+<div class="mockup-container">
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- OPTION A: Card-based sections -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div class="option-a">
+  <p class="mockup-label">Option A</p>
+  <p class="mockup-title">Card-Based Sections</p>
+
+  <div class="page">
+    <div class="sidebar">
+      <div class="channel-name">Untitled channel</div>
+      <div class="channel-niche">amazing animal facts</div>
+
+      <div class="stepper">
+        <div class="step">
+          <div class="step-dot done">&#10003;</div>
+          <span class="step-label">Topic</span>
+        </div>
+        <div class="step-connector done"><div></div></div>
+        <div class="step">
+          <div class="step-dot done">&#10003;</div>
+          <span class="step-label">Strategy</span>
+        </div>
+        <div class="step-connector done"><div></div></div>
+        <div class="step">
+          <div class="step-dot active">3</div>
+          <span class="step-label">Posts</span>
+        </div>
+      </div>
+
+      <div style="margin-top: 40px; padding-top: 16px; border-top: 1px solid #1a1a1a;">
+        <div class="settings-label">Settings</div>
+        <div class="settings-item"><div class="settings-icon"></div> Name channel</div>
+        <div class="settings-item"><div class="settings-icon"></div> Slide style <span style="margin-left:auto;font-size:11px;color:#555">Inter</span></div>
+      </div>
+    </div>
+
+    <div class="main">
+      <div class="card collapsed">
+        <h2>Set topic &mdash; amazing animal facts</h2>
+        <span class="chevron">&#8964;</span>
+      </div>
+
+      <div class="card collapsed">
+        <h2>Content strategy</h2>
+        <span class="chevron">&#8964;</span>
+      </div>
+
+      <!-- Layout picker card -->
+      <div class="card">
+        <h2>Choose your carousel style</h2>
+        <p class="subtitle">This sets how your slides look and how content is written. You can change it later.</p>
+
+        <div class="layout-picker">
+          <div class="layout-option selected">
+            <div class="layout-preview detailed">
+              <div class="img-area"></div>
+              <div class="text-bar">
+                <div class="line w75"></div>
+                <div class="line w100"></div>
+                <div class="line w60"></div>
+              </div>
+            </div>
+            <div class="name">Detailed</div>
+            <div class="desc">Headline + paragraph</div>
+          </div>
+          <div class="layout-option">
+            <div class="layout-preview bold">
+              <div class="line w80"></div>
+              <div class="line w55"></div>
+            </div>
+            <div class="name">Bold</div>
+            <div class="desc">Big text, easy to consume</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Generate posts card -->
+      <div class="card">
+        <h2>Generate posts</h2>
+        <p class="subtitle">3 posts generated</p>
+
+        <div style="margin-top: 16px; display: flex; flex-direction: column; gap: 10px;">
+          <div class="post-card">
+            <div class="post-number">#1</div>
+            <div class="post-title">Octopuses have three hearts — each with a unique role!</div>
+          </div>
+          <div class="post-card">
+            <div class="post-number">#2</div>
+            <div class="post-title">The pistol shrimp snaps louder than a gunshot</div>
+          </div>
+          <div class="post-card">
+            <div class="post-number">#3</div>
+            <div class="post-title">Tardigrades survive the vacuum of space</div>
+          </div>
+        </div>
+
+        <button class="btn-primary">Generate next post</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- OPTION B: Minimal with numbered sections -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div class="option-b">
+  <p class="mockup-label">Option B</p>
+  <p class="mockup-title">Minimal with Numbered Sections</p>
+
+  <div class="page">
+    <div class="sidebar">
+      <div class="channel-name">Untitled channel</div>
+      <div class="channel-niche">amazing animal facts</div>
+
+      <div class="stepper" style="margin-bottom:32px;">
+        <!-- same stepper -->
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+          <div class="step-dot done" style="width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;background:rgba(61,111,168,0.15);color:#6b9fcc;">&#10003;</div>
+          <span style="font-size:13px;color:#888;">Topic</span>
+        </div>
+        <div style="width:28px;display:flex;justify-content:center;"><div style="width:2px;height:16px;background:rgba(61,111,168,0.3);"></div></div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+          <div class="step-dot done" style="width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;background:rgba(61,111,168,0.15);color:#6b9fcc;">&#10003;</div>
+          <span style="font-size:13px;color:#888;">Strategy</span>
+        </div>
+        <div style="width:28px;display:flex;justify-content:center;"><div style="width:2px;height:16px;background:rgba(61,111,168,0.3);"></div></div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;background:linear-gradient(135deg, #f09433, #dc2743, #bc1888);color:white;">3</div>
+          <span style="font-size:13px;color:#e5e5e5;font-weight:500;">Posts</span>
+        </div>
+      </div>
+
+      <div style="margin-top: 40px; padding-top: 16px; border-top: 1px solid #1a1a1a;">
+        <div class="settings-label">Settings</div>
+        <div class="settings-item"><div class="settings-icon"></div> Name channel</div>
+        <div class="settings-item"><div class="settings-icon"></div> Slide style <span style="margin-left:auto;font-size:11px;color:#555">Inter</span></div>
+      </div>
+    </div>
+
+    <div class="main">
+      <div class="section collapsed">
+        <div class="section-header">
+          <div class="section-number done">&#10003;</div>
+          <h2>Set topic &mdash; amazing animal facts</h2>
+        </div>
+      </div>
+
+      <div class="section collapsed">
+        <div class="section-header">
+          <div class="section-number done">&#10003;</div>
+          <h2>Content strategy</h2>
+        </div>
+      </div>
+
+      <!-- Layout picker as its own section -->
+      <div class="section">
+        <div class="section-header">
+          <div class="section-number active" style="background:linear-gradient(135deg, #f09433, #dc2743);color:white;">3</div>
+          <h2 style="color:#fff;">Choose your carousel style</h2>
+        </div>
+        <p class="section-subtitle">Sets how your slides look and how content is written.</p>
+
+        <div class="layout-picker" style="margin-left: 36px; margin-top: 16px; max-width: 440px;">
+          <div class="layout-option selected">
+            <div class="layout-preview detailed">
+              <div class="img-area"></div>
+              <div class="text-bar">
+                <div class="line w75"></div>
+                <div class="line w100"></div>
+                <div class="line w60"></div>
+              </div>
+            </div>
+            <div class="name">Detailed</div>
+            <div class="desc">Headline + paragraph</div>
+          </div>
+          <div class="layout-option">
+            <div class="layout-preview bold">
+              <div class="line w80"></div>
+              <div class="line w55"></div>
+            </div>
+            <div class="name">Bold</div>
+            <div class="desc">Big text, easy to consume</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Generate posts section -->
+      <div class="section">
+        <div class="section-header">
+          <div class="section-number" style="background:#1a1a1a;color:#555;border:1px solid #2a2a2a;">4</div>
+          <h2>Generate posts</h2>
+        </div>
+        <p class="section-subtitle">3 posts generated</p>
+
+        <div style="margin-top: 16px; margin-left: 36px; display: flex; flex-direction: column; gap: 10px;">
+          <div class="post-card">
+            <div class="post-number">#1</div>
+            <div class="post-title">Octopuses have three hearts — each with a unique role!</div>
+          </div>
+          <div class="post-card">
+            <div class="post-number">#2</div>
+            <div class="post-title">The pistol shrimp snaps louder than a gunshot</div>
+          </div>
+        </div>
+        <div style="margin-left: 36px;">
+          <button class="btn-primary">Generate next post</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- OPTION C: Top tabs navigation -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div class="option-c">
+  <p class="mockup-label">Option C</p>
+  <p class="mockup-title">Top Tab Navigation</p>
+
+  <div class="page">
+    <div class="sidebar">
+      <div class="channel-name">Untitled channel</div>
+      <div class="channel-niche">amazing animal facts</div>
+
+      <div style="margin-top:24px;padding-top:16px;border-top:1px solid #1a1a1a;">
+        <div class="settings-label">Settings</div>
+        <div class="settings-item"><div class="settings-icon"></div> Name channel</div>
+        <div class="settings-item"><div class="settings-icon"></div> Slide style <span style="margin-left:auto;font-size:11px;color:#555">Inter</span></div>
+      </div>
+    </div>
+
+    <div class="main">
+      <div class="top-bar">
+        <div class="tab"><span class="check">&#10003;</span> Topic</div>
+        <div class="tab"><span class="check">&#10003;</span> Strategy</div>
+        <div class="tab active">Carousel Style</div>
+        <div class="tab">Posts</div>
+      </div>
+
+      <div class="content-area">
+        <h2 style="font-size:20px;font-weight:700;margin-bottom:6px;">Choose your carousel style</h2>
+        <p style="font-size:13px;color:#666;margin-bottom:24px;">This determines how your slides look and how content is written for your channel.</p>
+
+        <div class="layout-picker" style="max-width: 480px;">
+          <div class="layout-option">
+            <div class="layout-preview detailed">
+              <div class="img-area"></div>
+              <div class="text-bar">
+                <div class="line w75"></div>
+                <div class="line w100"></div>
+                <div class="line w60"></div>
+              </div>
+            </div>
+            <div class="name">Detailed</div>
+            <div class="desc">Headline + paragraph</div>
+          </div>
+          <div class="layout-option selected">
+            <div class="layout-preview bold">
+              <div class="line w80"></div>
+              <div class="line w55"></div>
+            </div>
+            <div class="name">Bold</div>
+            <div class="desc">Big text, easy to consume</div>
+          </div>
+        </div>
+
+        <button class="btn-primary" style="margin-top:24px;">Continue</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div>
+</body>
+</html>

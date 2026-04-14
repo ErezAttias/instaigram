@@ -9,6 +9,7 @@ import Link from 'next/link'
 import InstagramPreview from '@/components/InstagramPreview'
 import '@/components/instagram-preview.css'
 import { useChannelContext } from '@/components/ChannelProvider'
+import { TopTabNav } from '@/components/channel/TopTabNav'
 import { TITLE_FONTS, BODY_FONTS, getTitleFont } from '@/lib/visual/font-pairings-data'
 import type { ChannelVisualStyleContext } from '@/lib/visual/visual-style'
 import { DEFAULT_VISUAL_STYLE } from '@/lib/visual/visual-style'
@@ -270,6 +271,8 @@ export default function ChannelDashboard() {
   // Use context state directly so sidebar stays in sync
   const channel = ctx.channel
   const setChannel = ctx.setChannel
+  const activeTab = ctx.activeTab
+  const setActiveTab = ctx.setActiveTab
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
   const [error, setError] = useState('')
@@ -707,15 +710,9 @@ export default function ChannelDashboard() {
       setIsEditingStrategy(false)
       await fetchChannel()
       setActionLoading(null)
-      // Auto-advance: start generating first post after strategy is approved
-      setTimeout(() => {
-        handleGenerateBatch()
-        // Scroll to Generate posts section so user sees progress
-        const genSection = document.querySelector('h2')
-        const sections = document.querySelectorAll('h2')
-        const generateHeader = Array.from(sections).find(h => h.textContent?.includes('Generate posts'))
-        generateHeader?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-      }, 100)
+      // Auto-advance to Style tab so user picks their carousel layout
+      setActiveTab(2)
+      window.scrollTo({ top: 0, behavior: 'smooth' })
       return
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to approve strategy')
@@ -743,7 +740,9 @@ export default function ChannelDashboard() {
       setIsEditingStrategy(false)
       await fetchChannel()
       setActionLoading(null)
-      setTimeout(() => handleGenerateBatch(), 100)
+      // Auto-advance to Style tab so user picks their carousel layout
+      setActiveTab(2)
+      window.scrollTo({ top: 0, behavior: 'smooth' })
       return
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to approve strategy')
@@ -1129,14 +1128,18 @@ export default function ChannelDashboard() {
     )
   }
 
-  // New step order: DRAFT(0) → NICHE_SELECTED(1) → STRATEGY_DEFINED(2) → CONTENT_GENERATED+ (2, posts exist)
+  // New step order: DRAFT(0) → NICHE_SELECTED(1) → STRATEGY_DEFINED(2) → CONTENT_GENERATED+ (3, posts exist)
+  // 4-step UI: 0=Topic, 1=Strategy, 2=Style, 3=Posts
   const stepOrder = ['DRAFT', 'NICHE_SELECTED', 'STRATEGY_DEFINED', 'CONTENT_GENERATED', 'COMPLETE']
   const statusIndex = stepOrder.indexOf(channel.status)
-  // Map to 3-step UI: 0=Topic, 1=Strategy, 2=Posts
-  const currentStep = statusIndex <= 0 ? 0 : statusIndex === 1 ? 1 : statusIndex >= 2 ? 2 : 0
-  // For backward compat: channels with NAMED/HOOKS_GENERATED status are at step 2
+  const hasAnyPosts = channel.posts.length > 0
+  let currentStep = 0
+  if (statusIndex >= 3 || hasAnyPosts) currentStep = 3
+  else if (statusIndex === 2) currentStep = 2
+  else if (statusIndex === 1) currentStep = 1
+  else currentStep = 0
   const isLegacyStatus = ['NAMED', 'HOOKS_GENERATED', 'POSITIONED'].includes(channel.status)
-  const effectiveStep = isLegacyStatus ? 2 : currentStep
+  const effectiveStep = isLegacyStatus ? 3 : currentStep
 
   const statusInfo = STATUS_CONFIG[channel.status] || STATUS_CONFIG.DRAFT
   const isDirectMode = channel.nicheMode === 'DIRECT'
@@ -1202,9 +1205,15 @@ export default function ChannelDashboard() {
             </div>
           )}
 
+          {/* Top tab navigation */}
+          <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-sm mb-2">
+            <TopTabNav />
+          </div>
+
           {/* ═══════════════════════════════════════════════════════
-              Step 1: Niche / Topic Selection
+              Step 1: Topic (activeTab === 0)
               ═══════════════════════════════════════════════════════ */}
+          {activeTab === 0 && (<>
           {effectiveStep > 0 && niches.length > 0 && niches.some(n => n.selected) ? (
           <Section
             delay={60}
@@ -1406,15 +1415,14 @@ export default function ChannelDashboard() {
             )}
           </Section>
           )}
+          </>)}
 
           {/* ═══════════════════════════════════════════════════════
-              Step 2: Define Content Strategy
+              Step 2: Content Strategy (activeTab === 1)
               ═══════════════════════════════════════════════════════ */}
+          {activeTab === 1 && (<>
           {effectiveStep < 1 ? (
-            <>
-              <LockedStep label="Content strategy" delay={120} />
-              <LockedStep label="Generate posts" delay={180} />
-            </>
+            <LockedStep label="Content strategy" delay={120} />
           ) : hasStrategy && strategyOptions.length === 0 ? (
             /* Strategy approved — compact display */
             <Section
@@ -1714,14 +1722,106 @@ export default function ChannelDashboard() {
               </div>
             </Section>
           )}
+          </>)}
 
           {/* ═══════════════════════════════════════════════════════
-              Step 3: Generate Posts — Batches of 3
+              Step 3: Carousel Style (activeTab === 2)
               ═══════════════════════════════════════════════════════ */}
+          {activeTab === 2 && (
+            <Section delay={120} active={effectiveStep === 2}>
+              <div className="flex flex-col gap-1 mb-6">
+                <h2 className="text-xl font-bold tracking-tight">Choose your carousel style</h2>
+                <p className="text-sm text-muted-light">
+                  Sets how your slides look and how content is written for this channel. You can change it anytime.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 max-w-xl">
+                {(['DETAILED', 'BOLD'] as const).map((layoutKey) => {
+                  const isSelected = (channel?.carouselLayout ?? 'DETAILED') === layoutKey
+                  return (
+                    <button
+                      key={layoutKey}
+                      type="button"
+                      onClick={async () => {
+                        setChannel(prev => prev ? { ...prev, carouselLayout: layoutKey } : prev)
+                        try {
+                          await fetch(`/api/channels/${channelId}`, {
+                            method: 'PATCH',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ carouselLayout: layoutKey }),
+                          })
+                        } catch { /* non-blocking */ }
+                      }}
+                      className={`relative flex flex-col gap-3 p-4 rounded-2xl border-2 transition-all text-left ${
+                        isSelected
+                          ? 'border-[#dc2743] bg-[#dc2743]/5'
+                          : 'border-border hover:border-border-hover bg-surface/50'
+                      }`}
+                    >
+                      {/* Mini preview */}
+                      <div className="w-full aspect-[4/5] rounded-xl overflow-hidden bg-surface-elevated">
+                        {layoutKey === 'DETAILED' ? (
+                          <div className="flex flex-col h-full">
+                            <div className="flex-1 bg-gradient-to-br from-zinc-700 to-zinc-900" />
+                            <div className="h-[24%] bg-black flex flex-col justify-center gap-1.5 px-3">
+                              <div className="h-1.5 w-3/4 bg-white/80 rounded-full" />
+                              <div className="h-1 w-full bg-white/30 rounded-full" />
+                              <div className="h-1 w-2/3 bg-white/30 rounded-full" />
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="relative h-full bg-gradient-to-b from-zinc-700 via-zinc-800 to-black flex flex-col justify-end p-4 gap-1.5 items-center">
+                            <div className="h-2 w-4/5 bg-white/90 rounded-full" />
+                            <div className="h-2 w-3/5 bg-white/90 rounded-full" />
+                          </div>
+                        )}
+                      </div>
+                      <div>
+                        <div className="text-sm font-semibold text-foreground flex items-center gap-2">
+                          {layoutKey === 'DETAILED' ? 'Detailed' : 'Bold'}
+                          {isSelected && (
+                            <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-[#dc2743] text-white">
+                              <svg width="8" height="8" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M2 5.5L4 7.5L8 3" />
+                              </svg>
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-xs text-muted mt-0.5 leading-snug">
+                          {layoutKey === 'DETAILED' ? 'Headline + paragraph on a dark text bar' : 'Big text on full-bleed image, easy to consume'}
+                        </div>
+                      </div>
+                    </button>
+                  )
+                })}
+              </div>
+
+              <div className="mt-6 flex gap-3">
+                <PrimaryButton
+                  onClick={() => {
+                    setActiveTab(3)
+                    window.scrollTo({ top: 0, behavior: 'smooth' })
+                    // Auto-generate first post if no posts exist yet
+                    if (!hasPosts && !isStreamingPosts) {
+                      setTimeout(() => handleGenerateBatch(), 200)
+                    }
+                  }}
+                >
+                  {hasPosts ? 'Continue to posts' : 'Continue & generate first post'}
+                </PrimaryButton>
+              </div>
+            </Section>
+          )}
+
+          {/* ═══════════════════════════════════════════════════════
+              Step 4: Generate Posts — Batches of 3 (activeTab === 3)
+              ═══════════════════════════════════════════════════════ */}
+          {activeTab === 3 && (<>
           {effectiveStep < 2 ? (
-            effectiveStep >= 1 ? <LockedStep label="Generate posts" delay={180} /> : null
+            <LockedStep label="Generate posts" delay={180} />
           ) : (
-          <Section compact={!isStreamingPosts && completedPosts.length === 0 && !hasPosts} delay={180} active={effectiveStep === 2}>
+          <Section compact={!isStreamingPosts && completedPosts.length === 0 && !hasPosts} delay={180} active={effectiveStep === 3}>
             <div className="flex flex-col gap-3">
               <div className="flex items-start justify-between gap-3">
                 <div>
@@ -1756,51 +1856,16 @@ export default function ChannelDashboard() {
               )}
             </div>
 
-            {/* Layout toggle */}
-            {!isStreamingPosts && (
-              <div className="flex items-center gap-2 mt-1">
-                <span className="text-xs text-muted">Layout:</span>
+            {/* Current layout indicator — small caption showing which layout is active */}
+            {!isStreamingPosts && channel?.carouselLayout && (
+              <div className="flex items-center gap-2 mt-1 text-xs text-muted">
+                <span>Layout: <span className="text-muted-light font-medium">{channel.carouselLayout === 'BOLD' ? 'Bold' : 'Detailed'}</span></span>
                 <button
                   type="button"
-                  onClick={async () => {
-                    const newLayout = (channel?.carouselLayout === 'BOLD') ? 'DETAILED' : 'BOLD';
-                    try {
-                      await fetch(`/api/channels/${channelId}`, {
-                        method: 'PATCH',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ carouselLayout: newLayout }),
-                      });
-                      setChannel(prev => prev ? { ...prev, carouselLayout: newLayout } : prev);
-                    } catch {}
-                  }}
-                  className={`px-2.5 py-1 text-xs font-medium rounded-md border transition-all ${
-                    (!channel?.carouselLayout || channel.carouselLayout === 'DETAILED')
-                      ? 'border-accent/50 bg-accent/10 text-accent'
-                      : 'border-border text-muted hover:text-foreground hover:border-border-hover'
-                  }`}
+                  onClick={() => setActiveTab(2)}
+                  className="text-[#6b9fcc] hover:underline"
                 >
-                  Detailed
-                </button>
-                <button
-                  type="button"
-                  onClick={async () => {
-                    const newLayout = (channel?.carouselLayout === 'BOLD') ? 'DETAILED' : 'BOLD';
-                    try {
-                      await fetch(`/api/channels/${channelId}`, {
-                        method: 'PATCH',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ carouselLayout: newLayout }),
-                      });
-                      setChannel(prev => prev ? { ...prev, carouselLayout: newLayout } : prev);
-                    } catch {}
-                  }}
-                  className={`px-2.5 py-1 text-xs font-medium rounded-md border transition-all ${
-                    channel?.carouselLayout === 'BOLD'
-                      ? 'border-accent/50 bg-accent/10 text-accent'
-                      : 'border-border text-muted hover:text-foreground hover:border-border-hover'
-                  }`}
-                >
-                  Bold
+                  Change
                 </button>
               </div>
             )}
@@ -2391,6 +2456,7 @@ export default function ChannelDashboard() {
             )}
           </Section>
           )}
+          </>)}
 
           {/* ═══════════════════════════════════════════════════════
               Optional: Name Channel (shown when toggled from sidebar)
@@ -2476,8 +2542,8 @@ export default function ChannelDashboard() {
             </Section>
           )}
 
-          {/* Bottom CTAs — Generate next + View all */}
-          {!isStreamingPosts && (hasPosts || completedPosts.length > 0) && (
+          {/* Bottom CTAs — Generate next + View all (only on Posts tab) */}
+          {activeTab === 3 && !isStreamingPosts && (hasPosts || completedPosts.length > 0) && (
             <div className="flex flex-col sm:flex-row gap-3 pt-6">
               <PrimaryButton
                 onClick={handleGenerateBatch}
