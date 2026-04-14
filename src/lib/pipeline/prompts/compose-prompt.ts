@@ -133,131 +133,21 @@ ${factList}
 
 ${layout === 'BOLD' ? `
 ═══════════════════════════════════════════
-BOLD LAYOUT — SHORT, PUNCHY TEXT
+BOLD LAYOUT
 ═══════════════════════════════════════════
 
-This carousel uses the BOLD layout: each slide shows a full-bleed image with ONLY a big,
-centered headline overlaid on top. There is NO paragraph body visible to the reader.
+Each slide is a full-bleed image with ONLY a big headline overlaid. No paragraph body is rendered.
 
-WRITING RULES FOR BOLD LAYOUT:
-- The HEADLINE is the entire slide. It must hit in under 1 second.
-- Headlines: 20–60 characters, target 4–8 WORDS (not 3).
-- Body: Write ONE sentence only (50–100 chars). This backup context is used for
-  caption generation but is NOT rendered on the slide. Keep it minimal.
-- Prefer: numbers, named entities, concrete comparisons, strong verbs
-- Avoid: setup phrases, hedge words ("some", "many"), vague generalities
+Headlines: 4–8 words, 20–60 chars. MUST be a complete sentence with a real action verb
+(not just a preposition, colon, or possessive). Post-processing rejects label-style titles,
+so spend your effort writing GOOD sentences rather than clever labels.
 
-═══════════════════════════════════════════
-CRITICAL: THE VERB RULE (strict, no exceptions)
-═══════════════════════════════════════════
+Body (not rendered on slide, only used for captions): 1 sentence, 50–100 chars.
 
-EVERY Bold headline MUST contain at least one ACTION VERB. Not a preposition. Not a
-copula pretending to be a verb. An actual verb carrying the claim.
+GOOD: "Honey Found in 3,000-Year-Old Tombs Still Edible" / "Cleopatra Lived Closer to the iPhone Than the Pyramids" / "Bombardier Beetles Spray 100°C Acid"
+BAD (label patterns — will be rewritten automatically): "X: Y" / "X in Y" / "X as Y" / "X of Y" / "X's [adjective] Y"
 
-ACCEPTABLE verbs (carry the claim): mentioned, sold, killed, pump, stops, survived,
- swallowed, broke, destroyed, discovered, crafted, used, detected, produces, lived,
- fears, became, reaches, outlasts, defeated, turned
-
-NOT acceptable as the sole "verb":
-  - Prepositions: in, of, on, at, for, with, from, by, about, as
-  - Copulas alone (is/are/was/were) when they just link two nouns without action
-  - Possessives: "X's Y" is just a noun phrase, no claim
-  - Colons: "X: Y" labels X with Y — zero claim
-
-THE PARSE TEST (apply to every headline before writing it):
-Say the headline out loud. Could you put it on its own slide and understand what
-happened / what is true? If it reads like the name of a Wikipedia section header
-or a book chapter title, it's a LABEL and must be rewritten.
-
-LABEL PATTERNS TO REJECT (these ALL failed real generations — do NOT produce them):
-
-  ✗ "X in Y"                  (e.g. "Unicorns in the King James Bible")
-     → Tells you the topic intersects Y. Doesn't tell you what.
-     ✓ "The Bible Mentions Unicorns 9 Times"
-
-  ✗ "X: Y"                    (e.g. "Alicorns: Medieval Poison Deterrents")
-     → Colon label. X is being CLASSIFIED as Y. No claim.
-     ✓ "Medieval Goblets Used Alicorn Horns to Detect Poison"
-
-  ✗ "X as Y"                  (e.g. "Narwhal Tusks as Unicorn Horns")
-     → Equivalence. States X equals Y. Inert.
-     ✓ "Narwhal Tusks Were Sold as Unicorn Horns"
-
-  ✗ "X of Y"                  (e.g. "Qilin: Eastern Unicorn of Prosperity")
-     → Classification. No claim. Same problem as colon.
-     ✓ "China's Unicorn Is a Qilin — It Brings Prosperity"
-
-  ✗ "X's [adjective] Y"       (e.g. "Zeus's Unique Birth of Athena")
-     → Teases but doesn't deliver.
-     ✓ "Athena Sprang Fully Armored From Zeus's Skull"
-
-  ✗ "X's Failed/Hidden/Secret Y" (e.g. "Zeus's Failed Prophecy Thwart")
-     → Tease + possessive = no claim.
-     ✓ "Zeus Swallowed Metis to Stop the Prophecy"
-
-  ✗ "[Topic] Facts You Didn't Know"   (clickbait, zero claim)
-
-If a headline matches ANY label pattern above, it is broken. Rewrite it into subject + verb + object.
-
-BOLD HEADLINE PATTERNS THAT WORK:
-  Subject + action verb + object: "Zeus Swallowed Metis Whole"
-  Subject + happens/happened: "Athena Sprang From Zeus's Skull"
-  Subject + number + verb: "A Single Cow Drinks 50 Gallons a Day"
-  Subject + negation verb: "Honey Never Spoils"
-  Subject + comparison verb: "Cleopatra Lived Closer to the iPhone Than the Pyramids"
-  Subject + consequence verb: "Zeus Became What He Feared"
-
-FINAL SELF-CHECK before returning each FACT headline (BOLD layout):
-  STEP 1 — Underline the verb in your headline. If you can't point to one, REWRITE.
-  STEP 2 — Does the verb carry the claim (something happened / is true)? If the only
-           "verb" is a preposition or a bare copula, REWRITE.
-  STEP 3 — Is the headline a complete sentence you could say aloud without it feeling
-           like a book-chapter heading? If not, REWRITE.
-
-${mode === 'single_entity' ? `BOLD + SINGLE_ENTITY — SEQUENTIAL HEADLINES (critical):
-Because the carousel answers ONE question about ONE subject, headlines must chain into a
-single flowing explanation. Read as spoken-word narration, one short line at a time.
-
-Each FACT headline is a beat in the story, NOT a standalone statement. The reader should feel
-like they're being walked through an answer step by step.
-
-GOOD sequence (topic: why octopuses have 3 hearts):
-  OPENER: "Octopuses Have 3 Hearts"
-  FACT 1: "Two Pump Blood to the Gills"
-  FACT 2: "One Pumps to the Body"
-  FACT 3: "The Body Heart Stops When They Swim"
-  FACT 4: "So They Mostly Crawl Instead"
-  IMPLICATION: "A Heart That Pauses Is a Tradeoff"
-  → Each line is short, each one needs the previous to feel complete. The sequence TELLS A STORY.
-
-BAD sequence (disconnected factoids — what we DON'T want):
-  OPENER: "Why Octopuses Have More Hearts"
-  FACT 1: "Octopus Hearts Beat 180 Times a Minute"  ← random stat, doesn't answer
-  FACT 2: "Octopuses' Three-Heart System"            ← just labels it
-  FACT 3: "Greeks Noticed Octopus Blue Blood"        ← tangent
-  → Each headline is independent. No story. No reason to swipe.
-
-Test each FACT headline: does removing it break the flow between its neighbors? If not, rewrite it.
-` : `BOLD + THEMATIC_COLLECTION — STANDALONE HEADLINES:
-Each slide features a DIFFERENT specific item from the theme. Headlines are self-contained —
-each one works as an isolated poster. No narrative chain needed.
-
-GOOD (topic: animals with unusual defenses):
-  OPENER: "5 Animals That Fight Back With Chemistry"
-  FACT 1: "Bombardier Beetles Spray 100°C Acid"
-  FACT 2: "Hagfish Drown Predators in Slime"
-  FACT 3: "Texas Horned Lizards Shoot Blood From Their Eyes"
-`}
-
-GOOD BOLD headlines (general):
-  ✓ "Honey Found in 3,000-Year-Old Tombs — Still Edible"
-  ✓ "A Single Cow Drinks 50 Gallons a Day"
-  ✓ "Cleopatra Lived Closer to the iPhone Than the Pyramids"
-
-BAD BOLD headlines (too long, need context, or vague):
-  ✗ "The Fascinating Reason Why Ancient Egyptian Honey Never Goes Bad" — too long
-  ✗ "Its Unique Properties Make This Possible" — needs context
-  ✗ "Nature Has Incredible Preservation Methods" — vague, no specifics
+${mode === 'single_entity' ? `Single-entity carousels: headlines should chain so each builds on the previous — the OPENER asks the question, FACT 1 starts the answer, FACT 4 lands the payoff. If removing a FACT doesn't break the flow between its neighbors, rewrite it.` : `Thematic collections: each FACT is a different item fitting the theme, self-contained.`}
 ` : ''}
 ═══════════════════════════════════════════
 SLIDE STRUCTURE (exactly ${slideCount} slides)
@@ -601,11 +491,7 @@ For each FACT slide (1–${factCount}):
   □ Does the headline make a specific claim (not a label)?
   □ Does the body contain at least 1 of the 7 value signals?
   □ Does the body contain at least 1 named entity, number, or date?
-${layout === 'BOLD' ? `  □ VERB CHECK — can you underline an action verb in the headline? (not a preposition, not a bare copula)
-  □ Does the headline match ANY of these label patterns? If yes, REWRITE: "X in Y", "X: Y", "X as Y", "X of Y", "X's [adjective] Y"
-  □ Would the reader understand the full fact from the headline alone (no body needed)?
-  □ Is the headline 4–8 words (not 3, not a one-word label)?
-  ` : ''}${mode === 'single_entity'
+${layout === 'BOLD' ? `  □ Bold headline: complete sentence with a verb (post-processing rejects labels — save yourself the rewrite)\n  ` : ''}${mode === 'single_entity'
   ? `  □ Does this FACT build on the previous slide? Is there narrative continuity?\n  □ If you removed this slide, would slide N-1 and slide N+1 still flow naturally? (should be NO — slides must be linked)\n  □ Is topicEntity a SLIDE-SPECIFIC aspect (e.g., "octopus gills with blood vessels"), NOT the bare subject name?`
   : `  □ Would this slide make sense posted alone, out of context?\n  □ Is topicEntity the SPECIFIC entity (e.g., "AlphaFold"), not the topic name (e.g., "AI")?\n  □ Is this slide's FEATURED ITEM different from every other slide (collection mode)?`}
   □ Is the body between ${layout === 'BOLD' ? '50 and 100' : '200 and 400'} characters?
