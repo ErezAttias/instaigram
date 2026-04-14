@@ -1523,19 +1523,22 @@ export default function ChannelDashboard() {
                       key={i}
                       onClick={() => handleTogglePillar(i)}
                       disabled={actionLoading === 'approve-strategy'}
-                      className={`animate-fade-up text-left rounded-2xl p-5 transition-all duration-200 disabled:opacity-40 flex flex-col focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6b9fcc]/60 ${
+                      className={`animate-fade-up relative text-left rounded-2xl p-5 transition-all duration-200 disabled:opacity-40 flex flex-col focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6b9fcc]/60 ${
                         isSelected
                           ? 'border border-[#3d6fa8]/40 bg-[#3d6fa8]/10'
                           : 'border border-border bg-background hover:border-[#3d6fa8]/25 hover:bg-[#3d6fa8]/8'
                       }`}
                       style={{ animationDelay: `${i * 80}ms` }}
                     >
-                      <div className="flex items-center justify-between gap-2 mb-2">
-                        <p className="text-base font-semibold text-foreground leading-snug">{strategy.contentIntent}</p>
+                      {/* Selection indicator — absolute so it never breaks title wrapping */}
+                      <div className={`absolute top-3.5 right-3.5 w-5 h-5 rounded-full flex items-center justify-center transition-all duration-150 ${isSelected ? 'bg-[#3d6fa8]/20 text-[#6b9fcc]' : 'border border-border/60'}`}>
                         {isSelected && (
-                          <span className="text-xs font-semibold text-white px-2.5 py-1 rounded-lg shrink-0" style={{ background: IG_GRADIENT }}>Selected</span>
+                          <svg width="9" height="9" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M1.5 5.5L4 8L8.5 2" />
+                          </svg>
                         )}
                       </div>
+                      <p className="text-base font-semibold text-foreground leading-snug mb-2 pr-7">{strategy.contentIntent}</p>
                       <p className="text-sm font-normal text-muted-light leading-relaxed flex-1">
                         {strategy.audience.replace(/^(The target audience (are|is)\s*|Target audience:\s*)/i, '')}
                       </p>

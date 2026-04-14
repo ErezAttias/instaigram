@@ -60,7 +60,7 @@ export function ChannelCard({
 
   return (
     <Link
-      href={`/admin/channels/${id}`}
+      href={`/channels/${id}`}
       className="group grid items-center gap-x-4 bg-surface rounded-xl border border-border px-5 py-3.5 hover:border-border-hover hover:bg-surface-hover transition-all duration-200"
       style={{ gridTemplateColumns: '1fr 130px 120px 64px 28px' }}
     >
