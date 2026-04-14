@@ -1514,7 +1514,7 @@ export default function ChannelDashboard() {
 
               {/* Pillar cards — all selected by default, tap to toggle */}
               {strategyOptions.length > 0 && (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   {strategyOptions.map((strategy, i) => {
                     const isSelected = selectedPillarIndices.has(i)
                     return (
@@ -1522,27 +1522,20 @@ export default function ChannelDashboard() {
                       key={i}
                       onClick={() => handleTogglePillar(i)}
                       disabled={actionLoading === 'approve-strategy'}
-                      className={`animate-fade-up text-left rounded-2xl p-6 transition-all duration-200 disabled:opacity-40 flex flex-col gap-4 relative ${
+                      className={`animate-fade-up text-left rounded-2xl p-5 transition-all duration-200 disabled:opacity-40 flex flex-col focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6b9fcc]/60 ${
                         isSelected
-                          ? 'border-2 border-[#3d6fa8]/50 bg-[#3d6fa8]/10'
-                          : 'border-2 border-border/50 bg-background hover:border-[#3d6fa8]/25 hover:bg-[#3d6fa8]/8'
+                          ? 'border border-[#3d6fa8]/40 bg-[#3d6fa8]/10'
+                          : 'border border-border bg-background hover:border-[#3d6fa8]/25 hover:bg-[#3d6fa8]/8'
                       }`}
                       style={{ animationDelay: `${i * 80}ms` }}
                     >
-                      {/* Checkmark */}
-                      <div
-                        className={`absolute top-4 right-4 w-6 h-6 rounded-full flex items-center justify-center transition-all duration-150 ${isSelected ? 'bg-[#3d6fa8]/15 text-[#6b9fcc]' : 'border border-border bg-background'}`}
-                      >
+                      <div className="flex items-center justify-between gap-2 mb-2">
+                        <p className="text-base font-semibold text-foreground leading-snug">{strategy.contentIntent}</p>
                         {isSelected && (
-                          <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M1.5 5.5L4 8L8.5 2" />
-                          </svg>
+                          <span className="text-xs font-semibold text-white px-2.5 py-1 rounded-lg shrink-0" style={{ background: IG_GRADIENT }}>Selected</span>
                         )}
                       </div>
-                      <p className="text-base font-semibold text-foreground leading-normal pr-7">{strategy.contentIntent}</p>
-                      <div className="w-full h-px bg-border" />
                       <p className="text-sm font-normal text-muted-light leading-relaxed flex-1">
-                        Target audience:{' '}
                         {strategy.audience.replace(/^(The target audience (are|is)\s*|Target audience:\s*)/i, '')}
                       </p>
                       {(strategy.engagementPotential || strategy.contentDifficulty || strategy.audienceSize) && (
