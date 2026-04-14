@@ -80,6 +80,7 @@ function buildCurationPrompt(
   candidates: MinedFact[],
   topic: string,
   hookText: string,
+  angleDescription?: string,
 ): string {
   const candidateBlock = candidates
     .map((f, i) => `[${i}] claim: "${f.claim}"
@@ -89,9 +90,30 @@ function buildCurationPrompt(
   source: ${f.source_type}`)
     .join('\n\n');
 
+  const angleBlock = angleDescription ? `
+═══════════════════════════════════════════
+CAROUSEL ANGLE (mandatory filter)
+═══════════════════════════════════════════
+
+This carousel answers ONE question: "${angleDescription}"
+
+Before scoring any fact, ask: does it help answer THIS specific question?
+  ✓ YES → score normally
+  ✗ NO (it's just interesting trivia about "${topic}", not serving this angle) → set rejection="OFF_ANGLE: <why>"
+
+Off-angle facts are rejected regardless of impact or novelty. A fact scoring 9 for impact
+but unrelated to "${angleDescription}" still gets rejected — it belongs in a different carousel.
+
+Example (angle: "Why Titanic's wreck footage was used in the film"):
+  ✓ ON-ANGLE: "Cameron dived 12 times to film the wreck himself"
+  ✗ OFF-ANGLE: "Titanic movie cost more to make than the actual ship" — true but doesn't answer the question
+
+Be strict. Better to reject 10 good-but-off-angle facts than let one dilute the carousel.
+` : '';
+
   return `You are evaluating ${candidates.length} candidate facts about "${topic}" for an Instagram carousel.
 Hook: "${hookText}"
-
+${angleBlock}
 CANDIDATES:
 ${candidateBlock}
 
@@ -185,6 +207,7 @@ Reject facts that are:
   - Common knowledge dressed up as surprising
   - General/educational without a specific hook ("X is important")
   - Unverifiable or likely false
+${angleDescription ? `  - OFF-ANGLE: doesn't serve "${angleDescription}" (prefix reason with "OFF_ANGLE: ...")` : ''}
 
 Return JSON:
 {
@@ -350,8 +373,10 @@ export async function curateFacts(
   topic: string,
   hookText: string,
   ai: AIProvider,
-  count: number = 4,
+  options: { count?: number; angleDescription?: string } = {},
 ): Promise<CurateResult> {
+  const count = options.count ?? 4;
+  const angleDescription = options.angleDescription;
   if (candidates.length === 0) {
     console.warn('[curate] No candidates to curate');
     return { selected: [], scoredPool: [], consideredCount: 0, numberFactCount: 0 };
@@ -383,7 +408,7 @@ export async function curateFacts(
 
   let scores: ScoredCandidateType[];
   try {
-    const prompt = buildCurationPrompt(candidates, topic, hookText);
+    const prompt = buildCurationPrompt(candidates, topic, hookText, angleDescription);
     const { data } = await ai.generateObject(prompt, CurationAnalysis);
     scores = data.candidates;
 

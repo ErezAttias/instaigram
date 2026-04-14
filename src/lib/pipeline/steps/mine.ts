@@ -23,6 +23,8 @@ export interface MineParams {
   mode?: CarouselMode;
   /** The specific entity or theme concept for focused mining. */
   concept?: string;
+  /** The specific question/angle this carousel answers — facts must serve this angle. */
+  angleDescription?: string;
   /** Domain style — narrative (mythology/history) vs informational (animals/science). */
   domainStyle?: TopicDomainStyle;
 }
@@ -51,6 +53,7 @@ export async function mineFacts(
     candidateCount: params.candidateCount ?? 18,
     mode: params.mode,
     concept: params.concept,
+    angleDescription: params.angleDescription,
     domainStyle: params.domainStyle,
   });
 

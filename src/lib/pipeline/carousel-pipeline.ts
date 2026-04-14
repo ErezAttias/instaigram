@@ -346,7 +346,7 @@ async function runPipeline(
   // ── Steps 1-3: MINE → DEDUPE → SELECT (with retry controller) ──
 
   const { selectResult, activeConcept } = await mineDedupeSelectWithRetry(
-    { topic, hook, knowledgeFacts, pattern, mode, concept, domainStyle },
+    { topic, hook, knowledgeFacts, pattern, mode, concept, domainStyle, angleDescription },
     ai,
   );
 
@@ -605,6 +605,8 @@ interface MineDedupeSelectParams {
   pattern?: string;
   mode: CarouselMode;
   concept: string;
+  /** The carousel's specific angle/question (from concept step) — used to filter off-angle facts. */
+  angleDescription?: string;
   domainStyle?: import('@/lib/utils/topic-classifier').TopicDomainStyle;
 }
 
@@ -625,16 +627,16 @@ async function mineDedupeSelectWithRetry(
   params: MineDedupeSelectParams,
   ai: AIProvider,
 ): Promise<MineDedupeSelectResult> {
-  const { topic, hook, knowledgeFacts, pattern, mode, domainStyle } = params;
+  const { topic, hook, knowledgeFacts, pattern, mode, domainStyle, angleDescription } = params;
   let activeConcept = params.concept;
   let candidateCount = DEFAULT_CANDIDATE_COUNT;
   const retryLogs: RetryLog[] = [];
 
   // ── Initial attempt ──────────────────────────────────────
-  console.log(`[pipeline] Step 1: Mining facts for "${activeConcept}" (${mode}, domain: ${domainStyle ?? 'auto'})...`);
+  console.log(`[pipeline] Step 1: Mining facts for "${activeConcept}" (${mode}, domain: ${domainStyle ?? 'auto'}${angleDescription ? `, angle: "${angleDescription}"` : ''})...`);
 
   let mineResult = await mineFacts(
-    { topic, hook, knowledgeFacts, pattern, mode, concept: activeConcept, candidateCount, domainStyle },
+    { topic, hook, knowledgeFacts, pattern, mode, concept: activeConcept, candidateCount, domainStyle, angleDescription },
     ai,
   );
 
@@ -642,7 +644,7 @@ async function mineDedupeSelectWithRetry(
   let dedupeResult = dedupeFacts(mineResult.candidates);
 
   console.log('[pipeline] Step 3: Curating best facts...');
-  let selectResult = await curateFacts(dedupeResult.candidates, topic, hook.text, ai);
+  let selectResult = await curateFacts(dedupeResult.candidates, topic, hook.text, ai, { angleDescription });
 
   // ── Retry loop ───────────────────────────────────────────
   if (selectResult.selected.length < MIN_FACTS_REQUIRED) {
@@ -660,11 +662,11 @@ async function mineDedupeSelectWithRetry(
     );
 
     mineResult = await mineFacts(
-      { topic, hook, knowledgeFacts, pattern, mode, concept: activeConcept, candidateCount, domainStyle },
+      { topic, hook, knowledgeFacts, pattern, mode, concept: activeConcept, candidateCount, domainStyle, angleDescription },
       ai,
     );
     dedupeResult = dedupeFacts(mineResult.candidates);
-    selectResult = await curateFacts(dedupeResult.candidates, topic, hook.text, ai);
+    selectResult = await curateFacts(dedupeResult.candidates, topic, hook.text, ai, { angleDescription });
 
     retryLogs.push({
       reason: 'insufficient_facts',
@@ -689,11 +691,11 @@ async function mineDedupeSelectWithRetry(
       );
 
       mineResult = await mineFacts(
-        { topic, hook, knowledgeFacts, pattern, mode, concept: activeConcept, candidateCount },
+        { topic, hook, knowledgeFacts, pattern, mode, concept: activeConcept, candidateCount, angleDescription },
         ai,
       );
       dedupeResult = dedupeFacts(mineResult.candidates);
-      selectResult = await curateFacts(dedupeResult.candidates, topic, hook.text, ai);
+      selectResult = await curateFacts(dedupeResult.candidates, topic, hook.text, ai, { angleDescription });
 
       retryLogs.push({
         reason: 'insufficient_facts',

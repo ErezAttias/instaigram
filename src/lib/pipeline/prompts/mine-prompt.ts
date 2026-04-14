@@ -19,6 +19,7 @@ interface MinePromptParams {
   candidateCount?: number;
   mode?: CarouselMode;
   concept?: string;
+  angleDescription?: string;
   domainStyle?: TopicDomainStyle;
 }
 
@@ -30,6 +31,7 @@ export function buildMinePrompt({
   candidateCount = 18,
   mode,
   concept,
+  angleDescription,
   domainStyle,
 }: MinePromptParams): string {
   const patternBlock = pattern
@@ -109,13 +111,48 @@ BAD: ${candidateCount} facts about the same item, or facts that don't fit the th
 
   const miningTarget = concept ? `"${concept}"` : `"${topic}"`;
 
+  const angleBlock = angleDescription ? `
+═══════════════════════════════════════════
+CAROUSEL ANGLE (critical filter)
+═══════════════════════════════════════════
+
+This carousel answers ONE specific question:
+  "${angleDescription}"
+
+Every fact you mine must directly SERVE this question. The carousel is not a general
+collection of interesting trivia about ${miningTarget} — it is a focused answer to the
+angle above.
+
+FILTER: For each fact, ask yourself:
+  "Does this fact help answer or illuminate '${angleDescription}'?"
+  ✓ YES — include it
+  ✗ NO, it's just interesting trivia about ${miningTarget} — REJECT it
+
+If a fact is true and surprising but doesn't advance the carousel's specific angle,
+it is OFF-ANGLE. Off-angle facts get cut — no matter how impressive they are on their own.
+
+EXAMPLE (angle: "Why Titanic's wreck footage was used in the film"):
+  ✓ ON-ANGLE: "Cameron insisted on real footage — he filmed the wreck himself before shooting"
+     → explains WHY: directorial commitment to authenticity
+  ✓ ON-ANGLE: "Real debris from the 1912 sinking appears in the opening scene"
+     → shows WHERE the footage ended up
+  ✓ ON-ANGLE: "Each dive to the wreck took 2.5 hours just to reach the bottom"
+     → shows what it COST to get the footage
+  ✗ OFF-ANGLE: "The Titanic movie cost more to make than the actual Titanic ship"
+     → true, fun, but does NOT answer "why was the wreck footage used"
+  ✗ OFF-ANGLE: "Kate Winslet almost died of pneumonia during filming"
+     → irrelevant to the wreck-footage question
+
+When in doubt, reject. Better to have 12 on-angle facts than 18 that include tangents.
+` : '';
+
   return `You are a fact mining engine. Your job is to produce a pool of specific, surprising, verifiable facts about a topic.
 
 You are NOT writing carousel slides. You are NOT writing headlines. You are mining raw factual material that will later be turned into slides by a separate process.
 
 TOPIC: "${topic}"
 HOOK (for context — the carousel will open with this): "${hook.text}" (${hook.type})
-${focusBlock}
+${angleBlock}${focusBlock}
 ═══════════════════════════════════════════
 TASK
 ═══════════════════════════════════════════
@@ -127,6 +164,7 @@ Each fact must be:
 - SURPRISING: not common knowledge for the topic's audience
 - STANDALONE: teaches something on its own without needing other facts
 - VERIFIABLE: a reader could confirm this with a search
+${angleDescription ? `- ON-ANGLE: directly serves the question "${angleDescription}" — tangential facts, however impressive, are rejected` : ''}
 
 ${patternBlock}
 ${groundingBlock}
