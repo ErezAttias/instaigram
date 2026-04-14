@@ -780,9 +780,10 @@ export default function ChannelDashboard() {
         if (data.progress?.message) {
           setCarouselProgress(prev => prev ? { ...prev, message: data.progress.message } : null)
         }
-        // Stop polling when done
+        // Stop polling when done — and refresh channel to pick up final slide images
         if (data.status === 'COMPLETE' || data.status === 'FAILED') {
           stopCarouselPolling()
+          try { await fetchChannel() } catch { /* ignore */ }
         }
       } catch {
         // ignore polling errors
@@ -922,6 +923,10 @@ export default function ChannelDashboard() {
       }
     } finally {
       stopCarouselPolling()
+      // Always re-fetch channel state from the DB — even if the SSE stream errored,
+      // the post may have been saved server-side and the carousel may be rendering in the background.
+      // Without this, the UI reverts to the empty "Generate first post" state while the backend continues.
+      try { await fetchChannel() } catch { /* ignore */ }
       setIsStreamingPosts(false)
       setPostStreamProgress(null)
       postAbortRef.current = null
@@ -935,6 +940,32 @@ export default function ChannelDashboard() {
     setPostStreamProgress(null)
     fetchChannel()
   }
+
+  // ─── In-progress carousel recovery ──────────────────────────
+  // If the page loads (or user returns) while a carousel is still rendering
+  // in the background, auto-resume polling so the UI catches up when it finishes.
+  useEffect(() => {
+    if (!channel?.posts) return
+    if (carouselPollRef.current) return // already polling
+    const inProgress = channel.posts.find(p => {
+      // If the post has a carouselJobId but the slides show missing images,
+      // there's a chance the job is still rendering — check it.
+      return !!p.carouselJobId
+    })
+    if (!inProgress?.carouselJobId) return
+
+    ;(async () => {
+      try {
+        const res = await fetch(`/api/carousel/${inProgress.carouselJobId}`)
+        if (!res.ok) return
+        const data = await res.json()
+        if (data.status === 'RENDERING' || data.status === 'GENERATING' || data.status === 'PENDING') {
+          startCarouselPolling(inProgress.carouselJobId!)
+        }
+      } catch { /* ignore */ }
+    })()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [channel?.posts?.length])
 
   // ─── Mobile tab recovery ─────────────────────────────────────
   // When the user switches apps and comes back, the fetch stream is dead.
