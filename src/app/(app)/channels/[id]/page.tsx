@@ -1210,7 +1210,7 @@ export default function ChannelDashboard() {
   })()
 
   return (
-    <div className="animate-fade-up max-w-3xl space-y-4">
+    <div className="animate-fade-up max-w-3xl mx-auto space-y-4">
           {/* Lightbox overlay */}
           {lightboxUrl && (
             <div
