@@ -119,7 +119,7 @@ export function DecisionsRail() {
                       ? 'w-2 h-2'
                       : 'w-1.5 h-1.5 bg-border'
                 }`}
-                style={isActive ? { background: IG_GRADIENT, boxShadow: '0 0 4px rgba(220,39,67,0.35)' } : undefined}
+                style={isActive ? { background: '#6b9fcc', boxShadow: '0 0 4px rgba(107,159,204,0.5)' } : undefined}
               />
             )
           })}
