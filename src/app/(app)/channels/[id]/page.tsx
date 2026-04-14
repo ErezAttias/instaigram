@@ -1886,12 +1886,11 @@ export default function ChannelDashboard() {
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="text-[11px] font-semibold uppercase tracking-[0.08em] mb-1.5 bg-clip-text text-transparent" style={{ backgroundImage: IG_GRADIENT }}>Posts · Step 4 of 4</p>
-                  <h2 className="text-xl font-bold tracking-tight">Generate posts</h2>
+                  <h2 className="text-xl font-bold tracking-tight">
+                    {!hasPosts && completedPosts.length === 0 && !isStreamingPosts ? 'Generate your first carousel' : 'Posts'}
+                  </h2>
                   {hasPosts && !isStreamingPosts && (
-                    <p className="text-sm text-muted-light mt-1">{channel.posts.length} post{channel.posts.length !== 1 ? 's' : ''} generated</p>
-                  )}
-                  {!isStreamingPosts && !hasPosts && completedPosts.length === 0 && (
-                    <p className="text-sm text-muted-light mt-1 max-w-prose">Each post is a full carousel — hooks, copy, quality gates, rendered images, and captions.</p>
+                    <p className="text-sm text-muted-light mt-1">{channel.posts.length} carousel{channel.posts.length !== 1 ? 's' : ''} generated</p>
                   )}
                 </div>
                 <button
@@ -2209,15 +2208,36 @@ export default function ChannelDashboard() {
               ) : null;
             })()}
 
-            {/* Generate first post button — only when no posts yet */}
+            {/* Empty state — no posts yet */}
             {!isStreamingPosts && !hasPosts && completedPosts.length === 0 && (
-              <div className="mt-6">
-                <PrimaryButton
-                  onClick={handleGenerateBatch}
-                  disabled={actionLoading !== null || !hasStrategy}
-                >
-                  Generate first post
-                </PrimaryButton>
+              <div className="mt-5 space-y-4">
+                {/* Info banner — all decisions locked in */}
+                <div className="rounded-xl border border-[#3d6fa8]/20 bg-[#3d6fa8]/6 px-4 py-3 flex items-start gap-3">
+                  <svg className="shrink-0 mt-0.5 text-[#6b9fcc]" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="8" cy="8" r="6.5" /><path d="M8 5v4"/><circle cx="8" cy="11.5" r="0.5" fill="currentColor" stroke="none"/>
+                  </svg>
+                  <p className="text-sm text-muted-light leading-relaxed">
+                    All 4 decisions are locked in — Topic, Strategy, Pillar, and Style.{' '}
+                    <span className="text-foreground/70 font-medium">Each carousel is a fully rendered post: hooks, copy, images, and caption.</span>
+                  </p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => setActiveTab(2)}
+                    className="flex items-center gap-1.5 text-sm font-medium text-muted hover:text-foreground transition-colors"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M10 12L6 8l4-4" />
+                    </svg>
+                    Back
+                  </button>
+                  <PrimaryButton
+                    onClick={handleGenerateBatch}
+                    disabled={actionLoading !== null || !hasStrategy}
+                  >
+                    Generate first carousel
+                  </PrimaryButton>
+                </div>
               </div>
             )}
 
@@ -2450,68 +2470,86 @@ export default function ChannelDashboard() {
                 ))}
 
                 {/* Currently generating — progress card */}
-                {isStreamingPosts && (
-                  <div className="bg-[#3d6fa8]/10 border border-[#3d6fa8]/20 rounded-2xl p-5 animate-fade-up">
-                    <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-xl bg-[#3d6fa8]/10 flex items-center justify-center shrink-0">
-                        <span className="w-5 h-5 border-2 border-[#3d6fa8]/30 border-t-[#6b9fcc] rounded-full animate-spin" />
-                      </div>
-                      <div className="flex-1 min-w-0 space-y-1.5">
+                {isStreamingPosts && (() => {
+                  const STAGES = ['Writing hook', 'Researching', 'Writing slides', 'Quality check', 'Creating images', 'Complete']
+                  const progressMsg = carouselProgress?.message?.toLowerCase() || ''
+                  const stageMap: Record<number, string[]> = {
+                    0: ['hook', 'generating hook'],
+                    1: ['knowledge', 'mining', 'pipeline'],
+                    2: ['compos', 'quality', 'narrative', 'promise'],
+                    3: ['enforcement', 'checking'],
+                    4: ['render', 'creat'],
+                    5: ['complete', 'finaliz', 'ready'],
+                  }
+                  const activeIndex = STAGES.findIndex((_, i) => stageMap[i]?.some(k => progressMsg.includes(k)))
+                  const currentIndex = activeIndex >= 0 ? activeIndex : 0
+                  const pct = Math.round(((currentIndex + 0.5) / STAGES.length) * 100)
+
+                  // Parse "X/Y" from message (e.g. "Creating images 3/6")
+                  const slideMatch = carouselProgress?.message?.match(/(\d+)\s*\/\s*(\d+)/)
+                  const slidesDone = slideMatch ? parseInt(slideMatch[1], 10) : 0
+                  const slidesTotal = slideMatch ? parseInt(slideMatch[2], 10) : 5
+                  const isImageStage = currentIndex >= 4
+                  const thumbnailCount = isImageStage ? slidesTotal : 5
+
+                  return (
+                    <div className="animate-fade-up rounded-2xl border border-[#3d6fa8]/20 bg-[#3d6fa8]/6 p-5 space-y-5">
+                      {/* Hook title + spinner */}
+                      <div className="flex items-center gap-3">
+                        <span className="w-4 h-4 border-2 border-[#3d6fa8]/30 border-t-[#6b9fcc] rounded-full animate-spin shrink-0" />
                         <p className="text-sm font-semibold text-foreground/80 truncate">
-                          {postStreamProgress?.hook || 'Preparing...'}
+                          {postStreamProgress?.hook || 'Preparing your carousel...'}
                         </p>
-                        {carouselProgress ? (
-                          <p className="text-xs text-[#6b9fcc] font-medium">{carouselProgress.message}</p>
-                        ) : (
-                          <p className="text-xs text-muted-light">Generating hook and starting pipeline...</p>
-                        )}
+                      </div>
+
+                      {/* Full-width IG gradient progress bar */}
+                      <div className="space-y-1.5">
+                        <div className="h-1.5 w-full rounded-full overflow-hidden bg-border/60">
+                          <div
+                            className="h-full rounded-full transition-all duration-700 ease-out"
+                            style={{ width: `${Math.max(pct, 4)}%`, backgroundImage: IG_GRADIENT }}
+                          />
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-medium text-[#6b9fcc]">
+                            {carouselProgress?.message || 'Starting pipeline...'}
+                          </span>
+                          <span className="text-xs text-muted tabular-nums">{pct}%</span>
+                        </div>
+                      </div>
+
+                      {/* Slide thumbnail grid */}
+                      <div className={`grid gap-2`} style={{ gridTemplateColumns: `repeat(${thumbnailCount}, 1fr)` }}>
+                        {[...Array(thumbnailCount)].map((_, i) => {
+                          const isDone = isImageStage && i < slidesDone
+                          const isActive = isImageStage && i === slidesDone
+                          return (
+                            <div
+                              key={i}
+                              className={`aspect-[4/5] rounded-lg border flex items-center justify-center transition-all duration-300 ${
+                                isDone
+                                  ? 'border-[#22c55e]/30 bg-[#22c55e]/8'
+                                  : isActive
+                                  ? 'border-[#6b9fcc]/40 bg-[#3d6fa8]/10'
+                                  : 'border-border/50 bg-surface'
+                              }`}
+                            >
+                              {isDone ? (
+                                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                  <path d="M3 8.5L6.5 12L13 5" />
+                                </svg>
+                              ) : isActive ? (
+                                <span className="w-3.5 h-3.5 border-2 border-[#3d6fa8]/30 border-t-[#6b9fcc] rounded-full animate-spin" />
+                              ) : (
+                                <span className="text-[11px] font-semibold text-muted/30">{i + 1}</span>
+                              )}
+                            </div>
+                          )
+                        })}
                       </div>
                     </div>
-                    {/* Pipeline stage indicators */}
-                    {(() => {
-                      const STAGES = ['Writing hook', 'Researching', 'Writing slides', 'Quality check', 'Creating images', 'Complete']
-                      const progressMsg = carouselProgress?.message?.toLowerCase() || ''
-                      const stageMap: Record<number, string[]> = {
-                        0: ['hook', 'generating hook'],
-                        1: ['knowledge', 'mining', 'pipeline'],
-                        2: ['compos', 'quality', 'narrative', 'promise'],
-                        3: ['enforcement', 'checking'],
-                        4: ['render'],
-                        5: ['complete', 'finaliz', 'ready'],
-                      }
-                      const activeIndex = STAGES.findIndex((_, i) => stageMap[i]?.some(k => progressMsg.includes(k)))
-                      const currentIndex = activeIndex >= 0 ? activeIndex : 0
-                      return (
-                        <div className="mt-4 space-y-2">
-                          {/* Segmented progress bar */}
-                          <div className="flex gap-1">
-                            {STAGES.map((_, i) => (
-                              <div
-                                key={i}
-                                className={`flex-1 h-1.5 rounded-full transition-all duration-500 ${
-                                  i < currentIndex
-                                    ? 'bg-[#3d6fa8]'
-                                    : i === currentIndex
-                                    ? 'bg-[#3d6fa8] animate-pulse'
-                                    : 'bg-border'
-                                }`}
-                              />
-                            ))}
-                          </div>
-                          {/* Single active stage label */}
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs font-medium text-[#6b9fcc]">
-                              {STAGES[currentIndex]}
-                            </span>
-                            <span className="text-xs text-muted">
-                              {currentIndex + 1} / {STAGES.length}
-                            </span>
-                          </div>
-                        </div>
-                      )
-                    })()}
-                  </div>
-                )}
+                  )
+                })()}
 
               </div>
             )}
