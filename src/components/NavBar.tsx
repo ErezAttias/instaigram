@@ -12,7 +12,7 @@ export default function NavBar() {
       <div className="max-w-[1800px] mx-auto px-6 lg:px-8 h-16 flex items-center justify-between">
         <Link
           href="/"
-          className="text-lg font-semibold tracking-tight font-[family-name:var(--font-bricolage)] bg-clip-text text-transparent"
+          className="text-[27px] font-semibold tracking-tight font-[family-name:var(--font-bricolage)] bg-clip-text text-transparent"
           style={{ backgroundImage: 'linear-gradient(135deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888)' }}
         >
           InstAIgram
