@@ -20,7 +20,7 @@ export function TopTabNav() {
             disabled={locked}
             onClick={() => !locked && setActiveTab(i)}
             className={`
-              flex items-center gap-1.5 px-4 py-3 text-sm font-medium whitespace-nowrap shrink-0
+              rounded-none flex items-center gap-1.5 px-4 py-3 text-sm font-medium whitespace-nowrap shrink-0
               border-b-2 -mb-px transition-all
               ${active
                 ? 'border-[#dc2743] text-foreground'
@@ -29,6 +29,7 @@ export function TopTabNav() {
                   : 'border-transparent text-muted-light hover:text-foreground cursor-pointer'
               }
             `}
+            style={{ paddingLeft: '1rem', paddingRight: '1rem' }}
           >
             {done && !active && (
               <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="#6b9fcc" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
