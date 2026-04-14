@@ -141,11 +141,45 @@ centered headline overlaid on top. There is NO paragraph body visible to the rea
 
 WRITING RULES FOR BOLD LAYOUT:
 - The HEADLINE is the entire slide. It must hit in under 1 second.
-- Headlines: 20–60 characters. Short, punchy.
+- Headlines: 20–60 characters, target 4–8 WORDS (not 3).
 - Body: Write ONE sentence only (50–100 chars). This backup context is used for
   caption generation but is NOT rendered on the slide. Keep it minimal.
 - Prefer: numbers, named entities, concrete comparisons, strong verbs
 - Avoid: setup phrases, hedge words ("some", "many"), vague generalities
+
+CRITICAL — BOLD HEADLINES MUST BE COMPLETE CLAIMS, NOT FRAGMENTS OR LABELS:
+A Bold headline replaces an entire paragraph. It MUST tell the reader what happened / what
+is true — not just name the event or subject.
+
+STRUCTURE: subject + verb + specific object/outcome. Grammatically complete.
+
+Self-check before writing each headline:
+  1. Is there a VERB that carries the claim? (not just a noun phrase)
+  2. Can someone who reads ONLY this title understand the full fact?
+  3. If you removed the title, would you lose the information, or just a label?
+     → If the answer is "just a label", the headline is broken. Rewrite.
+
+FRAGMENT/LABEL ANTI-PATTERNS (reject these):
+  ✗ "Zeus's Unique Birth of Athena"
+     → Noun phrase. No verb. What about the birth? The title teases but doesn't deliver.
+     ✓ "Athena Sprang Fully Armored From Zeus's Skull"
+  ✗ "Zeus's Failed Prophecy Thwart"
+     → Grammatically broken. "Thwart" isn't a noun.
+     ✓ "Zeus Swallowed Metis to Stop the Prophecy"
+  ✗ "The Moon Landing's Hidden Detail"
+     → Tease, not a fact. What's the detail?
+     ✓ "Armstrong Broke a Circuit Breaker With His Backpack"
+  ✗ "Cleopatra's Strange Appearance"
+     → Vague. In what way?
+     ✓ "Cleopatra Was Greek, Not Egyptian"
+
+BOLD HEADLINE PATTERNS THAT WORK:
+  Subject + action: "Zeus Swallowed Metis Whole"
+  Subject + happened to: "Athena Sprang From Zeus's Skull"
+  Subject + number + detail: "A Single Cow Drinks 50 Gallons a Day"
+  Subject + negation: "Honey Never Spoils"
+  Subject + comparison: "Cleopatra Lived Closer to the iPhone Than the Pyramids"
+  Subject + consequence: "Zeus Became What He Feared"
 
 ${mode === 'single_entity' ? `BOLD + SINGLE_ENTITY — SEQUENTIAL HEADLINES (critical):
 Because the carousel answers ONE question about ONE subject, headlines must chain into a
@@ -534,7 +568,10 @@ For each FACT slide (1–${factCount}):
   □ Does the headline make a specific claim (not a label)?
   □ Does the body contain at least 1 of the 7 value signals?
   □ Does the body contain at least 1 named entity, number, or date?
-${mode === 'single_entity'
+${layout === 'BOLD' ? `  □ Is the headline a COMPLETE CLAIM with a verb — NOT a fragment/label like "X's Unique Y" or "X's Failed Z"?
+  □ Would the reader understand the full fact from the headline alone (no body needed)?
+  □ Is the headline 4–8 words (not 3, not a one-word label)?
+  ` : ''}${mode === 'single_entity'
   ? `  □ Does this FACT build on the previous slide? Is there narrative continuity?\n  □ If you removed this slide, would slide N-1 and slide N+1 still flow naturally? (should be NO — slides must be linked)\n  □ Is topicEntity a SLIDE-SPECIFIC aspect (e.g., "octopus gills with blood vessels"), NOT the bare subject name?`
   : `  □ Would this slide make sense posted alone, out of context?\n  □ Is topicEntity the SPECIFIC entity (e.g., "AlphaFold"), not the topic name (e.g., "AI")?\n  □ Is this slide's FEATURED ITEM different from every other slide (collection mode)?`}
   □ Is the body between ${layout === 'BOLD' ? '50 and 100' : '200 and 400'} characters?

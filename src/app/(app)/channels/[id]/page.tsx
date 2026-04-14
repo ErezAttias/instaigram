@@ -10,6 +10,7 @@ import InstagramPreview from '@/components/InstagramPreview'
 import '@/components/instagram-preview.css'
 import { useChannelContext } from '@/components/ChannelProvider'
 import { TopTabNav } from '@/components/channel/TopTabNav'
+import { classifyDomainStyle } from '@/lib/utils/topic-classifier'
 import { TITLE_FONTS, BODY_FONTS, getTitleFont } from '@/lib/visual/font-pairings-data'
 import type { ChannelVisualStyleContext } from '@/lib/visual/visual-style'
 import { DEFAULT_VISUAL_STYLE } from '@/lib/visual/visual-style'
@@ -1758,7 +1759,16 @@ export default function ChannelDashboard() {
           {/* ═══════════════════════════════════════════════════════
               Step 3: Carousel Style (activeTab === 2)
               ═══════════════════════════════════════════════════════ */}
-          {activeTab === 2 && (
+          {activeTab === 2 && (() => {
+            // Detect whether the topic is narrative (mythology, history, crime, etc.)
+            // → recommend Detailed. Informational/collection topics → Bold works well.
+            const topicText = channel?.niche || channel?.exploreTopic || ''
+            const domainStyle = topicText ? classifyDomainStyle(topicText) : 'informational'
+            const recommendedLayout: 'DETAILED' | 'BOLD' = domainStyle === 'narrative' ? 'DETAILED' : 'BOLD'
+            const recommendationReason = domainStyle === 'narrative'
+              ? 'Story-rich topics (mythology, history, people) usually read better with a paragraph to explain each beat.'
+              : 'Fact collections and single-fact topics work great with big, scannable headlines.'
+            return (
             <Section delay={120} active={effectiveStep === 2}>
               <div className="flex flex-col gap-1 mb-6">
                 <h2 className="text-xl font-bold tracking-tight">Choose your carousel style</h2>
@@ -1767,9 +1777,24 @@ export default function ChannelDashboard() {
                 </p>
               </div>
 
+              {topicText && (
+                <div className="mb-4 flex items-start gap-2 text-xs text-muted-light max-w-xl">
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="mt-0.5 shrink-0 text-[#6b9fcc]">
+                    <circle cx="8" cy="8" r="6.5" />
+                    <path d="M8 7.5v4M8 5v0.5" />
+                  </svg>
+                  <span>
+                    Based on your topic (<span className="text-foreground">{topicText}</span>),
+                    we recommend <span className="text-[#6b9fcc] font-semibold">{recommendedLayout === 'DETAILED' ? 'Detailed' : 'Bold'}</span>.
+                    {' '}{recommendationReason}
+                  </span>
+                </div>
+              )}
+
               <div className="grid grid-cols-2 gap-4 max-w-xl">
                 {(['DETAILED', 'BOLD'] as const).map((layoutKey) => {
                   const isSelected = (channel?.carouselLayout ?? 'DETAILED') === layoutKey
+                  const isRecommended = recommendedLayout === layoutKey
                   return (
                     <button
                       key={layoutKey}
@@ -1790,6 +1815,11 @@ export default function ChannelDashboard() {
                           : 'border-border hover:border-border-hover bg-surface/50'
                       }`}
                     >
+                      {isRecommended && !isSelected && (
+                        <span className="absolute top-2 right-2 px-2 py-0.5 text-[10px] font-semibold rounded-full bg-[#3d6fa8]/20 text-[#6b9fcc] border border-[#3d6fa8]/40">
+                          Recommended
+                        </span>
+                      )}
                       {/* Mini preview */}
                       <div className="w-full aspect-[4/5] rounded-xl overflow-hidden bg-surface-elevated">
                         {layoutKey === 'DETAILED' ? (
@@ -1843,7 +1873,8 @@ export default function ChannelDashboard() {
                 </PrimaryButton>
               </div>
             </Section>
-          )}
+            )
+          })()}
 
           {/* ═══════════════════════════════════════════════════════
               Step 4: Generate Posts — Batches of 3 (activeTab === 3)
