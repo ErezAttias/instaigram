@@ -4,9 +4,10 @@ interface CompressPromptParams {
   topic: string;
   slides: GeneratedSlideV2[];
   angleDescription?: string;
+  layout?: 'DETAILED' | 'BOLD';
 }
 
-export function buildCompressPrompt({ topic, slides, angleDescription }: CompressPromptParams): string {
+export function buildCompressPrompt({ topic, slides, angleDescription, layout }: CompressPromptParams): string {
   const slideList = slides.map(s => {
     return `SLIDE ${s.slideNumber} (${s.role}):
   headline: ${s.headline}
@@ -32,9 +33,21 @@ ${slideList}
 COMPRESSION RULES
 ═══════════════════════════════════════════
 
-For each slide, produce:
+${layout === 'BOLD' ? `For each slide, produce:
+  displayTitle: 3–7 words. Ultra-punchy, like a billboard. Must hit instantly.
+  displaySupport: always empty string "". Bold layout renders ONLY the title — no support text.
+
+BOLD LAYOUT RULES:
+- The displayTitle is the ONLY text on the slide. It must be self-contained.
+- Maximum 7 words — shorter is better. Aim for 3–5 when possible.
+- Prefer: sharp numbers, named entities, dramatic contrasts
+- Each title should feel like a powerful standalone statement
+  ✓ "Honey Never Expires" (3 words)
+  ✓ "Octopuses Have 3 Hearts" (4 words)
+  ✓ "Cleopatra Lived Closer to the iPhone" (6 words)
+  ✗ "The Fascinating Reason Ancient Honey Never Goes Bad" (8 words — too long)` : `For each slide, produce:
   displayTitle: 5–10 words. Punchy, concrete, scannable in under 1 second.
-  displaySupport: 8–15 words. Reinforces the title with a specific detail, number, or contrast.
+  displaySupport: 8–15 words. Reinforces the title with a specific detail, number, or contrast.`}
 
 Rules:
 - No fluff: remove "most people don't know", "here's the thing", "the truth is"

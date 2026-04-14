@@ -163,7 +163,7 @@ export async function runBatchOrder(batchOrderId: string): Promise<void> {
     });
 
     try {
-      const job = await createCarouselJob(topic, batchOrder.direction || undefined, channel.id, batchOrderId);
+      const job = await createCarouselJob(topic, batchOrder.direction || undefined, channel.id, batchOrderId, undefined, (channel.carouselLayout as 'DETAILED' | 'BOLD') ?? 'DETAILED');
 
       // Update progress with the job ID so frontend can link to it
       await prisma.batchOrder.update({

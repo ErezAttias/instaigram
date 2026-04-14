@@ -328,6 +328,40 @@ export const GeneratedCarousel = z.object({
   { message: 'IMPLICATION slide body must be at least 50 characters' }
 );
 
+/** Bold layout variant — relaxed body lengths since body text is not rendered on slides. */
+export const GeneratedCarouselBold = z.object({
+  title:           z.string().min(3).max(60),
+  topicConfidence: z.number().int().min(1).max(10),
+  slides:          z.array(GeneratedSlideV2).min(6).max(7),
+}).refine(
+  (data) => data.slides[0]?.role === 'OPENER',
+  { message: 'First slide must have role OPENER' }
+).refine(
+  (data) => data.slides[data.slides.length - 1]?.role === 'CTA',
+  { message: 'Last slide must have role CTA' }
+).refine(
+  (data) => data.slides[data.slides.length - 2]?.role === 'IMPLICATION',
+  { message: 'Second-to-last slide must have role IMPLICATION' }
+).refine(
+  (data) => {
+    const middle = data.slides.slice(1, -2);
+    return middle.every(s => s.role === 'FACT');
+  },
+  { message: 'All slides between OPENER and IMPLICATION must have role FACT' }
+).refine(
+  (data) => data.slides.every((s, i) => s.slideNumber === i),
+  { message: 'slideNumber must match array position (0-indexed)' }
+).refine(
+  (data) => {
+    return data.slides
+      .filter(s => s.role === 'FACT')
+      .every(s => s.factType !== null);
+  },
+  { message: 'Every FACT slide must specify a factType' }
+);
+// Bold: no minimum body length for FACT slides (body is backup context only, 50-100 chars)
+// Bold: no minimum body length for IMPLICATION (same reason)
+
 // ─── V2 Pipeline Schemas ─────────────────────────────────────
 
 export const CarouselMode = z.enum(['single_entity', 'thematic_collection']);

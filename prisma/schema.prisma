@@ -106,6 +106,11 @@ enum NicheSelectionMode {
   DIRECT
 }
 
+enum CarouselLayout {
+  DETAILED
+  BOLD
+}
+
 enum BatchOrderStatus {
   PENDING
   GENERATING_HOOKS
@@ -125,6 +130,7 @@ model Channel {
   exploreTopic   String?
   contentIntent    String?             // "evergreen_fact" | "story" | "general" — explicit content intent, set when niche is selected
   contentStrategy  Json?               // Approved content strategy: { contentIntent, description, tone, hookTypes, audience }
+  carouselLayout   CarouselLayout      @default(DETAILED)
   status           ChannelStatus       @default(DRAFT)
   createdAt      DateTime            @default(now())
   updatedAt      DateTime            @updatedAt
@@ -292,6 +298,7 @@ model CarouselJob {
   topic        String
   direction    String?
   exactSubject String?            // User-specified exact concept — bypasses LLM concept selection
+  layout       CarouselLayout     @default(DETAILED)
   status       CarouselJobStatus  @default(PENDING)
   approved     Boolean            @default(false)
   progress     Json?              // { step, message, pct }

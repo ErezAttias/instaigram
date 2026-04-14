@@ -349,10 +349,10 @@ Return JSON:
  * The original body is preserved — this is a display-only transformation.
  */
 export async function compressSlides(
-  params: { topic: string; slides: GeneratedSlideV2[]; angleDescription?: string },
+  params: { topic: string; slides: GeneratedSlideV2[]; angleDescription?: string; layout?: 'DETAILED' | 'BOLD' },
   ai: AIProvider,
 ): Promise<CompressResult> {
-  const { topic, slides, angleDescription } = params;
+  const { topic, slides, angleDescription, layout } = params;
 
   // Separate slides by role
   const implicationSlides = slides.filter(s => s.role === 'IMPLICATION');
@@ -360,7 +360,7 @@ export async function compressSlides(
   const factSlides = slides.filter(s => s.role === 'FACT');
 
   // Compress non-implication slides with the standard prompt (partial schema — IMPLICATION merged after)
-  const standardPrompt = buildCompressPrompt({ topic, slides: otherSlides, angleDescription });
+  const standardPrompt = buildCompressPrompt({ topic, slides: otherSlides, angleDescription, layout });
   const [standardResult, ...implicationResults] = await Promise.all([
     ai.generateObject(standardPrompt, CompressedCarouselPartial),
     ...implicationSlides.map(slide =>
@@ -384,8 +384,12 @@ export async function compressSlides(
   }
 
   // ── Micro-story enforcement for FACT slides ─────────────────
+  // Skip for BOLD layout — body text is not rendered, so micro-story validation is irrelevant.
   // Validate structure. If invalid → regenerate text only (up to MAX_MICRO_STORY_RETRIES).
   // If still invalid after retries → keep best attempt + mark with warning.
+  if (layout === 'BOLD') {
+    return { compressed: allCompressed };
+  }
   const factSlideNumbers = new Set(factSlides.map(s => s.slideNumber));
   for (let i = 0; i < allCompressed.length; i++) {
     const entry = allCompressed[i];

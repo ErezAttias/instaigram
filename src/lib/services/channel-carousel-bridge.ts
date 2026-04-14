@@ -167,7 +167,7 @@ export async function* generateChannelPostsBatch(
 
     try {
       // Create CarouselJob — the standalone service will handle the full pipeline
-      const carouselJob = await createCarouselJob(topic, hook.text, channelId);
+      const carouselJob = await createCarouselJob(topic, hook.text, channelId, undefined, undefined, (channel.carouselLayout as 'DETAILED' | 'BOLD') ?? 'DETAILED');
 
       // Create Post record linked to the CarouselJob
       const post = await prisma.post.create({

@@ -23,6 +23,8 @@ interface ComposePromptParams {
   concept?: string;
   /** Domain style — narrative (mythology/history) vs informational (animals/science). */
   domainStyle?: TopicDomainStyle;
+  /** Layout — BOLD produces shorter, punchier text for big-type rendering. */
+  layout?: 'DETAILED' | 'BOLD';
 }
 
 function hasExpansion(fact: ComposeFact): fact is ExpandedFact {
@@ -37,6 +39,7 @@ export function buildComposePrompt({
   mode,
   concept,
   domainStyle,
+  layout,
 }: ComposePromptParams): string {
   const factList = selectedFacts.map((f, i) => {
     const expansionLine = hasExpansion(f) ? `\n  expansion: ${f.expansion}` : '';
@@ -128,6 +131,35 @@ Write one FACT slide per fact below, in the order given.
 
 ${factList}
 
+${layout === 'BOLD' ? `
+═══════════════════════════════════════════
+BOLD LAYOUT — SHORT, PUNCHY TEXT
+═══════════════════════════════════════════
+
+This carousel uses the BOLD layout: each slide shows a full-bleed image with ONLY a big,
+centered headline overlaid on top. There is NO paragraph body visible to the reader.
+
+WRITING RULES FOR BOLD LAYOUT:
+- The HEADLINE is the entire slide. It must hit in under 1 second.
+- Each headline must be immediately understandable WITHOUT any body text.
+- Headlines: 20–60 characters. Short, punchy, self-contained.
+- Body: Write ONE sentence only (50–100 chars). This backup context is used for
+  caption generation but is NOT rendered on the slide. Keep it minimal.
+- Prefer: numbers, named entities, concrete comparisons, strong verbs
+- Avoid: setup phrases, context-dependent claims, anything that needs explanation
+- Think of each slide as a standalone statement, like a poster or billboard.
+
+GOOD BOLD headlines:
+  ✓ "Honey Found in 3,000-Year-Old Tombs — Still Edible"
+  ✓ "Octopuses Have 3 Hearts"
+  ✓ "A Single Cow Drinks 50 Gallons of Water a Day"
+  ✓ "Cleopatra Lived Closer to the iPhone Than to the Pyramids"
+
+BAD BOLD headlines (too long, need context, or vague):
+  ✗ "The Fascinating Reason Why Ancient Egyptian Honey Never Goes Bad" — too long
+  ✗ "Its Unique Properties Make This Possible" — needs context
+  ✗ "Nature Has Incredible Preservation Methods" — vague, no specifics
+` : ''}
 ═══════════════════════════════════════════
 SLIDE STRUCTURE (exactly ${slideCount} slides)
 ═══════════════════════════════════════════
@@ -197,7 +229,7 @@ Slides 1–${factCount} — FACT (exactly ${factCount})
      ✗ "Scoville Units Measure 2.2 Million" — what are Scoville units?
      ✓ "The World's Hottest Pepper Scores 2.2 Million on the Heat Scale" — clear
 
-  body: 200–400 characters. The evidence, mechanism, example, or context that makes the headline land. USE the expansion text provided — it contains the depth and insight each slide needs. Do NOT compress or summarize it down.
+  body: ${layout === 'BOLD' ? '50–100 characters. ONE sentence only — backup context for captions, NOT rendered on the slide.' : '200–400 characters. The evidence, mechanism, example, or context that makes the headline land. USE the expansion text provided — it contains the depth and insight each slide needs. Do NOT compress or summarize it down.'}
   supportingDetail: Optional. A single stat, quote, date, or named reference that anchors the body.
 
 Slide ${factCount + 1} — IMPLICATION
@@ -420,7 +452,7 @@ For each FACT slide (1–${factCount}):
   □ Does the body contain at least 1 named entity, number, or date?
   □ Would this slide make sense posted alone, out of context?
   □ Is this slide's core claim different from every other slide?
-  □ Is the body between 200 and 400 characters?
+  □ Is the body between ${layout === 'BOLD' ? '50 and 100' : '200 and 400'} characters?
   □ Does the body end with a factual sentence, not meta-commentary like "This achievement marks..."?
   □ Is topicEntity the SPECIFIC entity (e.g., "AlphaFold"), not the topic name (e.g., "AI")?
 
@@ -465,7 +497,7 @@ Return exactly this JSON structure:
       "slideNumber": 1,
       "role": "FACT",
       "headline": "string (20–100 chars, a specific claim)",
-      "body": "string (200–400 chars, the evidence and detail)",
+      "body": "string (${layout === 'BOLD' ? '50–100' : '200–400'} chars, the evidence and detail)",
       "supportingDetail": "string or null (a single anchoring stat/quote/date)",
       "factType": "statistic" | "comparison" | "mechanism" | "historical" | "example" | "definition",
       "containsNumber": true/false,

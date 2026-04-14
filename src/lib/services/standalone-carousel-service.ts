@@ -25,6 +25,7 @@ import { getAIProvider } from '@/lib/ai/provider';
 import { generateCarousel } from '@/lib/pipeline/carousel-pipeline';
 import { fetchTopicKnowledge } from '@/lib/external/topic-knowledge';
 import { renderFactSlide } from '@/lib/visual/fact-slide-renderer';
+import { renderBoldSlide } from '@/lib/visual/bold-slide-renderer';
 import { DEFAULT_VISUAL_STYLE, type ChannelVisualStyleContext } from '@/lib/visual/visual-style';
 import { getImageProviderForTopic, getUnifiedImageProvider, UnifiedImageProvider, isCelebrityTopic, type ImageGenerator, type ImageSourceProvider } from '@/lib/ai/image-provider';
 import { WikipediaImageProvider, resolveWikipediaConcept } from '@/lib/ai/wikipedia-image-provider';
@@ -111,7 +112,7 @@ export type ProgressCallback = (event: ProgressEvent) => void;
 
 // ─── Create Job ─────────────────────────────────────────────
 
-export async function createCarouselJob(topic: string, direction?: string, channelId?: string, batchOrderId?: string, exactSubject?: string) {
+export async function createCarouselJob(topic: string, direction?: string, channelId?: string, batchOrderId?: string, exactSubject?: string, layout?: 'DETAILED' | 'BOLD') {
   return prisma.carouselJob.create({
     data: {
       topic,
@@ -119,6 +120,7 @@ export async function createCarouselJob(topic: string, direction?: string, chann
       exactSubject: exactSubject || null,
       channelId: channelId || null,
       batchOrderId: batchOrderId || null,
+      layout: layout || 'DETAILED',
       status: 'PENDING',
     },
   });
@@ -325,7 +327,48 @@ async function renderSlideImage(
   skipReadabilityGate?: boolean,
   /** Contextual swipe CTA for OPENER slides (e.g. "Swipe to learn why") */
   swipeCta?: string,
+  /** Carousel layout — BOLD uses full-bleed renderer */
+  layout?: 'DETAILED' | 'BOLD',
 ): Promise<SlideRenderOutput> {
+
+  // ── Bold layout: use the bold renderer ──────────────────────
+  if (layout === 'BOLD') {
+    const subject = conceptHint || slide.topicEntity || (allSlides ? resolveCarouselSubject(allSlides, topic) : extractVisualSubject(topic));
+    const promptOutput = buildSlidePrompt({
+      slideRole: slide.role === 'CTA' ? 'CTA' : slide.role === 'OPENER' ? 'HOOK' : slide.role,
+      subject,
+      topic,
+      headlineText: displayTitle,
+    });
+
+    const result = await renderBoldSlide(
+      {
+        imagePrompt: promptOutput.imagePrompt,
+        displayTitle,
+        slideRole: slide.role,
+        swipeCta,
+        subjectName: exploreTopic || conceptHint || slide.topicEntity || undefined,
+        excludeUrls,
+        visualStyle,
+      },
+      imageGen,
+    );
+
+    if (!result.image) {
+      throw new Error(result.error || 'Bold render failed — no image produced');
+    }
+
+    const imageBase64 = result.image.toString('base64');
+    const rawImageBase64 = result.rawImage?.toString('base64') ?? undefined;
+
+    return {
+      imageBase64,
+      rawImageBase64,
+      resolvedImageSource: (result.imageSource === 'fallback' ? 'generated' : result.imageSource) as 'wikipedia' | 'generated' | null,
+      imageSourceUrl: result.imageSourceUrl ?? undefined,
+    };
+  }
+
   if (slide.role === 'OPENER') {
     // Always render OPENER with layout-first composition (same as FACT slides).
     // This gives consistent visual design across the entire carousel —
@@ -802,6 +845,7 @@ export async function runCarouselGeneration(
         // Pass pre-selected concept so pipeline skips concept step (already done above)
         concept: preSelectedConcept,
         ...(preSelectedMode ? { mode: preSelectedMode } : {}),
+        layout: (job.layout as 'DETAILED' | 'BOLD') ?? 'DETAILED',
       },
       ai,
     );
@@ -1080,7 +1124,7 @@ export async function runCarouselGeneration(
         // Try rendering (UnifiedImageProvider handles Gemini → Stability fallback internally)
         try {
           console.log(`[ImageStage] Slide ${slideNum} attempt ${attempt} — calling renderSlideImage`);
-          const renderOutput = await renderSlideImage(slide, displayTitle, displaySupport, job.topic, imageProvider, finalSlides, undefined, job.direction, channelVisualStyle, undefined, preSelectedConcept, channelExploreTopic, true, compressed?.swipeCta);
+          const renderOutput = await renderSlideImage(slide, displayTitle, displaySupport, job.topic, imageProvider, finalSlides, undefined, job.direction, channelVisualStyle, undefined, preSelectedConcept, channelExploreTopic, true, compressed?.swipeCta, (job.layout as 'DETAILED' | 'BOLD') ?? 'DETAILED');
           imageBase64 = renderOutput.imageBase64;
           rawImageBase64 = renderOutput.rawImageBase64;
           resolvedImageSource = renderOutput.resolvedImageSource;
@@ -1631,6 +1675,8 @@ export async function regenerateCarouselSlideImage(
       conceptHint,
       regenExploreTopic,
       true, // skipReadabilityGate — manual regen should accept any image
+      undefined, // swipeCta
+      (job.layout as 'DETAILED' | 'BOLD') ?? 'DETAILED',
     );
 
     const regenImageUrl = await saveImage(jobId, slideIndex, renderOutput.imageBase64);
@@ -1731,24 +1777,39 @@ export async function restyleCarouselSlide(jobId: string, slideIndex: number) {
       bodyText: displaySupport,
     });
 
-    const result = await renderFactSlide({
-      imagePrompt: promptOutput.imagePrompt,
-      slideType: 'fact',
-      displayTitle,
-      displaySupport,
-      textZone: 'bottom_right',
-      slideRole: slide.role,
-      ...(slide.role === 'OPENER' && { forceT1FontSize: 86 }),
-      ...(slide.role === 'CTA' && { textMode: 'light-on-dark' as const }),
-      visualStyle,
-      baseImage: rawImage, // Skip image generation — re-use existing
-    });
+    let finalImage: Buffer | undefined;
 
-    if (!result.image) {
+    if ((job.layout as string) === 'BOLD') {
+      // Bold layout: use bold renderer with restyle base image
+      const boldResult = await renderBoldSlide({
+        imagePrompt: promptOutput.imagePrompt,
+        displayTitle,
+        slideRole: slide.role,
+        visualStyle,
+        baseImage: rawImage,
+      });
+      finalImage = boldResult.image;
+    } else {
+      const result = await renderFactSlide({
+        imagePrompt: promptOutput.imagePrompt,
+        slideType: 'fact',
+        displayTitle,
+        displaySupport,
+        textZone: 'bottom_right',
+        slideRole: slide.role,
+        ...(slide.role === 'OPENER' && { forceT1FontSize: 86 }),
+        ...(slide.role === 'CTA' && { textMode: 'light-on-dark' as const }),
+        visualStyle,
+        baseImage: rawImage, // Skip image generation — re-use existing
+      });
+      finalImage = result.image;
+    }
+
+    if (!finalImage) {
       throw new Error(`Restyle render returned no image`);
     }
 
-    const imageBase64 = result.image.toString('base64');
+    const imageBase64 = finalImage.toString('base64');
     const imageUrl = await saveImage(jobId, slideIndex, imageBase64);
 
     return await prisma.carouselSlide.update({

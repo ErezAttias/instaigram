@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 
+type CarouselLayout = 'DETAILED' | 'BOLD';
+
 interface CreateCarouselDialogProps {
   channelId: string;
   open: boolean;
@@ -13,6 +15,7 @@ export function CreateCarouselDialog({ channelId, open, onClose, onCreated }: Cr
   const [topic, setTopic] = useState('');
   const [direction, setDirection] = useState('');
   const [exactSubject, setExactSubject] = useState('');
+  const [layout, setLayout] = useState<CarouselLayout>('DETAILED');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -33,6 +36,7 @@ export function CreateCarouselDialog({ channelId, open, onClose, onCreated }: Cr
           topic: topic.trim(),
           direction: direction.trim() || undefined,
           exactSubject: exactSubject.trim() || undefined,
+          layout,
         }),
       });
 
@@ -45,6 +49,7 @@ export function CreateCarouselDialog({ channelId, open, onClose, onCreated }: Cr
       setTopic('');
       setDirection('');
       setExactSubject('');
+      setLayout('DETAILED');
       onCreated(data.jobId);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong');
@@ -65,6 +70,61 @@ export function CreateCarouselDialog({ channelId, open, onClose, onCreated }: Cr
 
         <form onSubmit={handleSubmit}>
           <div className="space-y-4">
+
+            {/* Layout Picker */}
+            <div>
+              <label className="block text-xs font-medium text-muted-light mb-2">
+                Layout
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setLayout('DETAILED')}
+                  className={`relative flex flex-col items-center gap-2 p-3 rounded-xl border-2 transition-all ${
+                    layout === 'DETAILED'
+                      ? 'border-accent bg-accent/5'
+                      : 'border-border hover:border-border-hover'
+                  }`}
+                >
+                  {/* Mini preview: image + text bar */}
+                  <div className="w-full aspect-[4/5] rounded-lg overflow-hidden bg-surface-elevated">
+                    <div className="h-[76%] bg-gradient-to-br from-zinc-700 to-zinc-800" />
+                    <div className="h-[24%] bg-black px-2 pt-1.5">
+                      <div className="h-1.5 w-3/4 bg-white/80 rounded-full mb-1" />
+                      <div className="h-1 w-full bg-white/30 rounded-full mb-0.5" />
+                      <div className="h-1 w-2/3 bg-white/30 rounded-full" />
+                    </div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-xs font-medium text-foreground">Detailed</div>
+                    <div className="text-[10px] text-muted leading-tight">Headline + paragraph</div>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setLayout('BOLD')}
+                  className={`relative flex flex-col items-center gap-2 p-3 rounded-xl border-2 transition-all ${
+                    layout === 'BOLD'
+                      ? 'border-accent bg-accent/5'
+                      : 'border-border hover:border-border-hover'
+                  }`}
+                >
+                  {/* Mini preview: full-bleed with big text */}
+                  <div className="w-full aspect-[4/5] rounded-lg overflow-hidden bg-gradient-to-b from-zinc-700 via-zinc-800 to-black relative">
+                    <div className="absolute bottom-0 left-0 right-0 p-2">
+                      <div className="h-2 w-4/5 bg-white/90 rounded-full mx-auto mb-1" />
+                      <div className="h-2 w-3/5 bg-white/90 rounded-full mx-auto" />
+                    </div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-xs font-medium text-foreground">Bold</div>
+                    <div className="text-[10px] text-muted leading-tight">Big text, easy to consume</div>
+                  </div>
+                </button>
+              </div>
+            </div>
+
             <div>
               <label className="block text-xs font-medium text-muted-light mb-1.5">
                 Topic

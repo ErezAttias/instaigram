@@ -401,13 +401,11 @@ function buildDocumentaryOverlay(
     );
   }
 
-  // Swipe CTA with long line + arrowhead for OPENER/HOOK slides
-  // Line extends from text to near the right edge, creating a strong visual pull
-  // CTA text adapts to the hook: explicit swipeCta field, or auto-derived from headline
+  // Swipe CTA with small chevron for OPENER/HOOK slides
   if (isOpener) {
     const ctaFontSize = Math.round(t2Size * 1.25); // T2 size + 25%
     const ctaColor = t2Color;   // match T2 color
-    const lineColor = 'rgba(208,208,208,0.5)';
+    const chevronColor = 'rgba(208,208,208,0.6)';
     const ctaX = TEXT_PAD;
     // Position after the T1/T2 block + gap
     const textBlockEnd = startY + t1BlockHeight + gapHeight + t2BlockHeight;
@@ -416,11 +414,10 @@ function buildDocumentaryOverlay(
     const ctaText = input.swipeCta ?? deriveSwipeCta(input.displayTitle);
     // Estimate text width (~0.5em per char for body font)
     const textWidth = ctaText.length * ctaFontSize * 0.5;
-    const gap = 20;
-    const arrowHeadSize = 10;
-    const lineStartX = ctaX + textWidth + gap;
-    const lineEndX = CANVAS.width - TEXT_PAD - arrowHeadSize - 4;
-    const lineY = ctaY - ctaFontSize * 0.35; // vertically center with text
+    const chevronGap = 14;
+    const chevronSize = Math.round(ctaFontSize * 0.35);
+    const chevronX = ctaX + textWidth + chevronGap;
+    const chevronCenterY = ctaY - ctaFontSize * 0.35;
 
     elements.push(
       `<text x="${ctaX}" y="${ctaY}" `
@@ -428,13 +425,14 @@ function buildDocumentaryOverlay(
       + `font-size="${ctaFontSize}" font-weight="${FONT.t2.weight}" `
       + `fill="${ctaColor}">${escapeXml(ctaText)}</text>`
     );
+    // Double chevron >> next to text
     elements.push(
-      `<line x1="${lineStartX}" y1="${lineY}" x2="${lineEndX}" y2="${lineY}" `
-      + `stroke="${lineColor}" stroke-width="1.5" stroke-linecap="round"/>`
+      `<polyline points="${chevronX},${chevronCenterY - chevronSize} ${chevronX + chevronSize},${chevronCenterY} ${chevronX},${chevronCenterY + chevronSize}" `
+      + `fill="none" stroke="${chevronColor}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>`
     );
     elements.push(
-      `<polygon points="${lineEndX},${lineY - arrowHeadSize / 2} ${lineEndX + arrowHeadSize},${lineY} ${lineEndX},${lineY + arrowHeadSize / 2}" `
-      + `fill="${lineColor}"/>`
+      `<polyline points="${chevronX + chevronSize + 4},${chevronCenterY - chevronSize} ${chevronX + chevronSize * 2 + 4},${chevronCenterY} ${chevronX + chevronSize + 4},${chevronCenterY + chevronSize}" `
+      + `fill="none" stroke="${chevronColor}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>`
     );
   }
 

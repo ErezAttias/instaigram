@@ -12,6 +12,7 @@ interface Channel {
   nicheMode: 'DISCOVER' | 'EXPLORE' | 'DIRECT'
   exploreTopic: string | null
   contentStrategy: any
+  carouselLayout?: 'DETAILED' | 'BOLD'
   status: string
   nicheOptions: any[]
   posts: any[]

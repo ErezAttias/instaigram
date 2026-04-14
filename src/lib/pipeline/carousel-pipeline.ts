@@ -1,6 +1,6 @@
 import type { AIProvider } from '@/lib/ai/types';
 import type { GeneratedCarousel, GeneratedSlideV2, MinedFact, ExpandedFact, PatchedSlide, CarouselMode, CompressedSlideDisplay } from '@/lib/validation/schemas';
-import { GeneratedCarousel as GeneratedCarouselSchema, PatchResponse } from '@/lib/validation/schemas';
+import { GeneratedCarousel as GeneratedCarouselSchema, GeneratedCarouselBold as GeneratedCarouselBoldSchema, PatchResponse } from '@/lib/validation/schemas';
 import { selectConcept } from './steps/concept';
 import { mineFacts } from './steps/mine';
 import { dedupeFacts } from './steps/dedupe';
@@ -72,6 +72,8 @@ export interface PipelineParams {
   usedConcepts?: string[];
   /** User-supplied direction (e.g. "Focus on the chemistry"). Passed to concept step to constrain narrowing. */
   direction?: string;
+  /** Carousel layout — affects content length and visual rendering. */
+  layout?: 'DETAILED' | 'BOLD';
 }
 
 export interface PipelineResult {
@@ -372,11 +374,14 @@ async function runPipeline(
     mode,
     concept,
     domainStyle,
+    layout: params.layout,
   });
+
+  const carouselSchema = params.layout === 'BOLD' ? GeneratedCarouselBoldSchema : GeneratedCarouselSchema;
 
   let composed: GeneratedCarousel;
   try {
-    const result = await ai.generateObject(composePrompt, GeneratedCarouselSchema);
+    const result = await ai.generateObject(composePrompt, carouselSchema);
     composed = result.data;
   } catch (firstError) {
     // If compose fails (usually Zod parse error from invalid enum values),
@@ -397,9 +402,9 @@ Fix the issue and return valid JSON. Pay special attention to:
 - First slide must be OPENER, second-to-last must be IMPLICATION, last must be CTA, all middle must be FACT
 - Total slides must be 6-7 (OPENER + 3-4 FACTs + IMPLICATION + CTA)
 - headline must be 20-100 characters
-- FACT body must be 200-400 characters`;
+${params.layout === 'BOLD' ? '- FACT body must be 50-100 characters (BOLD layout)' : '- FACT body must be 200-400 characters'}`;
 
-    const retryResult = await ai.generateObject(retryPrompt, GeneratedCarouselSchema);
+    const retryResult = await ai.generateObject(retryPrompt, carouselSchema);
     composed = retryResult.data;
     console.log('[pipeline] Compose succeeded on retry.');
   }
@@ -420,6 +425,7 @@ Fix the issue and return valid JSON. Pay special attention to:
     return await compressAndReturn({
       composed, report, selectResult, expandResult, mode, concept,
       topic, ai, patchedSlideIndices: [], fallbackMeta, angleDescription,
+      layout: params.layout,
     });
   }
 
@@ -508,6 +514,7 @@ Fix the issue and return valid JSON. Pay special attention to:
   return await compressAndReturn({
     composed: patched, report: finalReport, selectResult, expandResult, mode, concept,
     topic, ai, patchedSlideIndices, fallbackMeta, angleDescription,
+    layout: params.layout,
   });
 }
 
@@ -525,6 +532,7 @@ interface CompressAndReturnParams {
   patchedSlideIndices: number[];
   fallbackMeta: FallbackMeta;
   angleDescription?: string;
+  layout?: 'DETAILED' | 'BOLD';
 }
 
 async function compressAndReturn(params: CompressAndReturnParams): Promise<PipelineResult> {
@@ -538,7 +546,7 @@ async function compressAndReturn(params: CompressAndReturnParams): Promise<Pipel
   try {
     // ── LEVEL 1 / LEVEL 2: Compress (full or skip-eval) ─────
     console.log('[pipeline] Compressing slides for display...');
-    const compressResult = await compressSlides({ topic, slides: composed.slides, angleDescription }, ai);
+    const compressResult = await compressSlides({ topic, slides: composed.slides, angleDescription, layout: params.layout }, ai);
     compressedSlides = compressResult.compressed;
     console.log(`[pipeline] Compressed ${compressedSlides.length} slides.`);
   } catch (compressError) {

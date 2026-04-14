@@ -202,6 +202,55 @@ async function assembleSlide(
   return composited;
 }
 
+// ─── Full-Bleed API (Bold Layout) ────────────────────────────────
+
+/**
+ * Generate a full-bleed slide image that fills the entire 1080x1350 canvas.
+ * Used by Bold layout — no text bar, text is overlaid directly on the image.
+ *
+ * Pipeline:
+ *   1. Generate image at 3:4 portrait
+ *   2. Cover-crop to full 1080x1350
+ *   3. Return buffer (no bar, no stacking)
+ */
+export async function generateFullBleedImage(
+  originalPrompt: string,
+  imageProvider: ImageGenerator,
+  options?: ImageGenerationOptions,
+): Promise<LayoutCompositeResult> {
+  const subjectPrompt = simplifyPromptForGemini(originalPrompt);
+  console.log(`[LayoutCompositor:FullBleed] Prompt (${subjectPrompt.length} chars): ${subjectPrompt.slice(0, 150)}...`);
+
+  const result = await imageProvider.generateImage(subjectPrompt, {
+    ...options,
+    width: 768,
+    height: 1024,
+  });
+
+  console.log(`[LayoutCompositor:FullBleed] Generated via ${result.imageSource} (${result.meta.durationMs}ms)`);
+
+  // Cover-crop to full canvas size (no text bar)
+  const fullBleed = await sharp(result.data)
+    .resize(CANVAS.width, CANVAS.height, {
+      fit: 'cover',
+      position: 'centre',
+    })
+    .png()
+    .toBuffer();
+
+  const outMeta = await sharp(fullBleed).metadata();
+  console.log(`[LayoutCompositor:FullBleed] Output: ${outMeta.width}x${outMeta.height}`);
+
+  return {
+    image: fullBleed,
+    imageSource: result.imageSource,
+    meta: result.meta,
+    providerError: result.providerError,
+    providerErrorStatus: result.providerErrorStatus,
+    layoutFirst: true,
+  };
+}
+
 // ─── Main API ────────────────────────────────────────────────────
 
 /**

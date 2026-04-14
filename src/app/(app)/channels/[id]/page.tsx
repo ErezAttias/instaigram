@@ -62,6 +62,7 @@ interface Channel {
   nicheMode: 'DISCOVER' | 'EXPLORE' | 'DIRECT'
   exploreTopic: string | null
   contentStrategy: ContentStrategy | ContentPillarsData | null
+  carouselLayout?: 'DETAILED' | 'BOLD'
   status: string
   nicheOptions: NicheOption[]
   posts: Post[]
@@ -1754,6 +1755,55 @@ export default function ChannelDashboard() {
                 </div>
               )}
             </div>
+
+            {/* Layout toggle */}
+            {!isStreamingPosts && (
+              <div className="flex items-center gap-2 mt-1">
+                <span className="text-xs text-muted">Layout:</span>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const newLayout = (channel?.carouselLayout === 'BOLD') ? 'DETAILED' : 'BOLD';
+                    try {
+                      await fetch(`/api/channels/${channelId}`, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ carouselLayout: newLayout }),
+                      });
+                      setChannel(prev => prev ? { ...prev, carouselLayout: newLayout } : prev);
+                    } catch {}
+                  }}
+                  className={`px-2.5 py-1 text-xs font-medium rounded-md border transition-all ${
+                    (!channel?.carouselLayout || channel.carouselLayout === 'DETAILED')
+                      ? 'border-accent/50 bg-accent/10 text-accent'
+                      : 'border-border text-muted hover:text-foreground hover:border-border-hover'
+                  }`}
+                >
+                  Detailed
+                </button>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const newLayout = (channel?.carouselLayout === 'BOLD') ? 'DETAILED' : 'BOLD';
+                    try {
+                      await fetch(`/api/channels/${channelId}`, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ carouselLayout: newLayout }),
+                      });
+                      setChannel(prev => prev ? { ...prev, carouselLayout: newLayout } : prev);
+                    } catch {}
+                  }}
+                  className={`px-2.5 py-1 text-xs font-medium rounded-md border transition-all ${
+                    channel?.carouselLayout === 'BOLD'
+                      ? 'border-accent/50 bg-accent/10 text-accent'
+                      : 'border-border text-muted hover:text-foreground hover:border-border-hover'
+                  }`}
+                >
+                  Bold
+                </button>
+              </div>
+            )}
 
             {/* Existing posts from DB (always visible — excludes posts currently in completedPosts to avoid duplicates) */}
             {hasPosts && (() => {
