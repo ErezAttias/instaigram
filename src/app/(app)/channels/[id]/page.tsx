@@ -9,7 +9,7 @@ import Link from 'next/link'
 import InstagramPreview from '@/components/InstagramPreview'
 import '@/components/instagram-preview.css'
 import { useChannelContext } from '@/components/ChannelProvider'
-import { TopTabNav } from '@/components/channel/TopTabNav'
+import { DecisionsRail } from '@/components/channel/DecisionsRail'
 import { classifyDomainStyle } from '@/lib/utils/topic-classifier'
 import { TITLE_FONTS, BODY_FONTS, getTitleFont } from '@/lib/visual/font-pairings-data'
 import type { ChannelVisualStyleContext } from '@/lib/visual/visual-style'
@@ -203,14 +203,14 @@ function Section({
   const isUtility = variant === 'utility'
   const wrapperClass = isUtility
     ? 'animate-fade-up bg-surface rounded-2xl border border-border p-5 lg:p-6'
-    : 'animate-fade-up border-t border-border lg:border-t-0 lg:border-b lg:border-b-border/40'
+    : 'animate-fade-up bg-surface rounded-2xl border border-border'
 
   if (collapsible) {
     return (
       <div className={wrapperClass} style={delay ? { animationDelay: `${delay}ms` } : undefined}>
         <button
           onClick={() => setCollapsed(c => !c)}
-          className="w-full flex items-center justify-between gap-4 group rounded-2xl p-0 py-6 lg:py-8 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6b9fcc]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+          className="w-full flex items-center justify-between gap-4 group rounded-2xl p-0 py-5 px-5 lg:py-6 lg:px-6 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6b9fcc]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         >
           <div className="flex-1 min-w-0 text-left">
             {collapsedTitle}
@@ -227,7 +227,7 @@ function Section({
           style={{ gridTemplateRows: collapsed ? '0fr' : '1fr', opacity: collapsed ? 0 : 1 }}
         >
           <div className="overflow-hidden">
-            <div className={compact ? 'pb-4 lg:pb-5' : 'pb-6 lg:pb-8'}>
+            <div className={compact ? 'pb-4 px-5 lg:pb-5 lg:px-6' : 'pb-5 px-5 lg:pb-6 lg:px-6'}>
               {children}
             </div>
           </div>
@@ -241,7 +241,7 @@ function Section({
       className={wrapperClass}
       style={delay ? { animationDelay: `${delay}ms` } : undefined}
     >
-      <div className={isUtility ? '' : compact ? 'py-4 lg:py-5' : 'py-6 lg:py-8'}>
+      <div className={isUtility ? '' : compact ? 'py-4 px-5 lg:py-5 lg:px-6' : 'py-5 px-5 lg:py-6 lg:px-6'}>
         {children}
       </div>
     </div>
@@ -253,7 +253,8 @@ function Section({
 function LockedStep({ label, delay }: { label: string; delay?: number }) {
   return (
     <div
-      className="flex items-center gap-3 py-4 opacity-40 cursor-not-allowed"
+      className="animate-fade-up bg-surface rounded-2xl border border-border flex items-center gap-3 px-5 py-4 opacity-40 cursor-not-allowed"
+      style={delay ? { animationDelay: `${delay}ms` } : undefined}
     >
       <svg width="14" height="14" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
         <rect x="3" y="5" width="6" height="6" rx="1"/><path d="M4 5V4a2 2 0 0 1 4 0v1"/>
@@ -1207,7 +1208,7 @@ export default function ChannelDashboard() {
   })()
 
   return (
-    <div className="animate-fade-up max-w-3xl">
+    <div className="animate-fade-up max-w-3xl space-y-4">
           {/* Lightbox overlay */}
           {lightboxUrl && (
             <div
@@ -1237,10 +1238,8 @@ export default function ChannelDashboard() {
             </div>
           )}
 
-          {/* Top tab navigation */}
-          <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-sm mb-2">
-            <TopTabNav />
-          </div>
+          {/* Decisions rail — sticky summary of completed steps */}
+          <DecisionsRail />
 
           {/* ═══════════════════════════════════════════════════════
               Step 1: Topic (activeTab === 0)

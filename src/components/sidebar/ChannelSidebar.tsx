@@ -4,7 +4,6 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useChannelContext } from '@/components/ChannelProvider'
 import { SidebarStepper } from './SidebarStepper'
-import { getTitleFont } from '@/lib/visual/font-pairings-data'
 
 export function ChannelSidebar() {
   const pathname = usePathname()
@@ -14,11 +13,8 @@ export function ChannelSidebar() {
     effectiveStep,
     hasPosts,
     hasStrategy,
-    visualStyle,
     showNaming,
     setShowNaming,
-    showStyleEditor,
-    setShowStyleEditor,
   } = useChannelContext()
 
   if (!channel) return null
@@ -93,20 +89,6 @@ export function ChannelSidebar() {
             {channel.name !== 'Untitled Channel' ? 'Rename channel' : 'Name channel'}
           </button>
         )}
-        <button
-          onClick={() => setShowStyleEditor(!showStyleEditor)}
-          className={`flex items-center !justify-start gap-2.5 h-9 rounded-xl text-sm font-medium transition-colors w-full text-left ${showStyleEditor ? 'text-foreground' : 'text-muted-light hover:text-foreground'}`}
-        >
-          <svg className="w-4 h-4 shrink-0" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="8" cy="8" r="5.5" />
-            <circle cx="5" cy="6" r="1" fill="currentColor" stroke="none" />
-            <circle cx="8" cy="4.5" r="1" fill="currentColor" stroke="none" />
-            <circle cx="11" cy="6" r="1" fill="currentColor" stroke="none" />
-          </svg>
-          <span className="whitespace-nowrap">Slide style</span>
-          <span className="ml-auto text-xs text-muted truncate min-w-0">{getTitleFont(visualStyle.titleFontId).label}</span>
-        </button>
-        <p className="text-xs text-muted -mt-0.5 pl-[26px]">Font and layout for new carousels</p>
       </div>
     </div>
   )
