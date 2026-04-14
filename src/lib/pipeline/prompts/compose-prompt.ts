@@ -141,19 +141,51 @@ centered headline overlaid on top. There is NO paragraph body visible to the rea
 
 WRITING RULES FOR BOLD LAYOUT:
 - The HEADLINE is the entire slide. It must hit in under 1 second.
-- Each headline must be immediately understandable WITHOUT any body text.
-- Headlines: 20–60 characters. Short, punchy, self-contained.
+- Headlines: 20–60 characters. Short, punchy.
 - Body: Write ONE sentence only (50–100 chars). This backup context is used for
   caption generation but is NOT rendered on the slide. Keep it minimal.
 - Prefer: numbers, named entities, concrete comparisons, strong verbs
-- Avoid: setup phrases, context-dependent claims, anything that needs explanation
-- Think of each slide as a standalone statement, like a poster or billboard.
+- Avoid: setup phrases, hedge words ("some", "many"), vague generalities
 
-GOOD BOLD headlines:
+${mode === 'single_entity' ? `BOLD + SINGLE_ENTITY — SEQUENTIAL HEADLINES (critical):
+Because the carousel answers ONE question about ONE subject, headlines must chain into a
+single flowing explanation. Read as spoken-word narration, one short line at a time.
+
+Each FACT headline is a beat in the story, NOT a standalone statement. The reader should feel
+like they're being walked through an answer step by step.
+
+GOOD sequence (topic: why octopuses have 3 hearts):
+  OPENER: "Octopuses Have 3 Hearts"
+  FACT 1: "Two Pump Blood to the Gills"
+  FACT 2: "One Pumps to the Body"
+  FACT 3: "The Body Heart Stops When They Swim"
+  FACT 4: "So They Mostly Crawl Instead"
+  IMPLICATION: "A Heart That Pauses Is a Tradeoff"
+  → Each line is short, each one needs the previous to feel complete. The sequence TELLS A STORY.
+
+BAD sequence (disconnected factoids — what we DON'T want):
+  OPENER: "Why Octopuses Have More Hearts"
+  FACT 1: "Octopus Hearts Beat 180 Times a Minute"  ← random stat, doesn't answer
+  FACT 2: "Octopuses' Three-Heart System"            ← just labels it
+  FACT 3: "Greeks Noticed Octopus Blue Blood"        ← tangent
+  → Each headline is independent. No story. No reason to swipe.
+
+Test each FACT headline: does removing it break the flow between its neighbors? If not, rewrite it.
+` : `BOLD + THEMATIC_COLLECTION — STANDALONE HEADLINES:
+Each slide features a DIFFERENT specific item from the theme. Headlines are self-contained —
+each one works as an isolated poster. No narrative chain needed.
+
+GOOD (topic: animals with unusual defenses):
+  OPENER: "5 Animals That Fight Back With Chemistry"
+  FACT 1: "Bombardier Beetles Spray 100°C Acid"
+  FACT 2: "Hagfish Drown Predators in Slime"
+  FACT 3: "Texas Horned Lizards Shoot Blood From Their Eyes"
+`}
+
+GOOD BOLD headlines (general):
   ✓ "Honey Found in 3,000-Year-Old Tombs — Still Edible"
-  ✓ "Octopuses Have 3 Hearts"
-  ✓ "A Single Cow Drinks 50 Gallons of Water a Day"
-  ✓ "Cleopatra Lived Closer to the iPhone Than to the Pyramids"
+  ✓ "A Single Cow Drinks 50 Gallons a Day"
+  ✓ "Cleopatra Lived Closer to the iPhone Than the Pyramids"
 
 BAD BOLD headlines (too long, need context, or vague):
   ✗ "The Fascinating Reason Why Ancient Egyptian Honey Never Goes Bad" — too long
@@ -403,9 +435,61 @@ This carousel is entirely about: ${concept}
   in most slides. You do not need to repeat the full name in every body — natural writing uses
   pronouns and shorthands after the first mention.
 - Do NOT include facts about other entities within "${topic}" unless they directly involve "${concept}"
-- topicEntity should be "${concept}" for most slides, or a closely related sub-aspect
-  (e.g., the actor who plays the character, the location associated with the entity)
 - The OPENER must frame the carousel around "${concept}" specifically, not "${topic}" broadly
+
+═══════════════════════════════════════════
+NARRATIVE CONTINUITY (critical for single_entity)
+═══════════════════════════════════════════
+
+The FACT slides must form a SEQUENTIAL EXPLANATION, not a list of disconnected facts.
+The OPENER poses a question or promise. Each FACT slide delivers ONE step of the answer,
+building directly on the previous slide. The final FACT (or IMPLICATION) lands the payoff.
+
+STRUCTURE:
+  OPENER → sets up the question
+  FACT 1 → the foundational claim (the "what")
+  FACT 2 → builds on FACT 1 (the first "why" or mechanism step)
+  FACT 3 → builds on FACT 2 (the consequence or next step)
+  FACT 4 (if present) → the twist, detail, or final mechanism
+  IMPLICATION → the payoff / what this all means
+
+CONNECTIVE LANGUAGE — each FACT slide after the first should naturally flow from the previous.
+  Use framing like: "This is because...", "As a result...", "And here's the twist...",
+  "But something changes when...", "Which means...", "The trick is...", numbered steps ("First...", "Then..."),
+  or cause-effect pairs. The headline itself can imply the chain without needing the connective word.
+
+SELF-CHECK (critical):
+  Read the FACT headlines in order. Does each one FOLLOW from the previous? Would removing
+  slide N break the flow between N-1 and N+1?
+    ✓ YES — slides are linked, good
+    ✗ NO (they're independent factoids) — rewrite
+
+GOOD narrative sequence (topic: "Why octopuses have 3 hearts"):
+  OPENER: "Why Octopuses Have 3 Hearts"
+  FACT 1: "Two pump blood to the gills" ← the foundational what
+  FACT 2: "The third pumps to the rest of the body" ← builds on #1
+  FACT 3: "But the body heart stops when they swim" ← the twist
+  FACT 4: "That's why octopuses mostly crawl" ← the consequence
+  IMPLICATION: "A heart that pauses is a design tradeoff" ← payoff
+
+BAD sequence (what we want to AVOID — disconnected factoids):
+  OPENER: "Why Octopuses Have More Hearts"
+  FACT 1: "Octopus hearts beat 180 times a minute" ← random stat, doesn't answer "why"
+  FACT 2: "Octopuses' three-heart system" ← just names it, adds nothing new
+  FACT 3: "Greeks noticed octopus blue blood" ← historical tangent, off-angle
+
+SLIDE-SPECIFIC topicEntity (critical for distinct images):
+  Even though the subject is "${concept}" throughout, each FACT slide's topicEntity must describe
+  the SPECIFIC ASPECT shown in THAT slide — not the overall subject. This drives image generation
+  so each slide gets a distinct image.
+
+    ✗ All slides: topicEntity = "${concept}"  (produces identical images)
+    ✓ FACT 1: "${concept} gills with blood vessels visible"
+    ✓ FACT 2: "${concept} systemic heart in body cavity"
+    ✓ FACT 3: "${concept} swimming in open water"
+    ✓ FACT 4: "${concept} resting on rocks"
+
+  The topicEntity must be a photographable noun phrase, not the raw concept name.
 ` : ''}${mode === 'thematic_collection' && concept ? `
 ═══════════════════════════════════════════
 THEME LOCK (non-negotiable)
@@ -450,11 +534,11 @@ For each FACT slide (1–${factCount}):
   □ Does the headline make a specific claim (not a label)?
   □ Does the body contain at least 1 of the 7 value signals?
   □ Does the body contain at least 1 named entity, number, or date?
-  □ Would this slide make sense posted alone, out of context?
-  □ Is this slide's core claim different from every other slide?
+${mode === 'single_entity'
+  ? `  □ Does this FACT build on the previous slide? Is there narrative continuity?\n  □ If you removed this slide, would slide N-1 and slide N+1 still flow naturally? (should be NO — slides must be linked)\n  □ Is topicEntity a SLIDE-SPECIFIC aspect (e.g., "octopus gills with blood vessels"), NOT the bare subject name?`
+  : `  □ Would this slide make sense posted alone, out of context?\n  □ Is topicEntity the SPECIFIC entity (e.g., "AlphaFold"), not the topic name (e.g., "AI")?\n  □ Is this slide's FEATURED ITEM different from every other slide (collection mode)?`}
   □ Is the body between ${layout === 'BOLD' ? '50 and 100' : '200 and 400'} characters?
   □ Does the body end with a factual sentence, not meta-commentary like "This achievement marks..."?
-  □ Is topicEntity the SPECIFIC entity (e.g., "AlphaFold"), not the topic name (e.g., "AI")?
 
 □ IMPLICATION: Does the headline contain a number, named entity, or strong comparison?
 □ IMPLICATION: Does it synthesize 2+ specific facts into a NON-OBVIOUS conclusion?
@@ -503,7 +587,9 @@ Return exactly this JSON structure:
       "containsNumber": true/false,
       "concretenessScore": 1-5,
       "noveltyScore": 1-5,
-      "topicEntity": "string — the SPECIFIC named entity this slide is about, NOT the overall topic name. Example: if topic is 'AI facts' and slide is about AlphaFold, topicEntity = 'AlphaFold', not 'AI'. Use the most specific entity mentioned in the headline.",
+      "topicEntity": ${mode === 'single_entity'
+  ? `"string — a PHOTOGRAPHABLE NOUN PHRASE describing the specific aspect shown in THIS slide (not the overall subject). Example: if the carousel is about '${concept || 'octopuses'}', topicEntity for slide 1 might be '${concept || 'octopus'} gills with blood vessels visible', slide 2 '${concept || 'octopus'} resting on rocks'. MUST DIFFER between slides to produce distinct images. Never just the bare subject name."`
+  : `"string — the SPECIFIC named entity featured in THIS slide, not the overall topic. Example: if topic is 'AI facts' and slide is about AlphaFold, topicEntity = 'AlphaFold', not 'AI'. For collection mode, each slide must feature a DIFFERENT specific item."`},
       "factRefs": ["fact-id"] or []
     },
     ... (one FACT slide per selected fact, in order) ...
