@@ -72,13 +72,13 @@ export function DecisionsRail() {
               onClick={() => isClickable && setActiveTab(chip.stepIndex)}
               className={`flex items-center rounded-lg border overflow-hidden flex-shrink-0 transition-all duration-150 ${
                 chip.filled
-                  ? 'border-[#dc2743]/35 bg-[#dc2743]/[0.04] hover:border-[#dc2743]/55'
+                  ? 'border-[#6b9fcc]/40 bg-[#3d6fa8]/10 hover:border-[#6b9fcc]/60'
                   : 'border-dashed border-border opacity-50 cursor-default'
               } ${isClickable ? 'cursor-pointer' : ''}`}
             >
               <span className={`px-2.5 py-1.5 text-[10px] font-semibold tracking-[0.07em] uppercase border-r ${
                 chip.filled
-                  ? 'border-[#dc2743]/15 text-[#dc2743]/70'
+                  ? 'border-[#6b9fcc]/20 text-[#6b9fcc]/80'
                   : 'border-border/60 text-muted'
               }`}>
                 {chip.label}
