@@ -270,6 +270,7 @@ export async function regenerateSlide(postId: string, slideIndex: number) {
     where: { id: postId },
     include: {
       slides: { orderBy: { slideIndex: 'asc' } },
+      carouselJob: { select: { layout: true } },
     },
   });
 
@@ -380,7 +381,8 @@ Fix the issue and return valid JSON. Pay special attention to:
     } else {
       slidesForCompress = [slideAsV2];
     }
-    const compressResult = await compressSlides({ topic, slides: slidesForCompress }, ai);
+    const layout = post.carouselJob?.layout as 'DETAILED' | 'BOLD' | undefined;
+    const compressResult = await compressSlides({ topic, slides: slidesForCompress, layout }, ai);
     const compressed = compressResult.compressed.find(c => c.slideNumber === slideIndex);
 
     // Update the slide with all v2 fields + compressed display

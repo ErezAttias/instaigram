@@ -208,6 +208,7 @@ export async function runNarrativeCoherenceGate(
   topic: string,
   hookHeadline: string,
   ai: AIProvider,
+  layout?: 'DETAILED' | 'BOLD',
 ): Promise<NarrativeGateResult> {
   const facts = slides.filter(s => s.role === 'FACT');
 
@@ -421,7 +422,7 @@ export async function runNarrativeCoherenceGate(
   if (rewriteCount > 0 || reorderApplied) {
     try {
       const compressResult = await compressSlides(
-        { topic, slides: updatedSlides },
+        { topic, slides: updatedSlides, layout },
         ai,
       );
       updatedCompressed = compressResult.compressed;

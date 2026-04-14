@@ -409,6 +409,7 @@ export async function runCopyQualityGate(
   topic: string,
   hookHeadline: string,
   ai: AIProvider,
+  layout?: 'DETAILED' | 'BOLD',
 ): Promise<QualityGateResult> {
   const allIssues: SlideIssue[] = [];
 
@@ -530,7 +531,7 @@ export async function runCopyQualityGate(
   if (rewriteCount > 0) {
     try {
       const compressResult = await compressSlides(
-        { topic, slides: updatedSlides },
+        { topic, slides: updatedSlides, layout },
         ai,
       );
       updatedCompressed = compressResult.compressed;

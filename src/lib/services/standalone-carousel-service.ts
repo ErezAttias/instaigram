@@ -858,12 +858,15 @@ export async function runCarouselGeneration(
     emit('quality', 'Checking copy quality...', 45);
 
     // ── Step 4: Copy quality gate ─────────────────────────
+    const carouselLayout = (job.layout as 'DETAILED' | 'BOLD') ?? 'DETAILED';
+
     const qualityResult = await runCopyQualityGate(
       enforced.slides,
       enforced.compressedSlides,
       job.topic,
       hookResult.text,
       ai,
+      carouselLayout,
     );
 
     emit('narrative', 'Checking narrative coherence...', 48);
@@ -875,6 +878,7 @@ export async function runCarouselGeneration(
       job.topic,
       hookResult.text,
       ai,
+      carouselLayout,
     );
 
     emit('promise', 'Checking hook–body promise...', 49);
@@ -886,6 +890,7 @@ export async function runCarouselGeneration(
       job.topic,
       hookResult.text,
       ai,
+      carouselLayout,
     );
     let finalSlides = promiseResult.slides;
     let finalCompressed = promiseResult.compressedSlides;
@@ -936,7 +941,7 @@ export async function runCarouselGeneration(
 
         // Re-compress after CTA regen
         try {
-          const recompressed = await compressSlides({ topic: job.topic, slides: finalSlides }, ai);
+          const recompressed = await compressSlides({ topic: job.topic, slides: finalSlides, layout: carouselLayout }, ai);
           finalCompressed = recompressed.compressed;
         } catch {
           finalCompressed = finalSlides.map(s => ({

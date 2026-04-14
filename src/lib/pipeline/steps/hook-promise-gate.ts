@@ -298,6 +298,7 @@ export async function runHookPromiseGate(
   topic: string,
   hookText: string,
   ai: AIProvider,
+  layout?: 'DETAILED' | 'BOLD',
 ): Promise<HookPromiseGateResult> {
   const opener = slides.find(s => s.role === 'OPENER');
   const facts = slides.filter(s => s.role === 'FACT');
@@ -482,7 +483,7 @@ export async function runHookPromiseGate(
   if (rewriteCount > 0) {
     try {
       const compressResult = await compressSlides(
-        { topic, slides: updatedSlides },
+        { topic, slides: updatedSlides, layout },
         ai,
       );
       updatedCompressed = compressResult.compressed;
