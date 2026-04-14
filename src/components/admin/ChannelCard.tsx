@@ -61,10 +61,11 @@ export function ChannelCard({
   return (
     <Link
       href={`/admin/channels/${id}`}
-      className="group flex items-center gap-4 bg-surface rounded-xl border border-border px-5 py-4 hover:border-border-hover hover:bg-surface-hover transition-all duration-200"
+      className="group grid items-center gap-x-4 bg-surface rounded-xl border border-border px-5 py-3.5 hover:border-border-hover hover:bg-surface-hover transition-all duration-200"
+      style={{ gridTemplateColumns: '1fr 130px 120px 64px 28px' }}
     >
       {/* Title + niche */}
-      <div className="flex-1 min-w-0">
+      <div className="min-w-0">
         <h3 className="text-sm font-semibold text-foreground transition-colors duration-200 group-hover:text-[#6b9fcc]">
           {displayName}
         </h3>
@@ -74,10 +75,10 @@ export function ChannelCard({
       </div>
 
       {/* Status */}
-      <StatusBadge status={status} />
+      <div><StatusBadge status={status} /></div>
 
       {/* Carousels count */}
-      <span className="hidden sm:flex items-center gap-1 text-xs text-muted whitespace-nowrap">
+      <span className="flex items-center gap-1 text-xs text-muted whitespace-nowrap">
         <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
         </svg>
@@ -85,9 +86,9 @@ export function ChannelCard({
       </span>
 
       {/* Time */}
-      {timeLabel && (
-        <span className="hidden sm:block text-xs text-muted whitespace-nowrap w-16 text-right">{timeLabel}</span>
-      )}
+      <span className="text-xs text-muted whitespace-nowrap text-right">
+        {timeLabel ?? ''}
+      </span>
 
       {/* Delete */}
       <button
