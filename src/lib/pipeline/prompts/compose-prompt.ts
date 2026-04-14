@@ -147,39 +147,72 @@ WRITING RULES FOR BOLD LAYOUT:
 - Prefer: numbers, named entities, concrete comparisons, strong verbs
 - Avoid: setup phrases, hedge words ("some", "many"), vague generalities
 
-CRITICAL — BOLD HEADLINES MUST BE COMPLETE CLAIMS, NOT FRAGMENTS OR LABELS:
-A Bold headline replaces an entire paragraph. It MUST tell the reader what happened / what
-is true — not just name the event or subject.
+═══════════════════════════════════════════
+CRITICAL: THE VERB RULE (strict, no exceptions)
+═══════════════════════════════════════════
 
-STRUCTURE: subject + verb + specific object/outcome. Grammatically complete.
+EVERY Bold headline MUST contain at least one ACTION VERB. Not a preposition. Not a
+copula pretending to be a verb. An actual verb carrying the claim.
 
-Self-check before writing each headline:
-  1. Is there a VERB that carries the claim? (not just a noun phrase)
-  2. Can someone who reads ONLY this title understand the full fact?
-  3. If you removed the title, would you lose the information, or just a label?
-     → If the answer is "just a label", the headline is broken. Rewrite.
+ACCEPTABLE verbs (carry the claim): mentioned, sold, killed, pump, stops, survived,
+ swallowed, broke, destroyed, discovered, crafted, used, detected, produces, lived,
+ fears, became, reaches, outlasts, defeated, turned
 
-FRAGMENT/LABEL ANTI-PATTERNS (reject these):
-  ✗ "Zeus's Unique Birth of Athena"
-     → Noun phrase. No verb. What about the birth? The title teases but doesn't deliver.
+NOT acceptable as the sole "verb":
+  - Prepositions: in, of, on, at, for, with, from, by, about, as
+  - Copulas alone (is/are/was/were) when they just link two nouns without action
+  - Possessives: "X's Y" is just a noun phrase, no claim
+  - Colons: "X: Y" labels X with Y — zero claim
+
+THE PARSE TEST (apply to every headline before writing it):
+Say the headline out loud. Could you put it on its own slide and understand what
+happened / what is true? If it reads like the name of a Wikipedia section header
+or a book chapter title, it's a LABEL and must be rewritten.
+
+LABEL PATTERNS TO REJECT (these ALL failed real generations — do NOT produce them):
+
+  ✗ "X in Y"                  (e.g. "Unicorns in the King James Bible")
+     → Tells you the topic intersects Y. Doesn't tell you what.
+     ✓ "The Bible Mentions Unicorns 9 Times"
+
+  ✗ "X: Y"                    (e.g. "Alicorns: Medieval Poison Deterrents")
+     → Colon label. X is being CLASSIFIED as Y. No claim.
+     ✓ "Medieval Goblets Used Alicorn Horns to Detect Poison"
+
+  ✗ "X as Y"                  (e.g. "Narwhal Tusks as Unicorn Horns")
+     → Equivalence. States X equals Y. Inert.
+     ✓ "Narwhal Tusks Were Sold as Unicorn Horns"
+
+  ✗ "X of Y"                  (e.g. "Qilin: Eastern Unicorn of Prosperity")
+     → Classification. No claim. Same problem as colon.
+     ✓ "China's Unicorn Is a Qilin — It Brings Prosperity"
+
+  ✗ "X's [adjective] Y"       (e.g. "Zeus's Unique Birth of Athena")
+     → Teases but doesn't deliver.
      ✓ "Athena Sprang Fully Armored From Zeus's Skull"
-  ✗ "Zeus's Failed Prophecy Thwart"
-     → Grammatically broken. "Thwart" isn't a noun.
+
+  ✗ "X's Failed/Hidden/Secret Y" (e.g. "Zeus's Failed Prophecy Thwart")
+     → Tease + possessive = no claim.
      ✓ "Zeus Swallowed Metis to Stop the Prophecy"
-  ✗ "The Moon Landing's Hidden Detail"
-     → Tease, not a fact. What's the detail?
-     ✓ "Armstrong Broke a Circuit Breaker With His Backpack"
-  ✗ "Cleopatra's Strange Appearance"
-     → Vague. In what way?
-     ✓ "Cleopatra Was Greek, Not Egyptian"
+
+  ✗ "[Topic] Facts You Didn't Know"   (clickbait, zero claim)
+
+If a headline matches ANY label pattern above, it is broken. Rewrite it into subject + verb + object.
 
 BOLD HEADLINE PATTERNS THAT WORK:
-  Subject + action: "Zeus Swallowed Metis Whole"
-  Subject + happened to: "Athena Sprang From Zeus's Skull"
-  Subject + number + detail: "A Single Cow Drinks 50 Gallons a Day"
-  Subject + negation: "Honey Never Spoils"
-  Subject + comparison: "Cleopatra Lived Closer to the iPhone Than the Pyramids"
-  Subject + consequence: "Zeus Became What He Feared"
+  Subject + action verb + object: "Zeus Swallowed Metis Whole"
+  Subject + happens/happened: "Athena Sprang From Zeus's Skull"
+  Subject + number + verb: "A Single Cow Drinks 50 Gallons a Day"
+  Subject + negation verb: "Honey Never Spoils"
+  Subject + comparison verb: "Cleopatra Lived Closer to the iPhone Than the Pyramids"
+  Subject + consequence verb: "Zeus Became What He Feared"
+
+FINAL SELF-CHECK before returning each FACT headline (BOLD layout):
+  STEP 1 — Underline the verb in your headline. If you can't point to one, REWRITE.
+  STEP 2 — Does the verb carry the claim (something happened / is true)? If the only
+           "verb" is a preposition or a bare copula, REWRITE.
+  STEP 3 — Is the headline a complete sentence you could say aloud without it feeling
+           like a book-chapter heading? If not, REWRITE.
 
 ${mode === 'single_entity' ? `BOLD + SINGLE_ENTITY — SEQUENTIAL HEADLINES (critical):
 Because the carousel answers ONE question about ONE subject, headlines must chain into a
@@ -568,7 +601,8 @@ For each FACT slide (1–${factCount}):
   □ Does the headline make a specific claim (not a label)?
   □ Does the body contain at least 1 of the 7 value signals?
   □ Does the body contain at least 1 named entity, number, or date?
-${layout === 'BOLD' ? `  □ Is the headline a COMPLETE CLAIM with a verb — NOT a fragment/label like "X's Unique Y" or "X's Failed Z"?
+${layout === 'BOLD' ? `  □ VERB CHECK — can you underline an action verb in the headline? (not a preposition, not a bare copula)
+  □ Does the headline match ANY of these label patterns? If yes, REWRITE: "X in Y", "X: Y", "X as Y", "X of Y", "X's [adjective] Y"
   □ Would the reader understand the full fact from the headline alone (no body needed)?
   □ Is the headline 4–8 words (not 3, not a one-word label)?
   ` : ''}${mode === 'single_entity'
