@@ -9,7 +9,7 @@ export default function NavBar() {
 
   return (
     <nav className="sticky top-0 z-50 backdrop-blur-sm" style={{ WebkitMaskImage: 'linear-gradient(to bottom, black 60%, transparent 100%)', maskImage: 'linear-gradient(to bottom, black 60%, transparent 100%)' }}>
-      <div className="max-w-[1800px] mx-auto px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div className="max-w-[1280px] mx-auto px-6 lg:px-8 h-16 flex items-center justify-between">
         <Link
           href="/"
           className="text-[27px] font-semibold tracking-tight font-[family-name:var(--font-bricolage)] bg-clip-text text-transparent"
@@ -64,7 +64,7 @@ export default function NavBar() {
       >
         <div className="overflow-hidden">
           <div className="border-t border-border/30 bg-background/90 backdrop-blur-md">
-            <div className="max-w-[1800px] mx-auto px-6 py-3 flex flex-col gap-1">
+            <div className="max-w-[1280px] mx-auto px-6 py-3 flex flex-col gap-1">
               <Link
                 href="/admin"
                 onClick={() => setOpen(false)}
