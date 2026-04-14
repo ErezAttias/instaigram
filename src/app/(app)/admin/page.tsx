@@ -46,9 +46,9 @@ export default function AdminDashboard() {
       </div>
 
       {loading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="flex flex-col gap-2">
           {[...Array(6)].map((_, i) => (
-            <div key={i} className="skeleton h-40 rounded-xl" />
+            <div key={i} className="skeleton h-14 rounded-xl" />
           ))}
         </div>
       ) : (
