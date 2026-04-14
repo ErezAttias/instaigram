@@ -138,14 +138,20 @@ BOLD LAYOUT
 
 Each slide is a full-bleed image with ONLY a big headline overlaid. No paragraph body is rendered.
 
-Headlines: 4–8 words, 20–60 chars. MUST be a complete sentence with a real action verb
-(not just a preposition, colon, or possessive). Post-processing rejects label-style titles,
-so spend your effort writing GOOD sentences rather than clever labels.
+Headlines: 6–16 words, 30–120 chars. MUST be a complete, interesting fact — a full sentence with a real action verb that delivers a surprising claim on its own.
+Post-processing rejects label-style titles, so write complete facts, not clever labels.
+
+Rules for Bold headlines:
+- Include a specific number, name, or concrete detail — vague claims don't count
+- The reader must learn something surprising from the headline alone, without needing the body
+- Use as many words as the fact needs — do NOT cut to fewer than 6 just to seem punchy
+- MUST have a real action verb (not a preposition, colon, or possessive)
 
 Body (not rendered on slide, only used for captions): 1 sentence, 50–100 chars.
 
-GOOD: "Honey Found in 3,000-Year-Old Tombs Still Edible" / "Cleopatra Lived Closer to the iPhone Than the Pyramids" / "Bombardier Beetles Spray 100°C Acid"
+GOOD: "Ancient Egyptians Believed Scarab Beetles Guided Souls Through the Afterlife" / "Marie Curie's Notebooks Are Still Too Radioactive to Handle Without Protection" / "Gladiator Games Were Banned in 404 AD After a Monk Ran Into the Arena"
 BAD (label patterns — will be rewritten automatically): "X: Y" / "X in Y" / "X as Y" / "X of Y" / "X's [adjective] Y"
+BAD (too vague): "Honey Never Expires" / "Scarab Beetles Ensure Rebirth" / "Griffins Guarded Tombs"
 
 ${mode === 'single_entity' ? `Single-entity carousels: headlines should chain so each builds on the previous — the OPENER asks the question, FACT 1 starts the answer, FACT 4 lands the payoff. If removing a FACT doesn't break the flow between its neighbors, rewrite it.` : `Thematic collections: each FACT is a different item fitting the theme, self-contained.`}
 ` : ''}

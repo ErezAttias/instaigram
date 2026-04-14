@@ -33,23 +33,24 @@ TASK:
 Rewrite the headline as a COMPLETE SENTENCE with a real action verb (not "is", "of", "in", "as", ":").
 
 RULES:
-- 4–8 words
-- Subject + action verb + specific object/outcome
-- Must stand alone as a claim someone could say aloud
+- 6–16 words
+- Subject + action verb + specific object/outcome + surprising detail
+- Must stand alone as an interesting fact someone could say aloud
 - Keep the same core fact — do not invent new information
-- Include the specific number, name, or detail from the original if possible
+- Include the specific number, name, or concrete detail from the original
+- Do NOT artificially shorten — use as many words as needed to make the fact interesting
 
 EXAMPLES (BAD → GOOD):
   "Unicorns in the King James Bible"
-    → "The Bible Mentions Unicorns 9 Times"
+    → "The King James Bible Mentions Unicorns Nine Times by Name"
   "Ladon: Greek Treasure Guardian"
-    → "Ladon Guarded the Golden Apples"
+    → "Ladon the Hundred-Headed Serpent Guarded the Golden Apples of the Hesperides"
   "Narwhal Tusks as Unicorn Horns"
-    → "Narwhal Tusks Were Sold as Unicorn Horns"
+    → "Medieval Merchants Sold Narwhal Tusks to Royalty as Genuine Unicorn Horns"
   "Zeus's Unique Birth of Athena"
-    → "Athena Sprang Fully Armored From Zeus's Skull"
-  "Druk: Bhutan's Thunder Dragon"
-    → "Bhutan Calls Its Thunder Dragon Druk"
+    → "Athena Burst Fully Armored From Zeus's Skull After He Swallowed Her Mother"
+  "Scarab Beetles: Symbol of Rebirth"
+    → "Ancient Egyptians Believed Scarab Beetles Rolled the Sun Across the Sky Each Morning"
 
 Return a JSON object with exactly one field:
 { "headline": "the rewritten headline" }`;

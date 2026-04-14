@@ -34,18 +34,22 @@ COMPRESSION RULES
 ═══════════════════════════════════════════
 
 ${layout === 'BOLD' ? `For each slide, produce:
-  displayTitle: 3–7 words. Ultra-punchy, like a billboard. Must hit instantly.
+  displayTitle: 6–16 words. A complete, interesting fact — not a label, not a teaser. The reader must learn something surprising from the title alone.
   displaySupport: always empty string "". Bold layout renders ONLY the title — no support text.
 
 BOLD LAYOUT RULES:
-- The displayTitle is the ONLY text on the slide. It must be self-contained.
-- Maximum 7 words — shorter is better. Aim for 3–5 when possible.
-- Prefer: sharp numbers, named entities, dramatic contrasts
-- Each title should feel like a powerful standalone statement
-  ✓ "Honey Never Expires" (3 words)
-  ✓ "Octopuses Have 3 Hearts" (4 words)
-  ✓ "Cleopatra Lived Closer to the iPhone" (6 words)
-  ✗ "The Fascinating Reason Ancient Honey Never Goes Bad" (8 words — too long)` : `For each slide, produce:
+- The displayTitle IS the slide. It must be a full claim someone could say aloud and sound interesting.
+- 6–16 words. Do NOT artificially shorten — use as many words as the fact needs to land.
+- Must contain a real action verb. Must include a specific number, name, or concrete detail.
+- Prefer: surprising outcomes, named entities + what they did, before/after contrasts, extreme quantities
+- Each title is a standalone interesting fact — not a setup, not a category name, not a teaser
+  ✓ "Ancient Egyptians Believed Scarab Beetles Guided Souls to the Afterlife" (11 words)
+  ✓ "Cleopatra Lived Closer to the Moon Landing Than to the Pyramids" (12 words)
+  ✓ "Gladiator Games Were Finally Banned in 404 AD After a Monk's Protest" (13 words)
+  ✓ "Marie Curie's Notebooks Are Still Too Radioactive to Touch Without a Hazmat Suit" (14 words)
+  ✗ "Honey Never Expires" (3 words — true but tells you nothing surprising)
+  ✗ "Ancient Egyptian Burial Rituals" (label — no verb, no fact)
+  ✗ "Scarab Beetles Ensure Rebirth in Tombs" (6 words — what does this mean? Too vague)` : `For each slide, produce:
   displayTitle: 5–10 words. Punchy, concrete, scannable in under 1 second.
   displaySupport: 8–15 words. Reinforces the title with a specific detail, number, or contrast.`}
 
@@ -185,7 +189,7 @@ Return exactly this JSON structure:
   "compressed": [
     {
       "slideNumber": 0,
-      "displayTitle": "string (5–10 words)",
+      "displayTitle": "string (Bold: 6–16 words interesting fact; Detailed: 5–10 words)",
       "displaySupport": "string (8–15 words, or empty string for OPENER if not needed)",
       "swipeCta": "string (OPENER slides only, e.g. 'Swipe to learn why')"
     },
