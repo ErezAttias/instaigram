@@ -61,7 +61,8 @@ const ACTION_VERBS = new Set([
   'symbolize', 'symbolizes', 'symbolized',
   'judge', 'judges', 'judged',
   'inspire', 'inspires', 'inspired',
-  'power', 'powers', 'powered',
+  'ensure', 'ensures', 'ensured',
+  'powered',  // "power/powers" omitted — almost always a noun in headlines
   'challenge', 'challenges', 'challenged',
   'control', 'controls', 'controlled',
   'influence', 'influences', 'influenced',
@@ -153,6 +154,10 @@ function tokenize(headline: string): string[] {
  */
 function looksLikeInflectedVerb(token: string): boolean {
   if (token.length < 4) return false;
+
+  // Hyphenated tokens are compound adjectives ("fire-breathing", "serpent-headed"),
+  // not predicate verbs — never count them.
+  if (token.includes('-')) return false;
 
   // -ed ending (past tense / past participle)
   if (token.endsWith('ed')) {
