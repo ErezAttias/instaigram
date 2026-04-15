@@ -240,7 +240,7 @@ function Section({
       className={wrapperClass}
       style={delay ? { animationDelay: `${delay}ms` } : undefined}
     >
-      <div className={isUtility ? '' : compact ? 'py-4 px-5 lg:py-5 lg:px-6' : 'py-5 px-5 lg:py-6 lg:px-6'}>
+      <div className={isUtility ? '' : compact ? 'py-4 px-5 lg:py-5 lg:px-6' : 'py-8 px-6 lg:py-12 lg:px-10'}>
         {children}
       </div>
     </div>
@@ -1501,11 +1501,11 @@ export default function ChannelDashboard() {
             </Section>
           ) : (
             <Section delay={120} active={effectiveStep === 1}>
-              <div className="flex flex-col gap-3 mb-5">
-                <div>
+              <div className="flex flex-col items-center gap-3 mb-10">
+                <div className="text-center">
                   <p className="text-[11px] font-semibold uppercase tracking-[0.08em] mb-1.5 bg-clip-text text-transparent" style={{ backgroundImage: IG_GRADIENT }}>Strategy · Step 2 of 4</p>
                   <h2 className="text-xl font-bold tracking-tight">Content strategy</h2>
-                  <p className="text-sm text-muted-light mt-1 max-w-prose">
+                  <p className="text-sm text-muted-light mt-1 max-w-prose mx-auto">
                     {strategyOptions.length > 0
                       ? 'Your content pillars — the themes your posts will rotate through. Tap to deselect.'
                       : 'Generate the content pillars that will shape your posting themes for the next 30 days.'}
@@ -1524,9 +1524,9 @@ export default function ChannelDashboard() {
                 )}
               </div>
 
-              {/* Pillar cards — all selected by default, tap to toggle */}
+              {/* Pillar cards — full-width stacked, radio-style selection */}
               {strategyOptions.length > 0 && (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="flex flex-col gap-3">
                   {strategyOptions.map((strategy, i) => {
                     const isSelected = selectedPillarIndices.has(i)
                     return (
@@ -1534,27 +1534,46 @@ export default function ChannelDashboard() {
                       key={i}
                       onClick={() => handleTogglePillar(i)}
                       disabled={actionLoading === 'approve-strategy'}
-                      className={`animate-fade-up relative text-left rounded-2xl p-5 transition-all duration-200 disabled:opacity-40 flex flex-col focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6b9fcc]/60 ${
+                      className={`animate-fade-up relative text-left rounded-2xl p-5 pr-14 pb-12 transition-all duration-200 disabled:opacity-40 flex flex-col gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6b9fcc]/60 ${
                         isSelected
                           ? 'border border-[#3d6fa8]/40 bg-[#3d6fa8]/10'
                           : 'border border-border bg-background hover:border-[#3d6fa8]/25 hover:bg-[#3d6fa8]/8'
                       }`}
                       style={{ animationDelay: `${i * 80}ms` }}
                     >
-                      {/* Selection indicator — absolute so it never breaks title wrapping */}
-                      <div className={`absolute top-3.5 right-3.5 w-5 h-5 rounded-full flex items-center justify-center transition-all duration-150 ${isSelected ? 'bg-[#3d6fa8]/20 text-[#6b9fcc]' : 'border border-border/60'}`}>
+                      {/* Content */}
+                      <div className="min-w-0">
+                        <p className="text-base font-semibold text-foreground leading-snug mb-1">{strategy.contentIntent}</p>
+                        <p className="text-sm font-normal text-muted-light leading-relaxed">
+                          {(() => {
+                            const cleaned = strategy.audience
+                              .replace(/^(The target audience (are|is)\s*|Target audience:\s*|For\s+)/i, '')
+                              .trim()
+                            return 'For ' + cleaned.charAt(0).toLowerCase() + cleaned.slice(1)
+                          })()}
+                        </p>
+                      </div>
+
+                      {/* Checkbox — bottom-right corner */}
+                      <span
+                        role="checkbox"
+                        aria-checked={isSelected}
+                        className={`absolute bottom-4 right-4 w-5 h-5 rounded-md flex items-center justify-center transition-all duration-200 ${
+                          isSelected
+                            ? 'bg-[#3d6fa8] ring-1 ring-[#6b9fcc]'
+                            : 'ring-1 ring-inset ring-white/20 bg-transparent'
+                        }`}
+                      >
                         {isSelected && (
-                          <svg width="9" height="9" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M1.5 5.5L4 8L8.5 2" />
+                          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" className="text-white">
+                            <path d="M2 6.5L4.5 9L10 3" />
                           </svg>
                         )}
-                      </div>
-                      <p className="text-base font-semibold text-foreground leading-snug mb-2 pr-7">{strategy.contentIntent}</p>
-                      <p className="text-sm font-normal text-muted-light leading-relaxed flex-1">
-                        {strategy.audience.replace(/^(The target audience (are|is)\s*|Target audience:\s*)/i, '')}
-                      </p>
+                      </span>
+
+                      {/* Tags */}
                       {(strategy.engagementPotential || strategy.contentDifficulty || strategy.audienceSize) && (
-                        <div className="flex flex-wrap gap-1.5">
+                        <div className="hidden sm:flex flex-wrap gap-1.5 mt-2">
                           {strategy.engagementPotential && strategy.engagementPotential >= 7 && (
                             <span className="text-xs font-medium text-success bg-success-dim px-2 py-0.5 rounded-full whitespace-nowrap">High engagement</span>
                           )}
@@ -1580,18 +1599,15 @@ export default function ChannelDashboard() {
 
               {/* CTA + Regenerate — anchored below cards */}
               {strategyOptions.length > 0 && (
-                <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3 pt-4">
-                  <GhostButton onClick={handleGenerateStrategy} disabled={actionLoading !== null}>
-                    Regenerate pillars
-                  </GhostButton>
+                <div className="flex justify-center pt-10">
                   <PrimaryButton
                     onClick={handleApprovePillars}
                     disabled={actionLoading !== null || selectedPillarIndices.size === 0}
                     loading={actionLoading === 'approve-strategy'}
                     loadingText="Saving..."
-                    className="w-full sm:w-auto justify-center"
+                    className="justify-center"
                   >
-                    Set my pillars ({selectedPillarIndices.size})
+                    Accept and continue
                   </PrimaryButton>
                 </div>
               )}
@@ -1777,7 +1793,7 @@ export default function ChannelDashboard() {
               : 'Fact collections and single-fact topics work great with big, scannable headlines.'
             return (
             <Section delay={120} active={effectiveStep === 2}>
-              <div className="flex flex-col gap-1 mb-6">
+              <div className="flex flex-col items-center text-center gap-1 mb-10">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.08em] mb-1.5 bg-clip-text text-transparent" style={{ backgroundImage: IG_GRADIENT }}>Style · Step 3 of 4</p>
                 <h2 className="text-xl font-bold tracking-tight">Choose your carousel style</h2>
                 <p className="text-sm text-muted-light">
@@ -1867,7 +1883,7 @@ export default function ChannelDashboard() {
                 })}
               </div>
 
-              <div className="mt-6 flex gap-3">
+              <div className="mt-10 flex gap-3">
                 <PrimaryButton
                   onClick={() => {
                     setActiveTab(3)
@@ -1895,7 +1911,7 @@ export default function ChannelDashboard() {
           <Section compact={!isStreamingPosts && completedPosts.length === 0 && !hasPosts} delay={180} active={effectiveStep === 3}>
             <div className="flex flex-col gap-3">
               <div className="flex items-start justify-between gap-3">
-                <div>
+                <div className="flex-1 text-center lg:text-center">
                   <p className="text-[11px] font-semibold uppercase tracking-[0.08em] mb-1.5 bg-clip-text text-transparent" style={{ backgroundImage: IG_GRADIENT }}>Posts · Step 4 of 4</p>
                   <h2 className="text-xl font-bold tracking-tight">
                     {!hasPosts && completedPosts.length === 0 && !isStreamingPosts ? 'Generate your first carousel' : 'Posts'}
