@@ -104,7 +104,7 @@ export function SwipeToDelete({ onDelete, disabled, children }: SwipeToDeletePro
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
         onClick={showDelete ? handleDismiss : undefined}
-        className="relative bg-background transition-transform duration-200 ease-out lg:!transform-none"
+        className="relative bg-background rounded-2xl transition-transform duration-200 ease-out lg:!transform-none"
         style={{ transform: `translateX(${offset}px)` }}
       >
         {children}

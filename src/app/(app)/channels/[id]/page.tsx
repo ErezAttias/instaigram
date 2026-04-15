@@ -1943,20 +1943,6 @@ export default function ChannelDashboard() {
               )}
             </div>
 
-            {/* Current layout indicator — small caption showing which layout is active */}
-            {!isStreamingPosts && channel?.carouselLayout && (
-              <div className="flex items-center gap-2 mt-1 text-xs text-muted">
-                <span>Layout: <span className="text-muted-light font-medium">{channel.carouselLayout === 'BOLD' ? 'Bold' : 'Detailed'}</span></span>
-                <button
-                  type="button"
-                  onClick={() => setActiveTab(2)}
-                  className="text-[#6b9fcc] hover:underline"
-                >
-                  Change
-                </button>
-              </div>
-            )}
-
             {/* Existing posts from DB (always visible — excludes posts currently in completedPosts to avoid duplicates) */}
             {hasPosts && (() => {
               const completedIds = new Set(completedPosts.map(cp => cp.id));
@@ -2520,7 +2506,7 @@ export default function ChannelDashboard() {
                   const thumbnailCount = isImageStage ? slidesTotal : 5
 
                   return (
-                    <div className="animate-fade-up rounded-2xl border border-[#3d6fa8]/20 bg-[#3d6fa8]/6 p-5 space-y-5">
+                    <div className="animate-fade-up rounded-2xl border border-border bg-transparent p-5 space-y-5">
                       {/* Hook title + spinner */}
                       <div className="flex items-center gap-3">
                         <span className="w-4 h-4 border-2 border-[#3d6fa8]/30 border-t-[#6b9fcc] rounded-full animate-spin shrink-0" />
