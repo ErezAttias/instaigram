@@ -1793,7 +1793,7 @@ export default function ChannelDashboard() {
               : 'Fact collections and single-fact topics work great with big, scannable headlines.'
             return (
             <Section delay={120} active={effectiveStep === 2}>
-              <div className="flex flex-col items-center text-center gap-1 mb-10">
+              <div className="flex flex-col items-center text-center gap-1 mb-4">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.08em] mb-1.5 bg-clip-text text-transparent" style={{ backgroundImage: IG_GRADIENT }}>Style · Step 3 of 4</p>
                 <h2 className="text-xl font-bold tracking-tight">Choose your carousel style</h2>
                 <p className="text-sm text-muted-light">
@@ -1802,20 +1802,20 @@ export default function ChannelDashboard() {
               </div>
 
               {topicText && (
-                <div className="mb-4 flex items-start gap-2 text-xs text-muted-light max-w-xl">
-                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="mt-0.5 shrink-0 text-[#6b9fcc]">
+                <div className="mb-10 flex items-start justify-center gap-2 text-xs text-[#6b9fcc] max-w-xl mx-auto text-center">
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="mt-0.5 shrink-0">
                     <circle cx="8" cy="8" r="6.5" />
                     <path d="M8 7.5v4M8 5v0.5" />
                   </svg>
                   <span>
-                    Based on your topic (<span className="text-foreground">{topicText}</span>),
-                    we recommend <span className="text-[#6b9fcc] font-semibold">{recommendedLayout === 'DETAILED' ? 'Detailed' : 'Bold'}</span>.
+                    Based on your topic ({topicText}),
+                    we recommend <span className="font-semibold">{recommendedLayout === 'DETAILED' ? 'Detailed' : 'Bold'}</span>.
                     {' '}{recommendationReason}
                   </span>
                 </div>
               )}
 
-              <div className="grid grid-cols-2 gap-4 max-w-xl">
+              <div className="grid grid-cols-2 gap-4 max-w-xl mx-auto">
                 {(['DETAILED', 'BOLD'] as const).map((layoutKey) => {
                   const isSelected = (channel?.carouselLayout ?? 'DETAILED') === layoutKey
                   const isRecommended = recommendedLayout === layoutKey
@@ -1883,7 +1883,7 @@ export default function ChannelDashboard() {
                 })}
               </div>
 
-              <div className="mt-10 flex gap-3">
+              <div className="mt-10 flex justify-center gap-3">
                 <PrimaryButton
                   onClick={() => {
                     setActiveTab(3)
