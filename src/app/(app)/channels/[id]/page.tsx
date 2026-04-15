@@ -1272,6 +1272,15 @@ export default function ChannelDashboard() {
             completed={effectiveStep > 0}
             active={effectiveStep === 0}
           >
+            {isDirectMode && showDirectRefineChoice && niches.length === 0 ? (
+              <div className="pt-4 mb-3 text-center">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.08em] mb-1.5 bg-clip-text text-transparent" style={{ backgroundImage: IG_GRADIENT }}>Topic · Step 1 of 4</p>
+                <h2 className="text-xl font-bold tracking-tight">
+                  Your topic: <span className="font-semibold">{directTopicInput || channel.exploreTopic}</span>
+                </h2>
+              </div>
+            ) : (
+              <>
             <p className="text-[11px] font-semibold uppercase tracking-[0.08em] mb-1.5 bg-clip-text text-transparent" style={{ backgroundImage: IG_GRADIENT }}>Topic · Step 1 of 4</p>
             <div className="flex items-start justify-between gap-3 mb-6">
               <div>
@@ -1319,12 +1328,14 @@ export default function ChannelDashboard() {
                 </PrimaryButton>
               ) : null}
             </div>
+              </>
+            )}
 
             {/* Direct mode: refine choice */}
             {isDirectMode && showDirectRefineChoice && niches.length === 0 && (
               <div className="mb-6 space-y-4">
-                <p className="text-sm text-muted-light">
-                  Your topic: <span className="text-foreground font-semibold">{directTopicInput || channel.exploreTopic}</span>
+                <p className="text-base text-muted-light leading-relaxed text-center max-w-xl mx-auto pb-4">
+                  Got it. We can run with exactly what you typed, or take a moment to surface sharper angles inside this topic — narrower hooks that tend to perform better. What would you prefer?
                 </p>
                 <div className="flex flex-col gap-3">
                   <PrimaryButton
