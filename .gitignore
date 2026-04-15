@@ -35,3 +35,15 @@ output/
 
 # carousel images (served from R2, not tracked in git)
 public/carousel-images/
+
+# local database
+prisma/*.db
+prisma/*.db-journal
+
+# playwright/browser automation cache
+.playwright-mcp/
+
+# local mockups & screenshots
+mockups/
+*.png
+!public/**/*.png
