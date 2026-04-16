@@ -3,7 +3,7 @@
 const IG_GRADIENT = 'linear-gradient(135deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888)'
 const IG_GLOW = '0 0 20px rgba(220,39,67,0.35)'
 
-import { useEffect, useState, useCallback, useRef, useLayoutEffect } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import InstagramPreview from '@/components/InstagramPreview'

@@ -1,22 +1,20 @@
 /**
- * Standalone Carousel Service — MVP Vertical Slice
+ * Standalone Carousel Service
  *
- * Generates a full carousel from a topic string, independent of the
- * Channel/Post hierarchy. Reuses the existing carousel pipeline,
- * visual renderers, and image providers.
+ * Generates a full carousel from a topic string. Uses a single-shot
+ * Claude Sonnet call for facts, then renders full-bleed slides with
+ * title + subtitle overlay.
  *
  * Fixed 6-slide structure: OPENER + 4 FACT + CTA
  *
  * Flow:
- *   1. Create CarouselJob in DB (PENDING)
- *   2. Generate hook from topic (LLM)
- *   3. Run carousel pipeline (GENERATING)
- *   4. Enforce 6-slide structure (normalize IMPLICATION → FACT)
- *   5. Copy quality gate (detect weak/generic copy, auto-rewrite)
- *   6. Narrative coherence gate (semantic dedup, diversity, escalation)
- *   7. Hook–body promise gate (editorial promise integrity)
- *   8. Render images for each slide (RENDERING)
- *   9. Store results with explicit status per slide → COMPLETE
+ *   1. Create CarouselJob (PENDING)
+ *   2. Generate hook from topic
+ *   3. Run one-shot carousel pipeline (GENERATING)
+ *   4. Enforce 6-slide structure
+ *   5. Quality gates (copy, narrative, hook-promise)
+ *   6. Render images (RENDERING) — can be skipped with skipImages option
+ *   7. Store results → COMPLETE
  */
 
 import { prisma } from '@/lib/db/prisma';
@@ -325,50 +323,39 @@ async function renderSlideImage(
   skipReadabilityGate?: boolean,
   /** Contextual swipe CTA for OPENER slides (e.g. "Swipe to learn why") */
   swipeCta?: string,
-  /** Carousel layout — BOLD uses full-bleed renderer */
-  layout?: 'DETAILED' | 'BOLD',
 ): Promise<SlideRenderOutput> {
+  const subject = conceptHint || slide.topicEntity || (allSlides ? resolveCarouselSubject(allSlides, topic) : extractVisualSubject(topic));
+  const promptOutput = buildSlidePrompt({
+    slideRole: slide.role === 'CTA' ? 'CTA' : slide.role === 'OPENER' ? 'HOOK' : slide.role,
+    subject,
+    topic,
+    headlineText: displayTitle,
+  });
 
-  // ── Single renderer: full-bleed image + title + subtitle ──────
-  {
-    const subject = conceptHint || slide.topicEntity || (allSlides ? resolveCarouselSubject(allSlides, topic) : extractVisualSubject(topic));
-    const promptOutput = buildSlidePrompt({
-      slideRole: slide.role === 'CTA' ? 'CTA' : slide.role === 'OPENER' ? 'HOOK' : slide.role,
-      subject,
-      topic,
-      headlineText: displayTitle,
-    });
+  const result = await renderBoldSlide(
+    {
+      imagePrompt: promptOutput.imagePrompt,
+      displayTitle,
+      displaySubtitle: displaySupport || undefined,
+      slideRole: slide.role,
+      swipeCta,
+      subjectName: exploreTopic || conceptHint || slide.topicEntity || undefined,
+      excludeUrls,
+      visualStyle,
+    },
+    imageGen,
+  );
 
-    const result = await renderBoldSlide(
-      {
-        imagePrompt: promptOutput.imagePrompt,
-        displayTitle,
-        displaySubtitle: displaySupport || undefined,
-        slideRole: slide.role,
-        swipeCta,
-        subjectName: exploreTopic || conceptHint || slide.topicEntity || undefined,
-        excludeUrls,
-        visualStyle,
-      },
-      imageGen,
-    );
-
-    if (!result.image) {
-      throw new Error(result.error || 'Render failed — no image produced');
-    }
-
-    const imageBase64 = result.image.toString('base64');
-    const rawImageBase64 = result.rawImage?.toString('base64') ?? undefined;
-
-    return {
-      imageBase64,
-      rawImageBase64,
-      resolvedImageSource: (result.imageSource === 'fallback' ? 'generated' : result.imageSource) as 'wikipedia' | 'generated' | null,
-      imageSourceUrl: result.imageSourceUrl ?? undefined,
-    };
+  if (!result.image) {
+    throw new Error(result.error || 'Render failed — no image produced');
   }
 
-  throw new Error(`Unreachable: renderSlideImage always returns from the single-renderer block above`);
+  return {
+    imageBase64: result.image.toString('base64'),
+    rawImageBase64: result.rawImage?.toString('base64') ?? undefined,
+    resolvedImageSource: (result.imageSource === 'fallback' ? 'generated' : result.imageSource) as 'wikipedia' | 'generated' | null,
+    imageSourceUrl: result.imageSourceUrl ?? undefined,
+  };
 }
 
 // ─── Generate Full Carousel ─────────────────────────────────
@@ -849,7 +836,7 @@ export async function runCarouselGeneration(
         // Try rendering (UnifiedImageProvider handles Gemini → Stability fallback internally)
         try {
           console.log(`[ImageStage] Slide ${slideNum} attempt ${attempt} — calling renderSlideImage`);
-          const renderOutput = await renderSlideImage(slide, displayTitle, displaySupport, job.topic, imageProvider, finalSlides, undefined, job.direction, channelVisualStyle, undefined, preSelectedConcept, channelExploreTopic, true, compressed?.swipeCta, (job.layout as 'DETAILED' | 'BOLD') ?? 'DETAILED');
+          const renderOutput = await renderSlideImage(slide, displayTitle, displaySupport, job.topic, imageProvider, finalSlides, undefined, job.direction, channelVisualStyle, undefined, preSelectedConcept, channelExploreTopic, true, compressed?.swipeCta);
           imageBase64 = renderOutput.imageBase64;
           rawImageBase64 = renderOutput.rawImageBase64;
           resolvedImageSource = renderOutput.resolvedImageSource;
@@ -1402,7 +1389,6 @@ export async function regenerateCarouselSlideImage(
       regenExploreTopic,
       true, // skipReadabilityGate — manual regen should accept any image
       undefined, // swipeCta
-      (job.layout as 'DETAILED' | 'BOLD') ?? 'DETAILED',
     );
 
     const regenImageUrl = await saveImage(jobId, slideIndex, renderOutput.imageBase64);

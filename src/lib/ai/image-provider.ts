@@ -27,7 +27,6 @@ import type { ImageGenerationOptions, RawImageProvider } from './types';
 import type { AICallMeta } from './logger';
 import { GeminiImageProvider, createGeminiImageProvider } from './gemini-image-provider';
 import { StabilityImageProvider, createStabilityImageProvider } from './stability-image-provider';
-import { XAIImageProvider, createXAIImageProvider } from './xai-image-provider';
 import { WikipediaImageProvider } from './wikipedia-image-provider';
 import { CelebrityHybridProvider } from './celebrity-hybrid-provider';
 import { ProviderFailedError, extractHttpStatus } from './retry';

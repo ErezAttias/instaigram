@@ -1,9 +1,8 @@
 /**
- * Bold Slide Renderer — Full-Bleed Big Type
+ * Slide Renderer — Full-Bleed Image + Title + Subtitle
  *
- * Renders carousel slides using the bold/minimal visual system.
- * Each slide is a full-bleed image with big, centered text overlaid
- * via a heavy gradient. No text bar, no body paragraph.
+ * The single renderer for all carousel slides. Full-bleed image
+ * with big title and smaller subtitle overlaid via a heavy gradient.
  *
  * Layout:
  *   ┌──────────────────────────────┐ y=0
@@ -11,15 +10,16 @@
  *   │   FULL-BLEED IMAGE           │
  *   │   1080 × 1350               │
  *   │                              │
- *   │         ░░░░░░░░░░░░░░░░░░░  │ ← gradient starts ~50%
+ *   │         ░░░░░░░░░░░░░░░░░░░  │ ← gradient starts ~60%
  *   │         ██████████████████   │
- *   │         DISPLAY TITLE        │ ← big centered text
+ *   │         DISPLAY TITLE        │ ← 90px bold
+ *   │         display subtitle     │ ← 40px regular
  *   │         ██████████████████   │
  *   └──────────────────────────────┘ y=1350
  *
  * Flow:
  *   1. Generate/receive base image (full-bleed 1080×1350)
- *   2. Build SVG overlay: heavy gradient + big centered text
+ *   2. Build SVG overlay: gradient + title + subtitle
  *   3. Composite with sharp
  *   4. Export 1080×1350 PNG
  */
