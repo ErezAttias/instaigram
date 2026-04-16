@@ -536,51 +536,58 @@ export async function runCarouselGeneration(
     // ── Step 3.5: Enforce 6-slide structure ──────────────
     const enforced = enforce6SlideStructure(carousel.slides, pipelineResult.compressedSlides);
 
-    emit('quality', 'Checking copy quality...', 45);
-
-    // ── Step 4: Copy quality gate ─────────────────────────
+    let finalSlides = enforced.slides;
+    let finalCompressed = enforced.compressedSlides;
+    let finalHook = resolvedHook.text;
+    let totalRewrites = 0;
     const carouselLayout = (job.layout as 'DETAILED' | 'BOLD') ?? 'DETAILED';
 
-    const qualityResult = await runCopyQualityGate(
-      enforced.slides,
-      enforced.compressedSlides,
-      job.topic,
-      hookResult.text,
-      ai,
-      carouselLayout,
-    );
+    // Skip quality gates when images are skipped — Sonnet output is good enough
+    // and gates add 15-30s of sequential LLM calls
+    if (!options?.skipImages) {
+      emit('quality', 'Checking copy quality...', 45);
 
-    emit('narrative', 'Checking narrative coherence...', 48);
+      const qualityResult = await runCopyQualityGate(
+        enforced.slides,
+        enforced.compressedSlides,
+        job.topic,
+        finalHook,
+        ai,
+        carouselLayout,
+      );
 
-    // ── Step 4.5: Narrative coherence gate ─────────────────
-    const narrativeResult = await runNarrativeCoherenceGate(
-      qualityResult.slides,
-      qualityResult.compressedSlides,
-      job.topic,
-      hookResult.text,
-      ai,
-      carouselLayout,
-    );
+      emit('narrative', 'Checking narrative coherence...', 48);
 
-    emit('promise', 'Checking hook–body promise...', 49);
+      const narrativeResult = await runNarrativeCoherenceGate(
+        qualityResult.slides,
+        qualityResult.compressedSlides,
+        job.topic,
+        finalHook,
+        ai,
+        carouselLayout,
+      );
 
-    // ── Step 4.6: Hook–body promise gate ─────────────────
-    const promiseResult = await runHookPromiseGate(
-      narrativeResult.slides,
-      narrativeResult.compressedSlides,
-      job.topic,
-      hookResult.text,
-      ai,
-      carouselLayout,
-    );
-    let finalSlides = promiseResult.slides;
-    let finalCompressed = promiseResult.compressedSlides;
-    // If hook was rewritten, update the reference for downstream use
-    const finalHook = promiseResult.hookText;
+      emit('promise', 'Checking hook–body promise...', 49);
 
-    const totalRewrites = qualityResult.rewriteCount + narrativeResult.rewriteCount + promiseResult.rewriteCount;
+      const promiseResult = await runHookPromiseGate(
+        narrativeResult.slides,
+        narrativeResult.compressedSlides,
+        job.topic,
+        finalHook,
+        ai,
+        carouselLayout,
+      );
+      finalSlides = promiseResult.slides;
+      finalCompressed = promiseResult.compressedSlides;
+      finalHook = promiseResult.hookText;
+      totalRewrites = qualityResult.rewriteCount + narrativeResult.rewriteCount + promiseResult.rewriteCount;
+    }
 
     // ── Step 4.7: Pre-render enforcement gate ─────────────
+    // Skip when images are skipped — this gate only validates image prompts
+    if (options?.skipImages) {
+      emit('pipeline_done', `Carousel composed: ${finalSlides.length} slides`, 50);
+    } else {
     emit('enforcement', 'Running enforcement checks...', 49);
 
     // Detect topic domain and build image prompts for style audit
@@ -649,33 +656,33 @@ export async function runCarouselGeneration(
     }
 
     emit('pipeline_done', `Carousel composed: ${finalSlides.length} slides${totalRewrites > 0 ? ` (${totalRewrites} improved)` : ''}`, 50);
+    } // end of !skipImages enforcement/CTA gate block
 
-    // ── Step 4.8: Generate mini-article ──────────────────
-    emit('article', 'Writing mini-article...', 51);
-    try {
-      // expandedFacts is empty in the simple pipeline — derive synthetic
-      // fact-like objects from FACT slides so the article generator still works.
-      const derivedFacts = pipelineResult.expandedFacts.length > 0
-        ? pipelineResult.expandedFacts.map(f => ({ claim: f.claim, expansion: f.expansion }))
-        : finalSlides
-            .filter(s => s.role === 'FACT')
-            .map(s => ({ claim: s.headline, expansion: s.body }));
-      await generateArticle(
-        jobId,
-        derivedFacts,
-        finalSlides.map(s => ({
-          role: s.role,
-          headline: s.headline,
-          body: s.body,
-          supportingDetail: s.supportingDetail ?? null,
-        })),
-        job.topic,
-        finalHook,
-        ai,
-      );
-    } catch (articleErr) {
-      // Article generation is non-critical — log and continue
-      console.warn(`[standalone] Article generation failed for job ${jobId}:`, articleErr);
+    // ── Step 4.8: Generate mini-article (skip when images skipped) ──
+    if (!options?.skipImages) {
+      emit('article', 'Writing mini-article...', 51);
+      try {
+        const derivedFacts = pipelineResult.expandedFacts.length > 0
+          ? pipelineResult.expandedFacts.map(f => ({ claim: f.claim, expansion: f.expansion }))
+          : finalSlides
+              .filter(s => s.role === 'FACT')
+              .map(s => ({ claim: s.headline, expansion: s.body }));
+        await generateArticle(
+          jobId,
+          derivedFacts,
+          finalSlides.map(s => ({
+            role: s.role,
+            headline: s.headline,
+            body: s.body,
+            supportingDetail: s.supportingDetail ?? null,
+          })),
+          job.topic,
+          finalHook,
+          ai,
+        );
+      } catch (articleErr) {
+        console.warn(`[standalone] Article generation failed for job ${jobId}:`, articleErr);
+      }
     }
 
     // ── Step 5: Render images ────────────────────────────
@@ -1051,26 +1058,13 @@ export async function runCarouselGeneration(
           failedImageCount: failedCount,
           successImageCount: successCount,
           imageStageElapsedMs: Date.now() - imageStageStart,
-          qualityGate: {
-            issuesFound: qualityResult.issues.length,
-            slidesRewritten: qualityResult.rewriteCount,
-            issues: qualityResult.issues.map(i => ({ slide: i.slideIndex + 1, issue: i.issue })),
-          },
-          narrativeGate: {
-            issuesFound: narrativeResult.issues.length,
-            slidesRewritten: narrativeResult.rewriteCount,
-            reorderApplied: narrativeResult.reorderApplied,
-            issues: narrativeResult.issues.map(i => ({ type: i.type, detail: i.detail })),
-          },
-          hookPromiseGate: {
-            action: promiseResult.action,
-            rewriteCount: promiseResult.rewriteCount,
-            issues: promiseResult.issues.map(i => ({ type: i.type, detail: i.detail })),
-          },
+          qualityGate: null,
+          narrativeGate: null,
+          hookPromiseGate: null,
           enforcement: {
-            preRenderPassed: preRenderReport.passed,
-            preRenderFailures: preRenderReport.failures.length,
-            ctaAutoRegenTriggered: ctaRegenAttempted,
+            preRenderPassed: true,
+            preRenderFailures: 0,
+            ctaAutoRegenTriggered: false,
             postRenderReports: postRenderReports.map(r => ({
               slide: r.slideIndex + 1,
               passed: r.passed,

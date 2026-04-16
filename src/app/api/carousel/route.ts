@@ -19,7 +19,9 @@ export async function POST(request: NextRequest) {
     const skipImages = body.skipImages === true;
     const layout = 'BOLD' as const;
 
-    const job = await createCarouselJob(topic, direction, channelId, undefined, undefined, layout);
+    // Pass topic as exactSubject to skip the concept selection LLM call
+    const exactSubject = skipImages ? topic : undefined;
+    const job = await createCarouselJob(topic, direction, channelId, undefined, exactSubject, layout);
 
     // Start generation in background (non-blocking)
     runCarouselGeneration(job.id, undefined, { skipImages }).catch(err => {
