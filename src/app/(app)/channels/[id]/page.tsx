@@ -1256,6 +1256,7 @@ export default function ChannelDashboard() {
           {showWizard && (
             <CarouselWizard
               channelId={channel.id}
+              initialTopic={channel.exploreTopic || channel.niche || undefined}
               onComplete={async () => {
                 setShowWizard(false)
                 await fetchChannel()

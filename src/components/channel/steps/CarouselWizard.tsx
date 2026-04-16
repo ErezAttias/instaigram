@@ -20,13 +20,15 @@ const STEP_NUMBER: Record<WizardStep, number> = {
 
 interface CarouselWizardProps {
   channelId?: string
+  /** Pre-filled topic from channel creation (skips Step 1) */
+  initialTopic?: string
   /** Called when the full flow completes (images rendered) */
   onComplete?: (jobId: string) => void
 }
 
-export function CarouselWizard({ channelId, onComplete }: CarouselWizardProps) {
-  const [step, setStep] = useState<WizardStep>('subject')
-  const [subject, setSubject] = useState('')
+export function CarouselWizard({ channelId, initialTopic, onComplete }: CarouselWizardProps) {
+  const [step, setStep] = useState<WizardStep>(initialTopic ? 'angle' : 'subject')
+  const [subject, setSubject] = useState(initialTopic || '')
   const [jobId, setJobId] = useState<string | null>(null)
   const [sampleSlide, setSampleSlide] = useState({ title: '', subtitle: '' })
   const [generating, setGenerating] = useState(false)
