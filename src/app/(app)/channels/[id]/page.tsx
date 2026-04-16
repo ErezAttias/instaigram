@@ -537,6 +537,8 @@ export default function ChannelDashboard() {
     return () => { el.removeEventListener('scroll', updateScrollArrows); ro.disconnect() }
   }, [niches, updateScrollArrows])
   useEffect(() => {
+    // Skip legacy niche discovery when the new wizard is active
+    if (showWizard) return
     if (
       channel &&
       channel.status === 'DRAFT' &&
@@ -552,7 +554,7 @@ export default function ChannelDashboard() {
         setShowDirectRefineChoice(true)
       }
     }
-  }, [channel, niches.length, actionLoading])
+  }, [channel, niches.length, actionLoading, showWizard])
 
   async function handleAction(action: string, options?: RequestInit) {
     setActionLoading(action)
