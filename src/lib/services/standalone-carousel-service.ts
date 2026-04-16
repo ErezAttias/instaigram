@@ -1602,9 +1602,9 @@ export async function runImageStage(jobId: string): Promise<void> {
     });
 
     try {
-      const v2Slide: GeneratedSlideV2 = {
+      const v2Slide = {
         slideNumber: slide.slideIndex,
-        role: slide.role as string,
+        role: slide.role,
         headline: slide.headline,
         body: slide.body || '',
         supportingDetail: slide.supportingDetail ?? undefined,
@@ -1614,11 +1614,11 @@ export async function runImageStage(jobId: string): Promise<void> {
         concretenessScore: slide.concretenessScore,
         noveltyScore: slide.noveltyScore,
         factRefs: [],
-      };
+      } as unknown as GeneratedSlideV2;
 
       const allV2Slides = job.slides.map(s => ({
         slideNumber: s.slideIndex,
-        role: s.role as string,
+        role: s.role,
         headline: s.headline,
         body: s.body || '',
         supportingDetail: s.supportingDetail ?? undefined,
