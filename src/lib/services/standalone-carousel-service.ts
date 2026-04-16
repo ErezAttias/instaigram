@@ -685,6 +685,7 @@ async function renderSlideImage(
 export async function runCarouselGeneration(
   jobId: string,
   onProgress?: ProgressCallback,
+  options?: { skipImages?: boolean },
 ): Promise<void> {
   const job = await prisma.carouselJob.findUnique({ where: { id: jobId } });
   if (!job) throw new Error(`CarouselJob ${jobId} not found`);
@@ -1064,6 +1065,25 @@ export async function runCarouselGeneration(
         };
       }),
     });
+
+    // ── Skip images: save copy only, mark complete ───
+    if (options?.skipImages) {
+      await prisma.carouselJob.update({
+        where: { id: jobId },
+        data: {
+          status: 'COMPLETE',
+          pipelineMeta: JSON.parse(JSON.stringify({
+            mode: pipelineResult.mode,
+            concept: pipelineResult.concept,
+            hook: finalHook,
+            skipImages: true,
+          })),
+          progress: { step: 'complete', message: 'Copy ready (images skipped)', pct: 100 },
+        },
+      });
+      emit('complete', 'Copy ready (images skipped)', 100);
+      return;
+    }
 
     // ── Image stage — per-slide timeout, per-slide fallback ───
     const imageStageStart = Date.now();
@@ -1837,6 +1857,122 @@ export async function restyleCarouselSlide(jobId: string, slideIndex: number) {
 export async function regenerateCarouselSlide(jobId: string, slideIndex: number, imageSource?: 'wikipedia' | 'generated') {
   await regenerateCarouselSlideCopy(jobId, slideIndex);
   return regenerateCarouselSlideImage(jobId, slideIndex, imageSource);
+}
+
+// ─── Render Images (Stage 2) ────────────────────────────────
+
+/**
+ * Render images for a carousel that was generated with skipImages.
+ * Loads slides from DB, renders each one that has no imageUrl.
+ */
+export async function runImageStage(jobId: string): Promise<void> {
+  const job = await prisma.carouselJob.findUnique({
+    where: { id: jobId },
+    include: { slides: { orderBy: { slideIndex: 'asc' } } },
+  });
+  if (!job) throw new Error(`CarouselJob ${jobId} not found`);
+
+  // Load visual style
+  let visualStyle: ChannelVisualStyleContext = DEFAULT_VISUAL_STYLE;
+  if (job.channelId) {
+    const styleRecord = await prisma.channelVisualStyle.findUnique({
+      where: { channelId: job.channelId },
+    });
+    if (styleRecord) visualStyle = styleRecord as unknown as ChannelVisualStyleContext;
+  }
+
+  // Load channel explore topic for Wikipedia lookups
+  let exploreTopic: string | undefined;
+  if (job.channelId) {
+    const channel = await prisma.channel.findUnique({ where: { id: job.channelId } });
+    if (channel?.exploreTopic) exploreTopic = channel.exploreTopic;
+  }
+
+  // Resolve concept from pipelineMeta
+  const meta = job.pipelineMeta as Record<string, unknown> | null;
+  const concept = (meta?.concept as string) || undefined;
+
+  await prisma.carouselJob.update({
+    where: { id: jobId },
+    data: { status: 'RENDERING', progress: { step: 'render', message: 'Starting image rendering...', pct: 0 } },
+  });
+
+  const imageProvider = getImageProviderForTopic(job.topic, job.direction);
+  const slidesToRender = job.slides.filter(s => !s.imageUrl);
+
+  for (let i = 0; i < slidesToRender.length; i++) {
+    const slide = slidesToRender[i];
+    const displayTitle = slide.displayTitle || slide.headline;
+    const displaySupport = slide.displaySupport || '';
+
+    await prisma.carouselJob.update({
+      where: { id: jobId },
+      data: { progress: { step: 'render', message: `Rendering slide ${i + 1}/${slidesToRender.length}...`, pct: Math.round((i / slidesToRender.length) * 90) } },
+    });
+
+    try {
+      const v2Slide: GeneratedSlideV2 = {
+        slideNumber: slide.slideIndex,
+        role: slide.role,
+        headline: slide.headline,
+        body: slide.body || '',
+        supportingDetail: slide.supportingDetail ?? undefined,
+        topicEntity: slide.topicEntity || '',
+        factType: slide.factType ?? null,
+        containsNumber: slide.containsNumber,
+        concretenessScore: slide.concretenessScore,
+        noveltyScore: slide.noveltyScore,
+        factRefs: [],
+      };
+
+      const allV2Slides = job.slides.map(s => ({
+        slideNumber: s.slideIndex,
+        role: s.role,
+        headline: s.headline,
+        body: s.body || '',
+        supportingDetail: s.supportingDetail ?? undefined,
+        topicEntity: s.topicEntity || '',
+        factType: s.factType ?? null,
+        containsNumber: s.containsNumber,
+        concretenessScore: s.concretenessScore,
+        noveltyScore: s.noveltyScore,
+        factRefs: [],
+      })) as GeneratedSlideV2[];
+
+      const renderOutput = await renderSlideImage(
+        v2Slide, displayTitle, displaySupport, job.topic,
+        imageProvider, allV2Slides, undefined, job.direction,
+        visualStyle, undefined, concept, exploreTopic, true,
+        (slide as Record<string, unknown>).swipeCta as string | undefined,
+      );
+
+      const imageUrl = await saveImage(jobId, slide.slideIndex, renderOutput.imageBase64);
+      await prisma.carouselSlide.update({
+        where: { id: slide.id },
+        data: {
+          imageUrl,
+          imageSource: renderOutput.resolvedImageSource,
+          imageSourceUrl: renderOutput.imageSourceUrl ?? null,
+          status: 'PENDING',
+        },
+      });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error(`[runImageStage] Slide ${slide.slideIndex} failed: ${msg.slice(0, 200)}`);
+      await prisma.carouselSlide.update({
+        where: { id: slide.id },
+        data: { imageError: msg.slice(0, 2000), status: 'FAILED_IMAGE' },
+      });
+    }
+  }
+
+  await prisma.carouselJob.update({
+    where: { id: jobId },
+    data: {
+      status: 'COMPLETE',
+      progress: { step: 'complete', message: 'Images rendered', pct: 100 },
+    },
+  });
 }
 
 // ─── Approve All ────────────────────────────────────────────

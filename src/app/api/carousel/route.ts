@@ -16,12 +16,13 @@ export async function POST(request: NextRequest) {
 
     const direction = body.direction?.trim() || undefined;
     const channelId = body.channelId?.trim() || undefined;
+    const skipImages = body.skipImages === true;
     const layout = 'BOLD' as const;
 
     const job = await createCarouselJob(topic, direction, channelId, undefined, undefined, layout);
 
     // Start generation in background (non-blocking)
-    runCarouselGeneration(job.id).catch(err => {
+    runCarouselGeneration(job.id, undefined, { skipImages }).catch(err => {
       console.error(`[api/carousel] Background generation failed for ${job.id}: ${err.message}`);
     });
 
