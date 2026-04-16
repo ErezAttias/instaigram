@@ -536,26 +536,8 @@ export default function ChannelDashboard() {
     ro.observe(el)
     return () => { el.removeEventListener('scroll', updateScrollArrows); ro.disconnect() }
   }, [niches, updateScrollArrows])
-  useEffect(() => {
-    // Skip legacy niche discovery when the new wizard is active
-    if (showWizard) return
-    if (
-      channel &&
-      channel.status === 'DRAFT' &&
-      niches.length === 0 &&
-      !autoStartedRef.current &&
-      actionLoading === null
-    ) {
-      if (channel.nicheMode === 'DISCOVER' || channel.nicheMode === 'EXPLORE') {
-        autoStartedRef.current = true
-        handleGenerateNiches()
-      } else if (channel.nicheMode === 'DIRECT' && channel.exploreTopic) {
-        setDirectTopicInput(channel.exploreTopic)
-        setShowDirectRefineChoice(true)
-      }
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [channel, niches.length, actionLoading])
+  // Legacy niche discovery disabled — the new CarouselWizard handles fresh channels
+  // useEffect(() => { handleGenerateNiches() ... }, [channel, niches.length, actionLoading])
 
   async function handleAction(action: string, options?: RequestInit) {
     setActionLoading(action)
