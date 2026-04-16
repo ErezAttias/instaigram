@@ -5,12 +5,7 @@ import { buildCompressPrompt } from '../prompts/compress-prompt';
 import { buildImplicationCompressPrompt } from '../prompts/compress-implication-prompt';
 import { buildEvaluateImplicationPrompt } from '../prompts/evaluate-implication-prompt';
 import { buildMicroStoryRegenPrompt } from '../prompts/micro-story-regen-prompt';
-import { buildVerbRewritePrompt } from '../prompts/verb-rewrite-prompt';
-import { hasActionVerb, detectLabelPattern } from './verb-check';
 import { z } from 'zod';
-
-const VerbRewriteResponse = z.object({ headline: z.string().min(4).max(120) });
-const MAX_VERB_REWRITE_RETRIES = 2;
 
 export interface CompressedSlideDisplay {
   slideNumber: number;
@@ -18,8 +13,6 @@ export interface CompressedSlideDisplay {
   displaySupport: string;
   /** Set when micro-story enforcement failed after max retries */
   microStoryWarning?: string;
-  /** Set when Bold verb-enforcement failed after max retries */
-  verbRewriteWarning?: string;
 }
 
 export interface CompressResult {
@@ -391,64 +384,7 @@ export async function compressSlides(
     }
   }
 
-  // ── Bold verb enforcement ───────────────────────────────────
-  // For BOLD layout, each slide renders ONLY the displayTitle — so every title
-  // must be a complete claim with a real action verb, not a label like "X: Y" or
-  // "X in Y". We can't reliably enforce this via prompt (LLM keeps producing
-  // label-style noun phrases); do it deterministically here and rewrite via a
-  // small focused LLM call when needed.
-  if (layout === 'BOLD') {
-    const factSlideNumbers = new Set(factSlides.map(s => s.slideNumber));
-    for (let i = 0; i < allCompressed.length; i++) {
-      const entry = allCompressed[i];
-      if (!factSlideNumbers.has(entry.slideNumber)) continue;
-      const sourceSlide = factSlides.find(s => s.slideNumber === entry.slideNumber);
-      if (!sourceSlide) continue;
-
-      let current = entry;
-      let attempt = 0;
-      while (attempt < MAX_VERB_REWRITE_RETRIES) {
-        if (hasActionVerb(current.displayTitle)) {
-          if (attempt > 0) {
-            console.log(`[compress:verb] ✓ Slide ${current.slideNumber} verb-ok after ${attempt} rewrite(s): "${current.displayTitle}"`);
-          }
-          break;
-        }
-        attempt++;
-        const pattern = detectLabelPattern(current.displayTitle);
-        console.warn(`[compress:verb] Slide ${current.slideNumber} attempt ${attempt}/${MAX_VERB_REWRITE_RETRIES} — label detected (${pattern ?? 'no_verb'}): "${current.displayTitle}"`);
-
-        try {
-          const prompt = buildVerbRewritePrompt({
-            currentTitle: current.displayTitle,
-            body: sourceSlide.body || current.displaySupport || current.displayTitle,
-            detectedPattern: pattern,
-          });
-          const { data } = await ai.generateObject(prompt, VerbRewriteResponse);
-          current = { ...current, displayTitle: data.headline.trim() };
-        } catch (err) {
-          console.warn(`[compress:verb] Rewrite failed for slide ${current.slideNumber}: ${err instanceof Error ? err.message : err}`);
-          break;
-        }
-      }
-
-      // Final check — still no verb after retries? Keep the attempt but mark a warning.
-      if (!hasActionVerb(current.displayTitle)) {
-        const warning = `verb enforcement failed after ${attempt} retries — still label-style`;
-        console.error(`[compress:verb] HARD FAIL slide ${current.slideNumber}: "${current.displayTitle}" — ${warning}`);
-        allCompressed[i] = { ...current, verbRewriteWarning: warning };
-      } else {
-        allCompressed[i] = current;
-      }
-    }
-    // BOLD renders only the title — force displaySupport empty for all slides
-    for (const entry of allCompressed) {
-      entry.displaySupport = '';
-    }
-    return { compressed: allCompressed };
-  }
-
-  // ── Micro-story enforcement for FACT slides (DETAILED only) ──
+  // ── Micro-story enforcement for FACT slides ──
   // Validate structure. If invalid → regenerate text only (up to MAX_MICRO_STORY_RETRIES).
   // If still invalid after retries → keep best attempt + mark with warning.
   const factSlideNumbers = new Set(factSlides.map(s => s.slideNumber));

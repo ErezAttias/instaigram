@@ -48,8 +48,10 @@ const BOLD_FONT = {
 export interface BoldSlideInput {
   /** The 5-layer image prompt */
   imagePrompt: string;
-  /** Display title — the ONLY text rendered on the slide */
+  /** Display title — big bold text */
   displayTitle: string;
+  /** Display subtitle — smaller text below the title */
+  displaySubtitle?: string;
   /** Slide role (OPENER, FACT, IMPLICATION, CTA) */
   slideRole: string;
   /** Swipe CTA text for OPENER slides */
@@ -135,15 +137,24 @@ function buildBoldOverlay(
   const lineHeight = t1Size * BOLD_FONT.title.lineHeight;
   const titleBlockHeight = t1Size + (titleLines.length - 1) * lineHeight;
 
+  // Subtitle (displaySupport) for FACT slides
+  const subtitleSize = 40;
+  const subtitleLineHeight = subtitleSize * 1.35;
+  const hasSubtitle = !!input.displaySubtitle && input.slideRole !== 'OPENER' && input.slideRole !== 'HOOK';
+  const subtitleMaxChars = Math.floor(contentWidth / (subtitleSize * 0.48));
+  const subtitleLines = hasSubtitle ? wrapText(input.displaySubtitle!, subtitleMaxChars) : [];
+  const subtitleGap = hasSubtitle ? 20 : 0;
+  const subtitleBlockHeight = hasSubtitle ? subtitleSize + (subtitleLines.length - 1) * subtitleLineHeight : 0;
+
   // Add CTA height for OPENER slides
   const isOpener = input.slideRole === 'OPENER' || input.slideRole === 'HOOK';
   const ctaFontSize = BOLD_FONT.cta.size;
   const ctaGap = isOpener ? ctaFontSize * 0.8 : 0;
   const ctaHeight = isOpener ? ctaFontSize : 0;
-  const totalTextHeight = titleBlockHeight + ctaGap + ctaHeight;
+  const totalTextHeight = titleBlockHeight + subtitleGap + subtitleBlockHeight + ctaGap + ctaHeight;
 
   // Position text in the bottom third, centered vertically in the zone
-  const textZoneTop = CANVAS.height * 0.68;
+  const textZoneTop = CANVAS.height * 0.60;
   const textZoneBottom = CANVAS.height - PAD;
   const textZoneHeight = textZoneBottom - textZoneTop;
   let startY = textZoneTop + (textZoneHeight - totalTextHeight) / 2;
@@ -166,6 +177,23 @@ function buildBoldOverlay(
       + `</text>`
     );
   });
+
+  // Subtitle lines — smaller, lighter, below title
+  if (hasSubtitle) {
+    const subtitleStartY = startY + titleBlockHeight + subtitleGap;
+    subtitleLines.forEach((line, i) => {
+      const y = subtitleStartY + subtitleSize + i * subtitleLineHeight;
+      elements.push(
+        `<text x="${CANVAS.width / 2}" y="${Math.round(y)}" `
+        + `text-anchor="middle" `
+        + `font-family="'Inter', sans-serif" `
+        + `font-size="${subtitleSize}" font-weight="400" `
+        + `fill="${t2Color}" opacity="0.9">`
+        + escapeXml(line)
+        + `</text>`
+      );
+    });
+  }
 
   // Swipe CTA for OPENER slides (smaller, centered below title with chevron)
   if (isOpener && input.swipeCta) {

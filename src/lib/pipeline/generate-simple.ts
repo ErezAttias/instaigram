@@ -131,7 +131,7 @@ export async function generateCarousel(
 ): Promise<PipelineResult> {
   const { topic, channelNiche, memory, layout } = params;
 
-  const systemPrompt = 'You are an Instagram content strategist. Create engaging carousel posts.';
+  const systemPrompt = 'You are an Instagram content expert specializing in viral educational carousels. Your facts must be genuinely surprising, specific, and verifiable — the kind of thing someone would screenshot and send to a friend. Never produce vague summaries or common knowledge.';
   const userPrompt = buildPrompt(topic, channelNiche, memory?.tone);
 
   const raw = await callAnthropic(ANTHROPIC_MODEL, systemPrompt, userPrompt);
@@ -159,11 +159,43 @@ function buildPrompt(topic: string, niche?: string, tone?: string): string {
     '  2–5. Four content slides: { "type":"content", "title":"...", "content":"...", "topicEntity":"...", "factType":"..." }',
     '  6. Last slide: type "cta" — { "type":"cta", "title":"..." }',
     '',
-    'Rules:',
-    '  • title: punchy, specific. ~3–12 words.',
-    '  • content (content slides only): 1–2 sentences. Specific, surprising, conversational. Around 100–200 characters.',
-    '  • topicEntity (content slides only): the specific subject of THIS slide (≤30 chars). E.g. "octopus heart", "Cleopatra", "caffeine molecule".',
-    '  • factType (content slides only): one of "statistic", "comparison", "mechanism", "historical", "example", "definition".',
+    '═══ FACT QUALITY RULES (most important) ═══',
+    '',
+    'Each content slide must pass the "share test": would someone screenshot this and send it to a friend?',
+    '',
+    'GOOD facts have ALL of these:',
+    '  • A specific number, date, measurement, or named entity',
+    '  • A surprising twist, contrast, or counterintuitive outcome',
+    '  • Something verifiable — a real event, study, or mechanism',
+    '  • A complete claim that teaches something in one sentence',
+    '',
+    'GOOD examples:',
+    '  ✓ "The FBI Once Sent MLK a Letter Urging Him to Kill Himself" (historical, shocking, specific)',
+    '  ✓ "Cleopatra Lived Closer to the Moon Landing Than the Pyramids" (comparison, mind-bending)',
+    '  ✓ "Honey Found in 3,000-Year-Old Egyptian Tombs Was Still Edible" (specific number, surprising)',
+    '  ✓ "Oxford University Is Older Than the Aztec Empire" (comparison, counterintuitive)',
+    '  ✓ "Nintendo Was Founded in 1889 — as a Playing Card Company" (specific date, surprising pivot)',
+    '',
+    'BAD facts — NEVER generate these:',
+    '  ✗ Vague labels: "Kubrick\'s Window Creates Unease" (what window? why? no specific detail)',
+    '  ✗ Common knowledge: "The Titanic Sank in 1912" (everyone knows this)',
+    '  ✗ Subjective claims: "This Movie Changed Cinema Forever" (opinion, not fact)',
+    '  ✗ Generic trivia: "Movies Take a Long Time to Make" (so what?)',
+    '  ✗ Incomplete: "Toto Earned $125 Weekly" (compared to what? why does this matter?)',
+    '',
+    '═══ TITLE RULES ═══',
+    '',
+    '  • title: 6–16 words. A complete, interesting fact — not a label or teaser.',
+    '  • Must contain an action verb (earned, discovered, broke, created, banned, etc.)',
+    '  • Must include a specific number, name, or concrete detail',
+    '  • The title alone must teach the reader something surprising',
+    '  • Vary how titles open across the 4 facts — mix numbers, names, and contrasts',
+    '',
+    '═══ OTHER FIELDS ═══',
+    '',
+    '  • content (content slides only): 1–3 sentences expanding the title. Include the mechanism, context, or consequence. 100–200 characters.',
+    '  • topicEntity: the specific subject of THIS slide (≤30 chars). E.g. "Viggo Mortensen", "honey preservation", "Oxford University".',
+    '  • factType: one of "statistic", "comparison", "mechanism", "historical", "example", "definition".',
     '  • Each content slide = one idea. No lists, no meta-commentary, no "Did you know".',
     '',
     'Respond with ONLY the JSON object. No markdown fences.',
@@ -183,11 +215,10 @@ function adaptToPipelineResult(slides: ModelSlide[], topic: string, layout?: 'DE
     return baseSlide(i, 'FACT', s.title, s.content, s.topicEntity, s.factType);
   });
 
-  const isBold = layout === 'BOLD';
   const compressedSlides: CompressedSlideDisplay[] = slides.map((s, i) => ({
     slideNumber: i,
     displayTitle: s.title,
-    displaySupport: s.type === 'content' && !isBold ? s.content : '',
+    displaySupport: s.type === 'content' ? s.content : '',
   }));
 
   const carousel = {

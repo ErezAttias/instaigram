@@ -492,7 +492,7 @@ export async function runHookPromiseGate(
       updatedCompressed = updatedSlides.map(s => ({
         slideNumber: s.slideNumber,
         displayTitle: s.headline,
-        displaySupport: layout === 'BOLD' ? '' : s.body,
+        displaySupport: s.body,
       }));
     }
   }

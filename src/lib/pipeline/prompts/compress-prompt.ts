@@ -33,25 +33,9 @@ ${slideList}
 COMPRESSION RULES
 ═══════════════════════════════════════════
 
-${layout === 'BOLD' ? `For each slide, produce:
-  displayTitle: 6–16 words. A complete, interesting fact — not a label, not a teaser. The reader must learn something surprising from the title alone.
-  displaySupport: always empty string "". Bold layout renders ONLY the title — no support text.
-
-BOLD LAYOUT RULES:
-- The displayTitle IS the slide. It must be a full claim someone could say aloud and sound interesting.
-- 6–16 words. Do NOT artificially shorten — use as many words as the fact needs to land.
-- Must contain a real action verb. Must include a specific number, name, or concrete detail.
-- Prefer: surprising outcomes, named entities + what they did, before/after contrasts, extreme quantities
-- Each title is a standalone interesting fact — not a setup, not a category name, not a teaser
-  ✓ "Ancient Egyptians Believed Scarab Beetles Guided Souls to the Afterlife" (11 words)
-  ✓ "Cleopatra Lived Closer to the Moon Landing Than to the Pyramids" (12 words)
-  ✓ "Gladiator Games Were Finally Banned in 404 AD After a Monk's Protest" (13 words)
-  ✓ "Marie Curie's Notebooks Are Still Too Radioactive to Touch Without a Hazmat Suit" (14 words)
-  ✗ "Honey Never Expires" (3 words — true but tells you nothing surprising)
-  ✗ "Ancient Egyptian Burial Rituals" (label — no verb, no fact)
-  ✗ "Scarab Beetles Ensure Rebirth in Tombs" (6 words — what does this mean? Too vague)` : `For each slide, produce:
-  displayTitle: 5–10 words. Punchy, concrete, scannable in under 1 second.
-  displaySupport: 8–15 words. Reinforces the title with a specific detail, number, or contrast.`}
+For each slide, produce:
+  displayTitle: 5–10 words. The core claim — punchy, concrete, scannable in under 1 second.
+  displaySupport: 1–2 sentences. Expands the title with the surprising detail, number, or context that makes it interesting.
 
 Rules:
 - No fluff: remove "most people don't know", "here's the thing", "the truth is"
@@ -189,8 +173,8 @@ Return exactly this JSON structure:
   "compressed": [
     {
       "slideNumber": 0,
-      "displayTitle": "string (Bold: 6–16 words interesting fact; Detailed: 5–10 words)",
-      "displaySupport": "string (8–15 words, or empty string for OPENER if not needed)",
+      "displayTitle": "string (5–10 words, core claim)",
+      "displaySupport": "string (1–2 sentences expanding the title, or empty for OPENER)",
       "swipeCta": "string (OPENER slides only, e.g. 'Swipe to learn why')"
     },
     ...one entry per input slide, same order...

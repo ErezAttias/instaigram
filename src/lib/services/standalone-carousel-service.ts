@@ -345,6 +345,7 @@ async function renderSlideImage(
       {
         imagePrompt: promptOutput.imagePrompt,
         displayTitle,
+        displaySubtitle: displaySupport || undefined,
         slideRole: slide.role,
         swipeCta,
         subjectName: exploreTopic || conceptHint || slide.topicEntity || undefined,
@@ -947,7 +948,7 @@ export async function runCarouselGeneration(
           finalCompressed = finalSlides.map(s => ({
             slideNumber: s.slideNumber,
             displayTitle: s.headline,
-            displaySupport: carouselLayout === 'BOLD' ? '' : s.body,
+            displaySupport: s.body,
           }));
         }
 
@@ -1797,6 +1798,7 @@ export async function restyleCarouselSlide(jobId: string, slideIndex: number) {
       const boldResult = await renderBoldSlide({
         imagePrompt: promptOutput.imagePrompt,
         displayTitle,
+        displaySubtitle: displaySupport || undefined,
         slideRole: slide.role,
         visualStyle,
         baseImage: rawImage,
