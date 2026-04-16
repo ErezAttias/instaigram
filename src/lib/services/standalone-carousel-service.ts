@@ -1593,7 +1593,7 @@ export async function runImageStage(jobId: string): Promise<void> {
 
   for (let i = 0; i < slidesToRender.length; i++) {
     const slide = slidesToRender[i];
-    const displayTitle = slide.displayTitle || slide.headline;
+    const displayTitle = slide.displayTitle || slide.headline || '';
     const displaySupport = slide.displaySupport || '';
 
     await prisma.carouselJob.update({
@@ -1632,7 +1632,7 @@ export async function runImageStage(jobId: string): Promise<void> {
 
       const renderOutput = await renderSlideImage(
         v2Slide, displayTitle, displaySupport, job.topic,
-        imageProvider, allV2Slides, undefined, job.direction,
+        imageProvider, allV2Slides, undefined, job.direction ?? undefined,
         visualStyle, undefined, concept, exploreTopic, true,
         (slide as Record<string, unknown>).swipeCta as string | undefined,
       );
