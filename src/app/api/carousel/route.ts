@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
 
     const direction = body.direction?.trim() || undefined;
     const channelId = body.channelId?.trim() || undefined;
-    const layout = body.layout === 'BOLD' ? 'BOLD' as const : 'DETAILED' as const;
+    const layout = 'BOLD' as const;
 
     const job = await createCarouselJob(topic, direction, channelId, undefined, undefined, layout);
 

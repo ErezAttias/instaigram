@@ -7,6 +7,12 @@
       "runtimeArgs": ["run", "dev"],
       "port": 3004,
       "autoPort": false
+    },
+    {
+      "name": "mockups",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["serve", "mockups", "-p", "3005", "--no-clipboard"],
+      "port": 3005
     }
   ]
 }

@@ -31,10 +31,6 @@ export function DecisionsRail() {
     }
   }
 
-  const styleValue = channel.carouselLayout
-    ? (channel.carouselLayout === 'BOLD' ? 'Bold' : 'Detailed')
-    : null
-
   const chips: Chip[] = [
     {
       key: 'topic',
@@ -49,13 +45,6 @@ export function DecisionsRail() {
       value: strategyValue,
       stepIndex: 1,
       filled: effectiveStep >= 2 && !!strategyValue,
-    },
-    {
-      key: 'style',
-      label: 'Style',
-      value: styleValue,
-      stepIndex: 2,
-      filled: effectiveStep >= 2 && !!styleValue,
     },
   ]
 
@@ -103,10 +92,10 @@ export function DecisionsRail() {
       {/* Spacer */}
       <div className="flex-1 min-w-3" />
 
-      {/* Progress pips + step label */}
+      {/* Progress pips + step label (3 steps: tab 0, 1, 3 — tab 2/Style removed) */}
       <div className="flex items-center gap-2 flex-shrink-0">
         <div className="flex items-center gap-1">
-          {[0, 1, 2, 3].map(i => {
+          {[0, 1, 3].map(i => {
             const isDone = effectiveStep > i
             const isActive = activeTab === i
             return (
@@ -125,7 +114,7 @@ export function DecisionsRail() {
           })}
         </div>
         <span className="text-[11px] text-muted font-medium whitespace-nowrap">
-          Step {activeTab + 1} of 4
+          Step {activeTab <= 1 ? activeTab + 1 : 3} of 3
         </span>
       </div>
     </div>

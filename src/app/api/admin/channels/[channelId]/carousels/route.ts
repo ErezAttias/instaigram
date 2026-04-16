@@ -39,7 +39,7 @@ export async function POST(
 
     const direction = body.direction?.trim() || undefined;
     const exactSubject = body.exactSubject?.trim() || undefined;
-    const layout = body.layout === 'BOLD' ? 'BOLD' as const : 'DETAILED' as const;
+    const layout = 'BOLD' as const;
     const job = await createCarouselJob(topic, direction, channelId, undefined, exactSubject, layout);
 
     // Start generation in background

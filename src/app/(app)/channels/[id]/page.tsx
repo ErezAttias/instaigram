@@ -9,7 +9,7 @@ import Link from 'next/link'
 import InstagramPreview from '@/components/InstagramPreview'
 import '@/components/instagram-preview.css'
 import { useChannelContext } from '@/components/ChannelProvider'
-import { classifyDomainStyle } from '@/lib/utils/topic-classifier'
+
 import { TITLE_FONTS, BODY_FONTS, getTitleFont } from '@/lib/visual/font-pairings-data'
 import type { ChannelVisualStyleContext } from '@/lib/visual/visual-style'
 import { DEFAULT_VISUAL_STYLE } from '@/lib/visual/visual-style'
@@ -714,8 +714,10 @@ export default function ChannelDashboard() {
       await fetchChannel()
       markAutosaved()
       setActionLoading(null)
-      // Auto-advance to Style tab so user picks their carousel layout
-      setActiveTab(2)
+      // Auto-set BOLD layout (style step removed) and advance to posts
+      setChannel(prev => prev ? { ...prev, carouselLayout: 'BOLD' } : prev)
+      fetch(`/api/channels/${channelId}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ carouselLayout: 'BOLD' }) }).catch(() => {})
+      setActiveTab(3)
       window.scrollTo({ top: 0, behavior: 'smooth' })
       return
     } catch (err) {
@@ -744,8 +746,10 @@ export default function ChannelDashboard() {
       setIsEditingStrategy(false)
       await fetchChannel()
       setActionLoading(null)
-      // Auto-advance to Style tab so user picks their carousel layout
-      setActiveTab(2)
+      // Auto-set BOLD layout (style step removed) and advance to posts
+      setChannel(prev => prev ? { ...prev, carouselLayout: 'BOLD' } : prev)
+      fetch(`/api/channels/${channelId}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ carouselLayout: 'BOLD' }) }).catch(() => {})
+      setActiveTab(3)
       window.scrollTo({ top: 0, behavior: 'smooth' })
       return
     } catch (err) {
@@ -1274,14 +1278,14 @@ export default function ChannelDashboard() {
           >
             {isDirectMode && showDirectRefineChoice && niches.length === 0 ? (
               <div className="pt-4 mb-3 text-center">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.08em] mb-1.5 bg-clip-text text-transparent" style={{ backgroundImage: IG_GRADIENT }}>Topic · Step 1 of 4</p>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.08em] mb-1.5 bg-clip-text text-transparent" style={{ backgroundImage: IG_GRADIENT }}>Topic · Step 1 of 3</p>
                 <h2 className="text-xl font-bold tracking-tight">
                   Your topic: <span className="font-semibold">{directTopicInput || channel.exploreTopic}</span>
                 </h2>
               </div>
             ) : (
               <>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] mb-1.5 bg-clip-text text-transparent" style={{ backgroundImage: IG_GRADIENT }}>Topic · Step 1 of 4</p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] mb-1.5 bg-clip-text text-transparent" style={{ backgroundImage: IG_GRADIENT }}>Topic · Step 1 of 3</p>
             <div className="flex items-start justify-between gap-3 mb-6">
               <div>
                 <h2 className="text-xl font-bold tracking-tight">{step1Title}</h2>
@@ -1503,7 +1507,7 @@ export default function ChannelDashboard() {
             <Section delay={120} active={effectiveStep === 1}>
               <div className="flex flex-col items-center gap-3 mb-10">
                 <div className="text-center">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.08em] mb-1.5 bg-clip-text text-transparent" style={{ backgroundImage: IG_GRADIENT }}>Strategy · Step 2 of 4</p>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.08em] mb-1.5 bg-clip-text text-transparent" style={{ backgroundImage: IG_GRADIENT }}>Strategy · Step 2 of 3</p>
                   <h2 className="text-xl font-bold tracking-tight">Content strategy</h2>
                   <p className="text-sm text-muted-light mt-1 max-w-prose mx-auto">
                     {strategyOptions.length > 0
@@ -1779,127 +1783,7 @@ export default function ChannelDashboard() {
           )}
           </>)}
 
-          {/* ═══════════════════════════════════════════════════════
-              Step 3: Carousel Style (activeTab === 2)
-              ═══════════════════════════════════════════════════════ */}
-          {activeTab === 2 && (() => {
-            // Detect whether the topic is narrative (mythology, history, crime, etc.)
-            // → recommend Detailed. Informational/collection topics → Bold works well.
-            const topicText = channel?.niche || channel?.exploreTopic || ''
-            const domainStyle = topicText ? classifyDomainStyle(topicText) : 'informational'
-            const recommendedLayout: 'DETAILED' | 'BOLD' = domainStyle === 'narrative' ? 'DETAILED' : 'BOLD'
-            const recommendationReason = domainStyle === 'narrative'
-              ? 'Story-rich topics (mythology, history, people) usually read better with a paragraph to explain each beat.'
-              : 'Fact collections and single-fact topics work great with big, scannable headlines.'
-            return (
-            <Section delay={120} active={effectiveStep === 2}>
-              <div className="flex flex-col items-center text-center gap-1 mb-4">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.08em] mb-1.5 bg-clip-text text-transparent" style={{ backgroundImage: IG_GRADIENT }}>Style · Step 3 of 4</p>
-                <h2 className="text-xl font-bold tracking-tight">Choose your carousel style</h2>
-                <p className="text-sm text-muted-light">
-                  Sets how your slides look and how content is written for this channel. You can change it anytime.
-                </p>
-              </div>
-
-              {topicText && (
-                <div className="mb-10 flex items-start justify-center gap-2 text-xs text-[#6b9fcc] max-w-xl mx-auto text-center">
-                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="mt-0.5 shrink-0">
-                    <circle cx="8" cy="8" r="6.5" />
-                    <path d="M8 7.5v4M8 5v0.5" />
-                  </svg>
-                  <span>
-                    Based on your topic ({topicText}),
-                    we recommend <span className="font-semibold">{recommendedLayout === 'DETAILED' ? 'Detailed' : 'Bold'}</span>.
-                    {' '}{recommendationReason}
-                  </span>
-                </div>
-              )}
-
-              <div className="grid grid-cols-2 gap-4 max-w-xl mx-auto">
-                {(['DETAILED', 'BOLD'] as const).map((layoutKey) => {
-                  const isSelected = (channel?.carouselLayout ?? 'DETAILED') === layoutKey
-                  const isRecommended = recommendedLayout === layoutKey
-                  return (
-                    <button
-                      key={layoutKey}
-                      type="button"
-                      onClick={async () => {
-                        setChannel(prev => prev ? { ...prev, carouselLayout: layoutKey } : prev)
-                        try {
-                          await fetch(`/api/channels/${channelId}`, {
-                            method: 'PATCH',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ carouselLayout: layoutKey }),
-                          })
-                          markAutosaved()
-                        } catch { /* non-blocking */ }
-                      }}
-                      className={`relative flex flex-col gap-3 p-4 rounded-2xl border transition-all text-left ${
-                        isSelected
-                          ? 'border-[#3d6fa8]/40 bg-[#3d6fa8]/10'
-                          : 'border-border hover:border-[#3d6fa8]/25 hover:bg-[#3d6fa8]/8 bg-surface/50'
-                      }`}
-                    >
-                      {/* Mini preview */}
-                      <div className="relative w-full aspect-[4/5] rounded-xl overflow-hidden bg-surface-elevated">
-                        {isRecommended && (
-                          <span className="absolute top-2 right-2 z-10 px-2 py-0.5 text-[10px] font-semibold rounded-full bg-[#3d6fa8]/80 text-white border border-[#3d6fa8]/60">
-                            Recommended
-                          </span>
-                        )}
-                        {layoutKey === 'DETAILED' ? (
-                          <div className="flex flex-col h-full">
-                            <div className="flex-1 bg-gradient-to-br from-zinc-700 to-zinc-900" />
-                            <div className="h-[24%] bg-black flex flex-col justify-center gap-1.5 px-3">
-                              <div className="h-1.5 w-3/4 bg-white/80 rounded-full" />
-                              <div className="h-1 w-full bg-white/30 rounded-full" />
-                              <div className="h-1 w-2/3 bg-white/30 rounded-full" />
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="relative h-full bg-gradient-to-b from-zinc-700 via-zinc-800 to-black flex flex-col justify-end p-4 gap-1.5 items-center">
-                            <div className="h-2 w-4/5 bg-white/90 rounded-full" />
-                            <div className="h-2 w-3/5 bg-white/90 rounded-full" />
-                          </div>
-                        )}
-                      </div>
-                      <div>
-                        <div className="text-sm font-semibold text-foreground flex items-center gap-2">
-                          {layoutKey === 'DETAILED' ? 'Detailed' : 'Bold'}
-                          {isSelected && (
-                            <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-[#3d6fa8]/20 text-[#6b9fcc]">
-                              <svg width="8" height="8" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M2 5.5L4 7.5L8 3" />
-                              </svg>
-                            </span>
-                          )}
-                        </div>
-                        <div className="text-xs text-muted mt-0.5 leading-snug">
-                          {layoutKey === 'DETAILED' ? 'Headline + paragraph on a dark text bar' : 'Big text on full-bleed image, easy to consume'}
-                        </div>
-                      </div>
-                    </button>
-                  )
-                })}
-              </div>
-
-              <div className="mt-10 flex justify-center gap-3">
-                <PrimaryButton
-                  onClick={() => {
-                    setActiveTab(3)
-                    window.scrollTo({ top: 0, behavior: 'smooth' })
-                    // Auto-generate first post if no posts exist yet
-                    if (!hasPosts && !isStreamingPosts) {
-                      setTimeout(() => handleGenerateBatch(), 200)
-                    }
-                  }}
-                >
-                  {hasPosts ? 'Continue to posts' : 'Continue & generate first post'}
-                </PrimaryButton>
-              </div>
-            </Section>
-            )
-          })()}
+          {/* Step 3 (Carousel Style) removed — layout is always BOLD now */}
 
           {/* ═══════════════════════════════════════════════════════
               Step 4: Generate Posts — Batches of 3 (activeTab === 3)
@@ -1912,7 +1796,7 @@ export default function ChannelDashboard() {
             <div className="flex flex-col gap-3">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex-1 text-center lg:text-center">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.08em] mb-1.5 bg-clip-text text-transparent" style={{ backgroundImage: IG_GRADIENT }}>Posts · Step 4 of 4</p>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.08em] mb-1.5 bg-clip-text text-transparent" style={{ backgroundImage: IG_GRADIENT }}>Posts · Step 3 of 3</p>
                   <h2 className="text-xl font-bold tracking-tight">
                     {!hasPosts && completedPosts.length === 0 && !isStreamingPosts ? 'Generate your first carousel' : 'Posts'}
                   </h2>
@@ -2230,13 +2114,13 @@ export default function ChannelDashboard() {
                     <circle cx="8" cy="8" r="6.5" /><path d="M8 5v4"/><circle cx="8" cy="11.5" r="0.5" fill="currentColor" stroke="none"/>
                   </svg>
                   <p className="text-sm text-muted-light leading-relaxed">
-                    All 4 decisions are locked in — Topic, Strategy, Pillar, and Style.{' '}
+                    All decisions are locked in — Topic, Strategy, and Pillar.{' '}
                     <span className="text-foreground/70 font-medium">Each carousel is a fully rendered post: hooks, copy, images, and caption.</span>
                   </p>
                 </div>
                 <div className="flex items-center gap-3">
                   <button
-                    onClick={() => setActiveTab(2)}
+                    onClick={() => setActiveTab(1)}
                     className="flex items-center gap-1.5 text-sm font-medium text-muted hover:text-foreground transition-colors"
                   >
                     <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">

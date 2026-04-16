@@ -2,7 +2,7 @@
 
 import { useChannelContext } from '@/components/ChannelProvider'
 
-const TAB_LABELS = ['Topic', 'Strategy', 'Style', 'Posts']
+const TAB_LABELS: Array<string | null> = ['Topic', 'Strategy', null, 'Posts']
 
 export function TopTabNav() {
   const { activeTab, setActiveTab, effectiveStep } = useChannelContext()
@@ -10,6 +10,7 @@ export function TopTabNav() {
   return (
     <div className="flex gap-0 border-b border-border/60 overflow-x-auto scrollbar-none -mx-4 px-4 lg:-mx-6 lg:px-6">
       {TAB_LABELS.map((label, i) => {
+        if (!label) return null
         const done = effectiveStep > i
         const locked = i > effectiveStep
         const active = activeTab === i
