@@ -9,6 +9,7 @@ import Link from 'next/link'
 import InstagramPreview from '@/components/InstagramPreview'
 import '@/components/instagram-preview.css'
 import { useChannelContext } from '@/components/ChannelProvider'
+import { CarouselWizard } from '@/components/channel/steps/CarouselWizard'
 
 import { TITLE_FONTS, BODY_FONTS, getTitleFont } from '@/lib/visual/font-pairings-data'
 import type { ChannelVisualStyleContext } from '@/lib/visual/visual-style'
@@ -278,6 +279,11 @@ export default function ChannelDashboard() {
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
   const [error, setError] = useState('')
+  const [showWizard, setShowWizard] = useState(true)
+  // Hide wizard when channel already has posts
+  useEffect(() => {
+    if (channel?.posts?.length) setShowWizard(false)
+  }, [channel?.posts?.length])
   const [niches, setNiches] = useState<NicheOption[]>([])
   const [directTopicInput, setDirectTopicInput] = useState('')
   const [showDirectRefineChoice, setShowDirectRefineChoice] = useState(false)
@@ -1245,9 +1251,22 @@ export default function ChannelDashboard() {
           )}
 
           {/* ═══════════════════════════════════════════════════════
-              Step 1: Topic (activeTab === 0)
+              New Carousel Wizard (5-step flow)
               ═══════════════════════════════════════════════════════ */}
-          {activeTab === 0 && (<>
+          {showWizard && (
+            <CarouselWizard
+              channelId={channel.id}
+              onComplete={async () => {
+                setShowWizard(false)
+                await fetchChannel()
+              }}
+            />
+          )}
+
+          {/* ═══════════════════════════════════════════════════════
+              Legacy Step 1: Topic (activeTab === 0) — hidden when wizard is active
+              ═══════════════════════════════════════════════════════ */}
+          {!showWizard && activeTab === 0 && (<>
           {effectiveStep > 0 && niches.length > 0 && niches.some(n => n.selected) ? (
           <Section
             delay={60}
@@ -1466,7 +1485,7 @@ export default function ChannelDashboard() {
           {/* ═══════════════════════════════════════════════════════
               Step 2: Content Strategy (activeTab === 1)
               ═══════════════════════════════════════════════════════ */}
-          {activeTab === 1 && (<>
+          {!showWizard && activeTab === 1 && (<>
           {effectiveStep < 1 ? (
             <LockedStep label="Content strategy" delay={120} />
           ) : hasStrategy && strategyOptions.length === 0 ? (
@@ -1788,7 +1807,7 @@ export default function ChannelDashboard() {
           {/* ═══════════════════════════════════════════════════════
               Step 4: Generate Posts — Batches of 3 (activeTab === 3)
               ═══════════════════════════════════════════════════════ */}
-          {activeTab === 3 && (<>
+          {!showWizard && activeTab === 3 && (<>
           {effectiveStep < 2 ? (
             <LockedStep label="Generate posts" delay={180} />
           ) : (
@@ -2539,7 +2558,7 @@ export default function ChannelDashboard() {
           )}
 
           {/* Bottom CTAs — Generate next + View all (only on Posts tab) */}
-          {activeTab === 3 && !isStreamingPosts && (hasPosts || completedPosts.length > 0) && (
+          {!showWizard && activeTab === 3 && !isStreamingPosts && (hasPosts || completedPosts.length > 0) && (
             <div className="flex flex-col sm:flex-row gap-3 pt-6">
               <PrimaryButton
                 onClick={handleGenerateBatch}
