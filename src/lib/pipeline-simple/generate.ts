@@ -140,12 +140,29 @@ async function callOpenAI(model: string, systemPrompt: string, userPrompt: strin
   return content;
 }
 
+/** Fallback: read ANTHROPIC_API_KEY directly from .env.local when the system env is empty. */
+let _envFileKey: string | undefined;
+function getAnthropicKeyFromEnvFile(): string | undefined {
+  if (_envFileKey !== undefined) return _envFileKey || undefined;
+  try {
+    const fs = require('fs');
+    const path = require('path');
+    const envPath = path.resolve(process.cwd(), '.env.local');
+    const content = fs.readFileSync(envPath, 'utf8');
+    const match = content.match(/^ANTHROPIC_API_KEY=(.+)$/m);
+    _envFileKey = match?.[1]?.trim() ?? '';
+  } catch {
+    _envFileKey = '';
+  }
+  return _envFileKey || undefined;
+}
+
 async function callAnthropic(
   model: string,
   systemPrompt: string,
   userPrompt: string,
 ): Promise<string> {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+  const apiKey = process.env.ANTHROPIC_API_KEY || getAnthropicKeyFromEnvFile();
   if (!apiKey) throw new Error('ANTHROPIC_API_KEY not set');
 
   const res = await fetch('https://api.anthropic.com/v1/messages', {
