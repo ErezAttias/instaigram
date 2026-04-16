@@ -1,12 +1,16 @@
 import { NextResponse } from 'next/server';
 import { getAIProvider } from '@/lib/ai/provider';
-import { selectConcept } from '@/lib/pipeline/steps/concept';
+import { z } from 'zod';
+
+const PreviewSchema = z.object({
+  facts: z.array(z.string()).min(3).max(3),
+});
 
 /**
  * POST /api/carousel/generate-angles
  *
- * Given a topic, generates 3 alternative angle suggestions.
- * Returns the user's original topic + 3 LLM-generated alternatives.
+ * Given a topic, generates 3 sample fact titles as a preview
+ * of the kind of content the carousel will contain.
  */
 export async function POST(request: Request) {
   try {
@@ -17,30 +21,28 @@ export async function POST(request: Request) {
     }
 
     const ai = getAIProvider();
-    const dummyHook = { text: topic, type: 'HIDDEN_TRUTH' };
 
-    // Generate 3 diverse angles in parallel
-    const results = await Promise.allSettled([
-      selectConcept({ topic, hook: dummyHook, direction: 'find a surprising angle' }, ai),
-      selectConcept({ topic, hook: dummyHook, direction: 'find a contrarian or myth-busting angle' }, ai),
-      selectConcept({ topic, hook: dummyHook, direction: 'find a behind-the-scenes or hidden-truth angle' }, ai),
-    ]);
+    const { data } = await ai.generateObject(
+      `Given this Instagram carousel topic: "${topic}"
 
-    const alternatives = results
-      .filter((r): r is PromiseFulfilledResult<Awaited<ReturnType<typeof selectConcept>>> => r.status === 'fulfilled')
-      .map(r => ({
-        concept: r.value.concept,
-        angleDescription: r.value.angleDescription,
-        rationale: r.value.rationale,
-        mode: r.value.mode,
-      }));
+Generate exactly 3 sample fact titles that represent the kind of content this carousel would contain. Each title should be a specific, surprising fact — the kind of thing someone would screenshot and send to a friend.
+
+Rules:
+- Each fact is 8–16 words
+- Must be specific (include a number, name, or concrete detail)
+- Must be genuinely surprising or counterintuitive
+- Must be diverse (don't repeat the same pattern)
+
+Return JSON: { "facts": ["fact 1", "fact 2", "fact 3"] }`,
+      PreviewSchema,
+    );
 
     return NextResponse.json({
       userTopic: topic,
-      alternatives,
+      sampleFacts: data.facts,
     });
   } catch (error) {
     console.error('[generate-angles] Error:', error);
-    return NextResponse.json({ error: 'Failed to generate angles' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to generate preview' }, { status: 500 });
   }
 }

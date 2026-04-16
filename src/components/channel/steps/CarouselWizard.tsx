@@ -40,7 +40,7 @@ export function CarouselWizard({ channelId, initialTopic, onComplete }: Carousel
   }, [])
 
   // Step 2 → Step 3: Create job with skipImages, start copy generation
-  const handleAngleSelect = useCallback(async (angle: { topic: string; direction: string; concept?: string }) => {
+  const handleAngleSelect = useCallback(async (angle: { topic: string; direction: string }) => {
     setGenerating(true)
     try {
       const res = await fetch('/api/carousel', {
