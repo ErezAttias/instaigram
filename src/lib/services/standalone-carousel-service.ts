@@ -972,9 +972,16 @@ export async function runCarouselGeneration(
     // ── Step 4.8: Generate mini-article ──────────────────
     emit('article', 'Writing mini-article...', 51);
     try {
+      // expandedFacts is empty in the simple pipeline — derive synthetic
+      // fact-like objects from FACT slides so the article generator still works.
+      const derivedFacts = pipelineResult.expandedFacts.length > 0
+        ? pipelineResult.expandedFacts.map(f => ({ claim: f.claim, expansion: f.expansion }))
+        : finalSlides
+            .filter(s => s.role === 'FACT')
+            .map(s => ({ claim: s.headline, expansion: s.body }));
       await generateArticle(
         jobId,
-        pipelineResult.expandedFacts.map(f => ({ claim: f.claim, expansion: f.expansion })),
+        derivedFacts,
         finalSlides.map(s => ({
           role: s.role,
           headline: s.headline,
