@@ -78,98 +78,99 @@ export function DesignStep({ sampleTitle, sampleSubtitle, channelId, onApprove, 
         <h2 className="text-2xl font-bold tracking-tight mb-2 text-center">Design your slides</h2>
         <p className="text-sm text-muted-light mb-8 text-center">Pick a font and color scheme. You&apos;ll see a preview below.</p>
 
-        <div className="grid lg:grid-cols-2 gap-8">
-          {/* Left: Options */}
-          <div className="space-y-6">
-            {/* Font picker */}
-            <div>
-              <label className="text-xs font-semibold uppercase tracking-wider text-muted-light mb-3 block">Title Font</label>
-              <div className="grid grid-cols-2 gap-2">
-                {TITLE_FONTS.map((f: FontOption) => (
-                  <button
-                    key={f.id}
-                    onClick={() => setSelectedFont(f.id)}
-                    className={`p-3 rounded-xl border-2 text-left transition-all ${
-                      selectedFont === f.id
-                        ? 'border-[#dc2743] bg-[#dc2743]/5'
-                        : 'border-border hover:border-[#dc2743]/30'
-                    }`}
-                  >
-                    <span
-                      className="text-lg text-foreground block truncate"
-                      style={{ fontFamily: `'${f.family}', sans-serif`, fontWeight: f.weight }}
-                    >
-                      {f.label}
-                    </span>
-                  </button>
-                ))}
-              </div>
+        {/* Live preview — actual Instagram slide proportions (1080×1350 = 4:5) */}
+        <div className="flex justify-center mb-8">
+          <div
+            className="w-[360px] rounded-xl overflow-hidden relative flex items-end shadow-2xl"
+            style={{
+              aspectRatio: '1080 / 1350',
+              background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
+            }}
+          >
+            {/* Gradient overlay — matches actual renderer */}
+            <div
+              className="absolute inset-0"
+              style={{
+                background: 'linear-gradient(to bottom, transparent 40%, rgba(0,0,0,0.15) 55%, rgba(0,0,0,0.40) 65%, rgba(0,0,0,0.82) 75%, rgba(0,0,0,0.96) 100%)',
+              }}
+            />
+            {/* Text — proportionally sized to match 1080px canvas */}
+            <div className="relative z-10 px-[22px] pb-[28px] w-full">
+              <p
+                className="leading-[1.15] mb-1.5"
+                style={{
+                  fontFamily: `'${font.family}', sans-serif`,
+                  fontWeight: font.weight,
+                  fontSize: '30px',
+                  color: color.headline,
+                  letterSpacing: '-0.5px',
+                }}
+              >
+                {sampleTitle}
+              </p>
+              <p
+                className="leading-relaxed"
+                style={{
+                  fontFamily: "'Inter', sans-serif",
+                  fontWeight: 400,
+                  fontSize: '13.3px',
+                  color: color.body,
+                  opacity: 0.9,
+                }}
+              >
+                {sampleSubtitle}
+              </p>
             </div>
+          </div>
+        </div>
 
-            {/* Color picker */}
-            <div>
-              <label className="text-xs font-semibold uppercase tracking-wider text-muted-light mb-3 block">Color Scheme</label>
-              <div className="grid grid-cols-3 gap-2">
-                {COLOR_PRESETS.map(c => (
-                  <button
-                    key={c.id}
-                    onClick={() => setSelectedColor(c.id)}
-                    className={`p-3 rounded-xl border-2 text-left transition-all ${
-                      selectedColor === c.id
-                        ? 'border-[#dc2743] bg-[#dc2743]/5'
-                        : 'border-border hover:border-[#dc2743]/30'
-                    }`}
+        {/* Controls row */}
+        <div className="space-y-6">
+          {/* Font picker */}
+          <div>
+            <label className="text-xs font-semibold uppercase tracking-wider text-muted-light mb-3 block">Title Font</label>
+            <div className="flex flex-wrap gap-2">
+              {TITLE_FONTS.map((f: FontOption) => (
+                <button
+                  key={f.id}
+                  onClick={() => setSelectedFont(f.id)}
+                  className={`px-4 py-2.5 rounded-xl border-2 transition-all ${
+                    selectedFont === f.id
+                      ? 'border-[#dc2743] bg-[#dc2743]/5'
+                      : 'border-border hover:border-[#dc2743]/30'
+                  }`}
+                >
+                  <span
+                    className="text-base text-foreground"
+                    style={{ fontFamily: `'${f.family}', sans-serif`, fontWeight: f.weight }}
                   >
-                    <div className="flex items-center gap-2">
-                      <div className="w-4 h-4 rounded-full border border-white/20" style={{ background: c.headline }} />
-                      <span className="text-xs font-medium text-foreground">{c.label}</span>
-                    </div>
-                  </button>
-                ))}
-              </div>
+                    {f.label}
+                  </span>
+                </button>
+              ))}
             </div>
           </div>
 
-          {/* Right: Live preview */}
+          {/* Color picker */}
           <div>
-            <label className="text-xs font-semibold uppercase tracking-wider text-muted-light mb-3 block">Preview</label>
-            <div
-              className="aspect-[4/5] rounded-xl overflow-hidden relative flex items-end"
-              style={{
-                background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
-              }}
-            >
-              {/* Gradient overlay */}
-              <div
-                className="absolute inset-0"
-                style={{
-                  background: 'linear-gradient(to bottom, transparent 40%, rgba(0,0,0,0.3) 60%, rgba(0,0,0,0.85) 80%, rgba(0,0,0,0.95) 100%)',
-                }}
-              />
-              {/* Text */}
-              <div className="relative z-10 p-6 pb-8 w-full">
-                <p
-                  className="text-[22px] leading-tight mb-2"
-                  style={{
-                    fontFamily: `'${font.family}', sans-serif`,
-                    fontWeight: font.weight,
-                    color: color.headline,
-                  }}
+            <label className="text-xs font-semibold uppercase tracking-wider text-muted-light mb-3 block">Color Scheme</label>
+            <div className="flex flex-wrap gap-2">
+              {COLOR_PRESETS.map(c => (
+                <button
+                  key={c.id}
+                  onClick={() => setSelectedColor(c.id)}
+                  className={`px-3 py-2 rounded-xl border-2 transition-all ${
+                    selectedColor === c.id
+                      ? 'border-[#dc2743] bg-[#dc2743]/5'
+                      : 'border-border hover:border-[#dc2743]/30'
+                  }`}
                 >
-                  {sampleTitle}
-                </p>
-                <p
-                  className="text-[13px] leading-relaxed"
-                  style={{
-                    fontFamily: "'Inter', sans-serif",
-                    fontWeight: 400,
-                    color: color.body,
-                    opacity: 0.9,
-                  }}
-                >
-                  {sampleSubtitle}
-                </p>
-              </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 rounded-full border border-white/20" style={{ background: c.headline }} />
+                    <span className="text-xs font-medium text-foreground">{c.label}</span>
+                  </div>
+                </button>
+              ))}
             </div>
           </div>
         </div>
