@@ -430,8 +430,8 @@ export async function runNarrativeCoherenceGate(
       console.warn(`[NarrativeGate] Re-compress failed — using fallback truncation`);
       updatedCompressed = updatedSlides.map(s => ({
         slideNumber: s.slideNumber,
-        displayTitle: s.headline.slice(0, 60),
-        displaySupport: s.body.slice(0, 80),
+        displayTitle: s.headline,
+        displaySupport: layout === 'BOLD' ? '' : s.body,
       }));
     }
   }

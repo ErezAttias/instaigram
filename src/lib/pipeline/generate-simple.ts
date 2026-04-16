@@ -129,7 +129,7 @@ export async function generateCarousel(
   params: PipelineParams,
   _ai: AIProvider,
 ): Promise<PipelineResult> {
-  const { topic, channelNiche, memory } = params;
+  const { topic, channelNiche, memory, layout } = params;
 
   const systemPrompt = 'You are an Instagram content strategist. Create engaging carousel posts.';
   const userPrompt = buildPrompt(topic, channelNiche, memory?.tone);
@@ -142,7 +142,7 @@ export async function generateCarousel(
     throw new Error(`[simple] schema validation failed — ${issues} | raw: ${raw.slice(0, 400)}`);
   }
 
-  return adaptToPipelineResult(result.data.slides, topic);
+  return adaptToPipelineResult(result.data.slides, topic, layout);
 }
 
 // ─── Prompt ─────────────────────────────────────────────────
@@ -172,7 +172,7 @@ function buildPrompt(topic: string, niche?: string, tone?: string): string {
 
 // ─── Adapter: ModelResponse → PipelineResult ────────────────
 
-function adaptToPipelineResult(slides: ModelSlide[], topic: string): PipelineResult {
+function adaptToPipelineResult(slides: ModelSlide[], topic: string, layout?: 'DETAILED' | 'BOLD'): PipelineResult {
   const v2Slides: GeneratedSlideV2[] = slides.map((s, i) => {
     if (s.type === 'hook') {
       return baseSlide(i, 'OPENER', s.title, '', null, null);
@@ -183,10 +183,11 @@ function adaptToPipelineResult(slides: ModelSlide[], topic: string): PipelineRes
     return baseSlide(i, 'FACT', s.title, s.content, s.topicEntity, s.factType);
   });
 
+  const isBold = layout === 'BOLD';
   const compressedSlides: CompressedSlideDisplay[] = slides.map((s, i) => ({
     slideNumber: i,
-    displayTitle: s.title.slice(0, 160),
-    displaySupport: s.type === 'content' ? s.content.slice(0, 200) : '',
+    displayTitle: s.title,
+    displaySupport: s.type === 'content' && !isBold ? s.content : '',
   }));
 
   const carousel = {

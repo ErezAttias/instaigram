@@ -946,8 +946,8 @@ export async function runCarouselGeneration(
         } catch {
           finalCompressed = finalSlides.map(s => ({
             slideNumber: s.slideNumber,
-            displayTitle: s.headline.slice(0, 60),
-            displaySupport: s.body.slice(0, 80),
+            displayTitle: s.headline,
+            displaySupport: carouselLayout === 'BOLD' ? '' : s.body,
           }));
         }
 
@@ -1520,9 +1520,10 @@ export async function regenerateCarouselSlideCopy(jobId: string, slideIndex: num
   const compressed = compressResult.compressed.find(c => c.slideNumber === slideIndex)
     ?? compressResult.compressed[0];
 
-  // Fall back to raw headline/body if compression produced empty display text
-  const displayTitle = compressed?.displayTitle || generated.headline?.slice(0, 60) || null;
-  const displaySupport = compressed?.displaySupport || generated.body?.slice(0, 80) || null;
+  // Fall back to raw headline/body if compression produced no display text
+  // Use ?? (not ||) so that empty string "" from BOLD layout is preserved
+  const displayTitle = (compressed?.displayTitle ?? generated.headline) || null;
+  const displaySupport = compressed?.displaySupport ?? generated.body ?? null;
 
   return prisma.carouselSlide.update({
     where: { id: slide.id },

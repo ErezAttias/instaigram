@@ -441,6 +441,10 @@ export async function compressSlides(
         allCompressed[i] = current;
       }
     }
+    // BOLD renders only the title — force displaySupport empty for all slides
+    for (const entry of allCompressed) {
+      entry.displaySupport = '';
+    }
     return { compressed: allCompressed };
   }
 
