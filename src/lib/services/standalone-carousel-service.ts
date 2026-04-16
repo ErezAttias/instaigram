@@ -1604,7 +1604,7 @@ export async function runImageStage(jobId: string): Promise<void> {
     try {
       const v2Slide: GeneratedSlideV2 = {
         slideNumber: slide.slideIndex,
-        role: slide.role,
+        role: slide.role as string,
         headline: slide.headline,
         body: slide.body || '',
         supportingDetail: slide.supportingDetail ?? undefined,
@@ -1618,7 +1618,7 @@ export async function runImageStage(jobId: string): Promise<void> {
 
       const allV2Slides = job.slides.map(s => ({
         slideNumber: s.slideIndex,
-        role: s.role,
+        role: s.role as string,
         headline: s.headline,
         body: s.body || '',
         supportingDetail: s.supportingDetail ?? undefined,
