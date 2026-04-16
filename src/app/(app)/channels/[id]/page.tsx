@@ -554,7 +554,8 @@ export default function ChannelDashboard() {
         setShowDirectRefineChoice(true)
       }
     }
-  }, [channel, niches.length, actionLoading, showWizard])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [channel, niches.length, actionLoading])
 
   async function handleAction(action: string, options?: RequestInit) {
     setActionLoading(action)
