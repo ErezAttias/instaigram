@@ -331,8 +331,8 @@ async function renderSlideImage(
   layout?: 'DETAILED' | 'BOLD',
 ): Promise<SlideRenderOutput> {
 
-  // ── Bold layout: use the bold renderer ──────────────────────
-  if (layout === 'BOLD') {
+  // ── Single renderer: full-bleed image + title + subtitle ──────
+  {
     const subject = conceptHint || slide.topicEntity || (allSlides ? resolveCarouselSubject(allSlides, topic) : extractVisualSubject(topic));
     const promptOutput = buildSlidePrompt({
       slideRole: slide.role === 'CTA' ? 'CTA' : slide.role === 'OPENER' ? 'HOOK' : slide.role,
@@ -356,7 +356,7 @@ async function renderSlideImage(
     );
 
     if (!result.image) {
-      throw new Error(result.error || 'Bold render failed — no image produced');
+      throw new Error(result.error || 'Render failed — no image produced');
     }
 
     const imageBase64 = result.image.toString('base64');
@@ -370,7 +370,8 @@ async function renderSlideImage(
     };
   }
 
-  if (slide.role === 'OPENER') {
+  // Dead code below — kept for reference but unreachable after single-renderer change
+  if (false && slide.role === 'OPENER') {
     // Always render OPENER with layout-first composition (same as FACT slides).
     // This gives consistent visual design across the entire carousel —
     // same layout, same UI, no dark gradient overlays.
@@ -1793,8 +1794,7 @@ export async function restyleCarouselSlide(jobId: string, slideIndex: number) {
 
     let finalImage: Buffer | undefined;
 
-    if ((job.layout as string) === 'BOLD') {
-      // Bold layout: use bold renderer with restyle base image
+    {
       const boldResult = await renderBoldSlide({
         imagePrompt: promptOutput.imagePrompt,
         displayTitle,
@@ -1804,20 +1804,6 @@ export async function restyleCarouselSlide(jobId: string, slideIndex: number) {
         baseImage: rawImage,
       });
       finalImage = boldResult.image;
-    } else {
-      const result = await renderFactSlide({
-        imagePrompt: promptOutput.imagePrompt,
-        slideType: 'fact',
-        displayTitle,
-        displaySupport,
-        textZone: 'bottom_right',
-        slideRole: slide.role,
-        ...(slide.role === 'OPENER' && { forceT1FontSize: 86 }),
-        ...(slide.role === 'CTA' && { textMode: 'light-on-dark' as const }),
-        visualStyle,
-        baseImage: rawImage, // Skip image generation — re-use existing
-      });
-      finalImage = result.image;
     }
 
     if (!finalImage) {
