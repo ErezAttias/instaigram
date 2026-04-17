@@ -5,11 +5,13 @@ import { TITLE_FONTS, type FontOption } from '@/lib/visual/font-pairings-data'
 import type { ChannelVisualStyleContext } from '@/lib/visual/visual-style'
 
 /**
- * Typography controls for the carousel viewer.
+ * Inline typography toolbar shown under the slide preview.
  *
- * Auto-saves channel visual style + kicks `POST /restyle-all` with a 400ms
- * debounce. Stale responses are dropped by a monotonically-increasing
- * `designVersion`; in-flight requests are aborted on the next change.
+ * Five labeled segments (Font / Size / Align / Weight / Color) each expand
+ * their own drawer with the matching control. Title and Body are edited
+ * independently via the target tabs at the top. Auto-saves channel visual
+ * style and kicks `POST /restyle-all` with a 400 ms debounce, AbortController
+ * cancellation, and a monotonic `designVersion` to drop stale responses.
  */
 
 const IG_GRADIENT = 'linear-gradient(135deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888)'
@@ -35,6 +37,7 @@ const WEIGHTS = [
 
 type Align = 'left' | 'center' | 'right'
 type Target = 'title' | 'body'
+type ToolId = 'font' | 'size' | 'align' | 'weight' | 'color'
 
 const TITLE_RANGE = { min: 40, max: 100, step: 4 }
 const BODY_RANGE = { min: 20, max: 56, step: 2 }
@@ -55,16 +58,18 @@ const DEFAULTS = {
 interface CarouselDesignPanelProps {
   channelId: string | null
   jobId: string
+  /** Slide count for the "Applied to all N slides" scope chip. */
+  slideCount: number
   /** Called after a save+restyle succeeds so the viewer can refresh. */
   onRestyleStarted?: () => void
 }
 
 type SaveState = 'idle' | 'saving' | 'error'
 
-export function CarouselDesignPanel({ channelId, jobId, onRestyleStarted }: CarouselDesignPanelProps) {
+export function CarouselDesignPanel({ channelId, jobId, slideCount, onRestyleStarted }: CarouselDesignPanelProps) {
   const [loaded, setLoaded] = useState(false)
-  const [isOpen, setIsOpen] = useState(false)
   const [target, setTarget] = useState<Target>('title')
+  const [openTool, setOpenTool] = useState<ToolId | null>('font')
   const [saveState, setSaveState] = useState<SaveState>('idle')
 
   const [titleFontId, setTitleFontId] = useState<string>(DEFAULTS.titleFontId)
@@ -79,12 +84,8 @@ export function CarouselDesignPanel({ channelId, jobId, onRestyleStarted }: Caro
   const [bodyWeight, setBodyWeight] = useState<number>(DEFAULTS.bodyWeight)
   const [bodyColor, setBodyColor] = useState<string>(DEFAULTS.bodyColor)
 
-  // Load channel visual style on mount so the controls reflect what's saved.
   useEffect(() => {
-    if (!channelId) {
-      setLoaded(true)
-      return
-    }
+    if (!channelId) { setLoaded(true); return }
     fetch(`/api/admin/channels/${channelId}/visual-style`)
       .then(res => res.ok ? res.json() : null)
       .then((data: ChannelVisualStyleContext | null) => {
@@ -96,11 +97,10 @@ export function CarouselDesignPanel({ channelId, jobId, onRestyleStarted }: Caro
         if (data.headlineColor) setTitleColor(data.headlineColor)
         if (data.bodyColor) setBodyColor(data.bodyColor)
       })
-      .catch(() => { /* ignore — defaults are fine */ })
+      .catch(() => {})
       .finally(() => setLoaded(true))
   }, [channelId])
 
-  // Load Google Fonts so the pills render in-face.
   useEffect(() => {
     const families = [
       'Inter:wght@300;400;500;600;700;800',
@@ -119,30 +119,20 @@ export function CarouselDesignPanel({ channelId, jobId, onRestyleStarted }: Caro
   const active = useMemo(() => {
     if (target === 'title') {
       return {
-        fontId: titleFontId,
-        setFontId: setTitleFontId,
-        sizePx: titleSizePx,
-        setSizePx: setTitleSizePx,
-        align: titleAlign,
-        setAlign: setTitleAlign,
-        weight: titleWeight,
-        setWeight: setTitleWeight,
-        color: titleColor,
-        setColor: setTitleColor,
+        fontId: titleFontId, setFontId: setTitleFontId,
+        sizePx: titleSizePx, setSizePx: setTitleSizePx,
+        align: titleAlign, setAlign: setTitleAlign,
+        weight: titleWeight, setWeight: setTitleWeight,
+        color: titleColor, setColor: setTitleColor,
         range: TITLE_RANGE,
       }
     }
     return {
-      fontId: bodyFontId,
-      setFontId: setBodyFontId,
-      sizePx: bodySizePx,
-      setSizePx: setBodySizePx,
-      align: bodyAlign,
-      setAlign: setBodyAlign,
-      weight: bodyWeight,
-      setWeight: setBodyWeight,
-      color: bodyColor,
-      setColor: setBodyColor,
+      fontId: bodyFontId, setFontId: setBodyFontId,
+      sizePx: bodySizePx, setSizePx: setBodySizePx,
+      align: bodyAlign, setAlign: setBodyAlign,
+      weight: bodyWeight, setWeight: setBodyWeight,
+      color: bodyColor, setColor: setBodyColor,
       range: BODY_RANGE,
     }
   }, [
@@ -151,27 +141,22 @@ export function CarouselDesignPanel({ channelId, jobId, onRestyleStarted }: Caro
     bodyFontId, bodySizePx, bodyAlign, bodyWeight, bodyColor,
   ])
 
-  const titleFont = TITLE_FONTS.find(f => f.id === titleFontId) ?? TITLE_FONTS[0]
-  const bodyFont = TITLE_FONTS.find(f => f.id === bodyFontId) ?? TITLE_FONTS[0]
+  const activeFont = TITLE_FONTS.find(f => f.id === active.fontId) ?? TITLE_FONTS[0]
+  const activeColorLabel = COLOR_SWATCHES.find(c => c.hex.toUpperCase() === active.color.toUpperCase())?.label ?? 'Custom'
+  const activeAlignLabel = active.align === 'left' ? 'Left' : active.align === 'right' ? 'Right' : 'Center'
+  const activeWeightLabel = WEIGHTS.find(w => w.id === active.weight)?.label ?? String(active.weight)
 
-  // Save coordination: debounce, cancel inflight, drop stale responses.
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const inflightRef = useRef<AbortController | null>(null)
   const versionRef = useRef(0)
   const skipFirstSaveRef = useRef(true)
-
-  // Hold the latest onRestyleStarted in a ref so queueSave's identity doesn't
-  // churn every parent render — otherwise the effect below would fire on every
-  // poll tick and keep toggling `saving` on with no user input.
   const onRestyleStartedRef = useRef(onRestyleStarted)
   useEffect(() => { onRestyleStartedRef.current = onRestyleStarted }, [onRestyleStarted])
 
   const queueSave = useCallback(() => {
     if (!channelId || !loaded) return
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
-
     saveTimerRef.current = setTimeout(async () => {
-      // Cancel any in-flight save — we'll issue a fresh one with current state.
       inflightRef.current?.abort()
       const ctrl = new AbortController()
       inflightRef.current = ctrl
@@ -179,33 +164,25 @@ export function CarouselDesignPanel({ channelId, jobId, onRestyleStarted }: Caro
 
       setSaveState('saving')
       try {
-        const stylePayload = {
-          titleFontId,
-          bodyFontId,
-          headlineColor: titleColor,
-          bodyColor: bodyColor,
-          t1FontSizePx: titleSizePx,
-          t2FontSizePx: bodySizePx,
-        }
         const styleRes = await fetch(`/api/admin/channels/${channelId}/visual-style`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(stylePayload),
+          body: JSON.stringify({
+            titleFontId, bodyFontId,
+            headlineColor: titleColor, bodyColor,
+            t1FontSizePx: titleSizePx, t2FontSizePx: bodySizePx,
+          }),
           signal: ctrl.signal,
         })
         if (!styleRes.ok) throw new Error(`style save failed (${styleRes.status})`)
-
-        // If a newer change started while we were saving style, abort now —
-        // the next queueSave() will do the restyle with the newer state.
         if (myVersion !== versionRef.current) return
 
         const restyleRes = await fetch(`/api/carousel/${jobId}/restyle-all`, {
-          method: 'POST',
-          signal: ctrl.signal,
+          method: 'POST', signal: ctrl.signal,
         })
         if (!restyleRes.ok) throw new Error(`restyle failed (${restyleRes.status})`)
-
         if (myVersion !== versionRef.current) return
+
         setSaveState('idle')
         onRestyleStartedRef.current?.()
       } catch (err) {
@@ -220,14 +197,9 @@ export function CarouselDesignPanel({ channelId, jobId, onRestyleStarted }: Caro
     titleSizePx, bodySizePx,
   ])
 
-  // Every state change queues a save — except the first render after load
-  // (which just applies the server's already-persisted values).
   useEffect(() => {
     if (!loaded) return
-    if (skipFirstSaveRef.current) {
-      skipFirstSaveRef.current = false
-      return
-    }
+    if (skipFirstSaveRef.current) { skipFirstSaveRef.current = false; return }
     queueSave()
   }, [
     queueSave, loaded,
@@ -235,48 +207,45 @@ export function CarouselDesignPanel({ channelId, jobId, onRestyleStarted }: Caro
     bodyFontId, bodySizePx, bodyAlign, bodyWeight, bodyColor,
   ])
 
-  // Cleanup on unmount.
   useEffect(() => () => {
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
     inflightRef.current?.abort()
   }, [])
 
   const clampSize = (n: number) => Math.min(active.range.max, Math.max(active.range.min, n))
-  const decSize = () => active.setSizePx(clampSize(active.sizePx - active.range.step))
-  const incSize = () => active.setSizePx(clampSize(active.sizePx + active.range.step))
+  const toggle = (id: ToolId) => setOpenTool(prev => (prev === id ? null : id))
 
   const handleReset = () => {
-    setTitleFontId(DEFAULTS.titleFontId)
-    setTitleSizePx(DEFAULTS.titleSizePx)
-    setTitleAlign(DEFAULTS.titleAlign)
-    setTitleWeight(DEFAULTS.titleWeight)
-    setTitleColor(DEFAULTS.titleColor)
-    setBodyFontId(DEFAULTS.bodyFontId)
-    setBodySizePx(DEFAULTS.bodySizePx)
-    setBodyAlign(DEFAULTS.bodyAlign)
-    setBodyWeight(DEFAULTS.bodyWeight)
-    setBodyColor(DEFAULTS.bodyColor)
+    setTitleFontId(DEFAULTS.titleFontId); setTitleSizePx(DEFAULTS.titleSizePx)
+    setTitleAlign(DEFAULTS.titleAlign); setTitleWeight(DEFAULTS.titleWeight); setTitleColor(DEFAULTS.titleColor)
+    setBodyFontId(DEFAULTS.bodyFontId); setBodySizePx(DEFAULTS.bodySizePx)
+    setBodyAlign(DEFAULTS.bodyAlign); setBodyWeight(DEFAULTS.bodyWeight); setBodyColor(DEFAULTS.bodyColor)
   }
 
   return (
     <div className="rounded-2xl border border-border bg-surface overflow-hidden">
-      {/* Collapsible header */}
-      <button
-        type="button"
-        onClick={() => setIsOpen(v => !v)}
-        aria-expanded={isOpen}
-        aria-controls="design-panel-body"
-        className="w-full flex items-center justify-between px-4 py-3 hover:bg-surface-hover transition-colors"
-      >
-        <div className="flex items-center gap-3 min-w-0">
-          <span className="text-xs font-semibold uppercase tracking-wider bg-clip-text text-transparent shrink-0" style={{ backgroundImage: IG_GRADIENT }}>
-            Design
-          </span>
-          <span className="text-xs text-muted-light truncate">
-            {isOpen ? 'Tune typography. Re-composites instantly — no new AI calls.' : 'Tap to tune typography'}
-          </span>
+      {/* Target tabs + scope chip + save state */}
+      <div className="flex items-center justify-between gap-2 px-3 pt-3 flex-wrap">
+        <div className="inline-flex rounded-xl border-2 border-border p-1">
+          {(['title', 'body'] as const).map(t => {
+            const isActive = target === t
+            const swatch = t === 'title' ? titleColor : bodyColor
+            return (
+              <button
+                key={t}
+                onClick={() => setTarget(t)}
+                aria-pressed={isActive}
+                className={`px-3 h-8 rounded-lg flex items-center gap-1.5 text-[12px] font-semibold transition-all ${
+                  isActive ? 'bg-[#dc2743] text-white shadow-sm' : 'text-muted-light hover:text-foreground'
+                }`}
+              >
+                <span className="w-2.5 h-2.5 rounded-full border border-white/30" style={{ background: swatch }} />
+                {t === 'title' ? 'Title' : 'Body'}
+              </button>
+            )
+          })}
         </div>
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-3">
           {saveState === 'saving' && (
             <span className="text-[10px] text-muted-light flex items-center gap-1.5">
               <span className="w-3 h-3 border-2 border-muted/30 border-t-muted rounded-full animate-spin" />
@@ -284,71 +253,75 @@ export function CarouselDesignPanel({ channelId, jobId, onRestyleStarted }: Caro
             </span>
           )}
           {saveState === 'error' && (
-            <span className="text-[10px] text-danger flex items-center gap-1.5" title="Save failed — change something to retry">
+            <span className="text-[10px] text-danger flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-danger" />
               Save failed
             </span>
           )}
-          <svg
-            className={`w-4 h-4 text-muted-light transition-transform ${isOpen ? 'rotate-180' : ''}`}
-            viewBox="0 0 16 16"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-            aria-hidden="true"
+          <span className="inline-flex items-center gap-1 text-[11px] text-muted-light">
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8l3 3 7-7" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
+            Applied to all {slideCount} slides
+          </span>
+          <button
+            type="button"
+            onClick={handleReset}
+            className="text-[11px] font-semibold text-muted-light hover:text-foreground underline underline-offset-2 transition-colors"
           >
-            <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
+            Reset
+          </button>
         </div>
-      </button>
+      </div>
 
-      {isOpen && (
-        <div id="design-panel-body" className="px-4 pb-4 pt-2 space-y-5 border-t border-border/60">
-          {/* Target selector + Reset */}
-          <div className="flex items-end justify-between flex-wrap gap-2">
-            <div>
-              <label className="text-[10px] uppercase tracking-wider text-muted/60 mb-1.5 block">Editing</label>
-              <div className="inline-flex rounded-xl border-2 border-border p-1">
-                {(['title', 'body'] as const).map(t => {
-                  const isActive = target === t
-                  const swatch = t === 'title' ? titleColor : bodyColor
-                  return (
-                    <button
-                      key={t}
-                      onClick={() => setTarget(t)}
-                      aria-pressed={isActive}
-                      className={`px-4 h-9 rounded-lg flex items-center gap-2 text-sm font-semibold transition-all ${
-                        isActive
-                          ? 'bg-[#dc2743] text-white shadow-sm ring-1 ring-[#dc2743]'
-                          : 'text-muted-light hover:text-foreground'
-                      }`}
-                    >
-                      <span className="w-3 h-3 rounded-full border border-white/30" style={{ background: swatch }} />
-                      {t === 'title' ? 'Title' : 'Body'}
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={handleReset}
-              className="text-[11px] font-semibold text-muted-light hover:text-foreground underline underline-offset-2 transition-colors"
-            >
-              Reset design
-            </button>
-          </div>
+      {/* 5 segmented tools */}
+      <div className="flex gap-1.5 p-3">
+        <ToolSegment
+          icon={<FontIcon />}
+          label="Font"
+          value={activeFont.label}
+          valueStyle={{ fontFamily: `'${activeFont.family}', sans-serif` }}
+          active={openTool === 'font'}
+          onClick={() => toggle('font')}
+        />
+        <ToolSegment
+          icon={<SizeIcon />}
+          label="Size"
+          value={`${active.sizePx}px`}
+          active={openTool === 'size'}
+          onClick={() => toggle('size')}
+        />
+        <ToolSegment
+          icon={<AlignIcon align={active.align} />}
+          label="Align"
+          value={activeAlignLabel}
+          active={openTool === 'align'}
+          onClick={() => toggle('align')}
+        />
+        <ToolSegment
+          icon={<WeightIcon />}
+          label="Weight"
+          value={activeWeightLabel}
+          active={openTool === 'weight'}
+          onClick={() => toggle('weight')}
+        />
+        <ToolSegment
+          icon={<ColorIcon color={active.color} />}
+          label="Color"
+          value={activeColorLabel}
+          active={openTool === 'color'}
+          onClick={() => toggle('color')}
+        />
+      </div>
 
-          {/* Font */}
-          <div>
-            <label className="text-[10px] uppercase tracking-wider text-muted/60 mb-2 block">
-              {target === 'title' ? 'Title Font' : 'Body Font'}
-            </label>
+      {/* Drawer */}
+      {openTool && (
+        <div className="border-t border-border/60 px-4 py-4 bg-surface">
+          {openTool === 'font' && (
             <div className="flex flex-wrap gap-2">
               {TITLE_FONTS.map((f: FontOption) => (
                 <button
                   key={f.id}
                   onClick={() => active.setFontId(f.id)}
-                  className={`px-4 py-2 rounded-xl border-2 transition-all ${
+                  className={`px-3 py-2 rounded-xl border-2 transition-all ${
                     active.fontId === f.id ? 'border-[#dc2743] bg-[#dc2743]/5' : 'border-border hover:border-[#dc2743]/30'
                   }`}
                 >
@@ -358,100 +331,75 @@ export function CarouselDesignPanel({ channelId, jobId, onRestyleStarted }: Caro
                 </button>
               ))}
             </div>
-          </div>
+          )}
 
-          {/* Size + Align row */}
-          <div className="flex flex-wrap gap-6">
-            <div>
-              <label className="text-[10px] uppercase tracking-wider text-muted/60 mb-2 block">
-                {target === 'title' ? 'Title Size' : 'Body Size'}
-              </label>
-              <div className="inline-flex items-center gap-2 rounded-xl border-2 border-border p-1">
-                <button
-                  type="button"
-                  onClick={decSize}
-                  disabled={active.sizePx <= active.range.min}
-                  aria-label="Decrease size"
-                  className="w-9 h-9 rounded-lg text-lg font-semibold text-foreground hover:bg-[#dc2743]/10 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
-                >
-                  −
-                </button>
-                <div className="flex items-center">
-                  <input
-                    type="number"
-                    min={active.range.min}
-                    max={active.range.max}
-                    step={active.range.step}
-                    value={active.sizePx}
-                    onChange={e => {
-                      const raw = parseInt(e.target.value, 10)
-                      if (Number.isFinite(raw)) active.setSizePx(clampSize(raw))
-                    }}
-                    aria-label={target === 'title' ? 'Title size in pixels' : 'Body size in pixels'}
-                    className="w-12 text-center bg-transparent tabular-nums text-sm font-semibold text-foreground outline-none focus:ring-1 focus:ring-[#dc2743]/40 rounded-md"
-                  />
-                  <span className="text-xs text-muted-light">px</span>
-                </div>
-                <button
-                  type="button"
-                  onClick={incSize}
-                  disabled={active.sizePx >= active.range.max}
-                  aria-label="Increase size"
-                  className="w-9 h-9 rounded-lg text-lg font-semibold text-foreground hover:bg-[#dc2743]/10 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
-                >
-                  +
-                </button>
+          {openTool === 'size' && (
+            <div className="inline-flex items-center gap-2 rounded-xl border-2 border-border p-1">
+              <button
+                type="button"
+                onClick={() => active.setSizePx(clampSize(active.sizePx - active.range.step))}
+                disabled={active.sizePx <= active.range.min}
+                aria-label="Decrease size"
+                className="w-9 h-9 rounded-lg text-lg font-semibold text-foreground hover:bg-[#dc2743]/10 disabled:opacity-30 transition-colors"
+              >−</button>
+              <div className="flex items-center">
+                <input
+                  type="number"
+                  min={active.range.min} max={active.range.max} step={active.range.step}
+                  value={active.sizePx}
+                  onChange={e => { const n = parseInt(e.target.value, 10); if (Number.isFinite(n)) active.setSizePx(clampSize(n)) }}
+                  aria-label={target === 'title' ? 'Title size in pixels' : 'Body size in pixels'}
+                  className="w-14 text-center bg-transparent tabular-nums text-sm font-semibold text-foreground outline-none focus:ring-1 focus:ring-[#dc2743]/40 rounded-md"
+                />
+                <span className="text-xs text-muted-light">px</span>
               </div>
+              <button
+                type="button"
+                onClick={() => active.setSizePx(clampSize(active.sizePx + active.range.step))}
+                disabled={active.sizePx >= active.range.max}
+                aria-label="Increase size"
+                className="w-9 h-9 rounded-lg text-lg font-semibold text-foreground hover:bg-[#dc2743]/10 disabled:opacity-30 transition-colors"
+              >+</button>
             </div>
+          )}
 
-            <div>
-              <label className="text-[10px] uppercase tracking-wider text-muted/60 mb-2 block">Layout Align</label>
-              <div className="inline-flex rounded-xl border-2 border-border p-1">
-                {(['left', 'center', 'right'] as const).map(a => (
-                  <button
-                    key={a}
-                    onClick={() => active.setAlign(a)}
-                    aria-label={`Align ${a}`}
-                    aria-pressed={active.align === a}
-                    className={`w-10 h-9 rounded-lg flex items-center justify-center transition-all ${
-                      active.align === a ? 'bg-[#dc2743] text-white' : 'text-muted-light hover:text-foreground'
-                    }`}
-                  >
-                    <AlignIcon align={a} />
-                  </button>
-                ))}
-              </div>
+          {openTool === 'align' && (
+            <div className="inline-flex rounded-xl border-2 border-border p-1">
+              {(['left', 'center', 'right'] as const).map(a => (
+                <button
+                  key={a}
+                  onClick={() => active.setAlign(a)}
+                  aria-label={`Align ${a}`}
+                  aria-pressed={active.align === a}
+                  className={`w-10 h-9 rounded-lg flex items-center justify-center transition-all ${
+                    active.align === a ? 'bg-[#dc2743] text-white' : 'text-muted-light hover:text-foreground'
+                  }`}
+                >
+                  <AlignIcon align={a} />
+                </button>
+              ))}
             </div>
-          </div>
+          )}
 
-          {/* Weight */}
-          <div>
-            <label className="text-[10px] uppercase tracking-wider text-muted/60 mb-2 block">
-              {target === 'title' ? 'Title Weight' : 'Body Weight'}
-            </label>
+          {openTool === 'weight' && (
             <div className="flex flex-wrap gap-2">
-              {WEIGHTS.map(w => {
-                const fontFamilyForPill = target === 'title' ? titleFont.family : bodyFont.family
-                return (
-                  <button
-                    key={w.id}
-                    onClick={() => active.setWeight(w.id)}
-                    className={`px-3.5 py-2 rounded-xl border-2 transition-all ${
-                      active.weight === w.id ? 'border-[#dc2743] bg-[#dc2743]/5' : 'border-border hover:border-[#dc2743]/30'
-                    }`}
-                  >
-                    <span className="text-xs text-foreground" style={{ fontFamily: `'${fontFamilyForPill}', sans-serif`, fontWeight: w.id }}>
-                      {w.label}
-                    </span>
-                  </button>
-                )
-              })}
+              {WEIGHTS.map(w => (
+                <button
+                  key={w.id}
+                  onClick={() => active.setWeight(w.id)}
+                  className={`px-3.5 py-2 rounded-xl border-2 transition-all ${
+                    active.weight === w.id ? 'border-[#dc2743] bg-[#dc2743]/5' : 'border-border hover:border-[#dc2743]/30'
+                  }`}
+                >
+                  <span className="text-xs text-foreground" style={{ fontFamily: `'${activeFont.family}', sans-serif`, fontWeight: w.id }}>
+                    {w.label}
+                  </span>
+                </button>
+              ))}
             </div>
-          </div>
+          )}
 
-          {/* Color */}
-          <div>
-            <label className="text-[10px] uppercase tracking-wider text-muted/60 mb-2 block">Color Scheme</label>
+          {openTool === 'color' && (
             <div className="flex flex-wrap gap-2">
               {COLOR_SWATCHES.map(c => (
                 <button
@@ -470,16 +418,83 @@ export function CarouselDesignPanel({ channelId, jobId, onRestyleStarted }: Caro
                 </button>
               ))}
             </div>
-          </div>
+          )}
         </div>
       )}
+
+      {/* Hidden IG gradient keeps the import alive and matches the rest of the app chrome. */}
+      <span className="sr-only" style={{ backgroundImage: IG_GRADIENT }}>design</span>
     </div>
+  )
+}
+
+// ─── Segment button ─────────────────────────────────────────
+
+function ToolSegment({
+  icon, label, value, valueStyle, active, onClick,
+}: {
+  icon: React.ReactNode
+  label: string
+  value: string
+  valueStyle?: React.CSSProperties
+  active: boolean
+  onClick: () => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={`flex-1 min-w-0 h-[52px] rounded-xl border transition-all flex flex-col items-center justify-center gap-0.5 px-1 ${
+        active
+          ? 'bg-[#dc2743] border-[#dc2743] text-white'
+          : 'bg-surface-elevated border-border text-foreground hover:border-[#dc2743]/40'
+      }`}
+    >
+      <div className="flex items-center gap-1.5">
+        {icon}
+        <span className="text-[10px] font-bold uppercase tracking-wider">{label}</span>
+      </div>
+      <span className="text-[10px] opacity-80 truncate max-w-full" style={valueStyle}>{value}</span>
+    </button>
+  )
+}
+
+// ─── Icons ──────────────────────────────────────────────────
+
+function FontIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M4 20l6-16h4l6 16M7 14h10" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
+function SizeIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M4 20V8l4-4h10v16M4 12h14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
+function WeightIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M6 20V4h6a4 4 0 010 8H6M6 12h7a4 4 0 010 8H6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
+function ColorIcon({ color }: { color: string }) {
+  return (
+    <span className="w-3.5 h-3.5 rounded-full border border-white/30" style={{ background: color }} />
   )
 }
 
 function AlignIcon({ align }: { align: Align }) {
   return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
       {align === 'left' && (
         <>
           <line x1="1" y1="3" x2="15" y2="3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />

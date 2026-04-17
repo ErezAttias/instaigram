@@ -405,16 +405,10 @@ function ProgressView({
 
 function SlideCard({
   slide,
-  onRegenCopy,
-  onRegenImage,
-  onRegenFull,
   onSaveText,
   isRegenerating,
 }: {
   slide: CarouselSlide;
-  onRegenCopy: () => void;
-  onRegenImage: () => void;
-  onRegenFull: () => void;
   onSaveText: (patch: { displayTitle?: string; displaySupport?: string }) => Promise<void> | void;
   isRegenerating: boolean;
 }) {
@@ -514,49 +508,6 @@ function SlideCard({
           </p>
         </div>
       )}
-
-      {/* Action buttons — text lives on the image itself, edited via modal. */}
-      <div className="p-4 flex-1 flex flex-col">
-        <div className="flex gap-1.5">
-          <div className="flex-1 flex flex-col gap-1">
-            <button
-              onClick={onRegenCopy}
-              disabled={isRegenerating}
-              className="w-full h-8 px-2 text-xs bg-surface-elevated border border-border rounded-md hover:bg-surface-hover hover:border-border-hover disabled:opacity-40 transition-colors"
-              title="Regenerate headline and body text"
-            >
-              Rewrite text
-            </button>
-            <span className="text-[10px] text-muted text-center leading-tight">Keeps image</span>
-          </div>
-          <div className="flex-1 flex flex-col gap-1">
-            <button
-              onClick={onRegenImage}
-              disabled={isRegenerating}
-              className={`w-full h-8 px-2 text-xs rounded-md disabled:opacity-40 transition-colors ${
-                isFailed
-                  ? 'bg-danger/10 text-danger border border-danger/30 hover:bg-danger/20 font-semibold'
-                  : 'bg-surface-elevated border border-border hover:bg-surface-hover hover:border-border-hover'
-              }`}
-              title="Generate a new image for this slide"
-            >
-              New image
-            </button>
-            <span className="text-[10px] text-muted text-center leading-tight">Keeps text</span>
-          </div>
-          <div className="flex-1 flex flex-col gap-1">
-            <button
-              onClick={onRegenFull}
-              disabled={isRegenerating}
-              className="w-full h-8 px-2 text-xs bg-violet-dim text-violet border border-violet/20 rounded-md hover:bg-violet/20 disabled:opacity-40 transition-colors"
-              title="Regenerate everything for this slide"
-            >
-              Redo slide
-            </button>
-            <span className="text-[10px] text-muted text-center leading-tight">Replaces everything</span>
-          </div>
-        </div>
-      </div>
 
       {showTextEditor && (
         <SlideTextEditor
@@ -822,7 +773,6 @@ function ReviewView({
   onRefresh: () => void;
   onTransitionToPreview: () => void;
 }) {
-  const [regenerating, setRegenerating] = useState<Record<number, boolean>>({});
   const [isProcessing, setIsProcessing] = useState(false);
   const [message, setMessage] = useState('');
   const [selectedSlide, setSelectedSlide] = useState(0);
@@ -892,35 +842,6 @@ function ReviewView({
     [job.id, job.approved, onRefresh],
   );
 
-  const handleRegen = useCallback(async (slideIndex: number, mode: 'copy' | 'image' | 'full') => {
-    setRegenerating(prev => ({ ...prev, [slideIndex]: true }));
-    setMessage('');
-
-    try {
-      const res = await fetch(`/api/carousel/${job.id}/regenerate-slide`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ slideIndex, mode }),
-      });
-
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || 'Regeneration failed');
-      }
-
-      // Backend resets job.approved=false; refresh picks up new state
-      if (job.approved) {
-        setNeedsReapproval(true);
-      }
-      onRefresh();
-      setMessage(`Slide ${slideIndex + 1} ${mode} regenerated`);
-    } catch (err) {
-      setMessage(`Error: ${err instanceof Error ? err.message : 'Unknown'}`);
-    } finally {
-      setRegenerating(prev => ({ ...prev, [slideIndex]: false }));
-    }
-  }, [job.id, job.approved, onRefresh]);
-
   // Approve flow — approves slides, then transitions to preview
   const handleApprove = useCallback(async () => {
     setIsProcessing(true);
@@ -988,35 +909,9 @@ function ReviewView({
         </div>
       )}
 
-      {/* Design panel — typography tuning that re-composites in place.
-          On small viewports it sits below the slide preview so the user can
-          see their change land; on lg+ it returns to its place above. */}
-      <div className="mb-4 order-2 lg:order-none">
-        <CarouselDesignPanel
-          channelId={job.channelId}
-          jobId={job.id}
-          onRestyleStarted={() => {
-            setMessage('Applying new design...');
-            // Bump the image version so <img> srcs get a fresh ?v= and the
-            // browser drops its cached composite.
-            setImageVersion(v => v + 1);
-            // Poll the job a few times so slides refresh as restyle completes.
-            const poll = (attempt: number) => {
-              if (attempt > 6) return;
-              setTimeout(() => {
-                onRefresh();
-                setImageVersion(v => v + 1);
-                poll(attempt + 1);
-              }, 1200);
-            };
-            poll(0);
-          }}
-        />
-      </div>
-
-      {/* Focused slide view — on mobile this appears above the design panel
-          so style changes land in view. */}
-      <div className="flex flex-col items-center pb-24 order-1 lg:order-none">
+      {/* Focused slide view. Design panel now lives below the slide so it
+          replaces the old action-button row (Rewrite / New image / Redo). */}
+      <div className="flex flex-col items-center pb-24">
 
         {/* Navigation bar */}
         <div className="flex items-center gap-4 mb-4 w-full max-w-sm">
@@ -1046,14 +941,34 @@ function ReviewView({
           <div className="w-full max-w-sm">
             <SlideCard
               slide={{ ...currentSlide, imageUrl: bustImgSrc(currentSlide.imageUrl) }}
-              onRegenCopy={() => handleRegen(currentSlide.slideIndex, 'copy')}
-              onRegenImage={() => handleRegen(currentSlide.slideIndex, 'image')}
-              onRegenFull={() => handleRegen(currentSlide.slideIndex, 'full')}
               onSaveText={(patch) => handleSaveText(currentSlide.slideIndex, patch)}
-              isRegenerating={!!regenerating[currentSlide.slideIndex]}
+              isRegenerating={false}
             />
           </div>
         )}
+
+        {/* Typography toolbar — sits where the rewrite buttons used to be.
+            Applies to every slide in the carousel (channel-level visual style). */}
+        <div className="w-full max-w-sm mt-4">
+          <CarouselDesignPanel
+            channelId={job.channelId}
+            jobId={job.id}
+            slideCount={job.slides.length}
+            onRestyleStarted={() => {
+              setMessage('Applying new design...');
+              setImageVersion(v => v + 1);
+              const poll = (attempt: number) => {
+                if (attempt > 6) return;
+                setTimeout(() => {
+                  onRefresh();
+                  setImageVersion(v => v + 1);
+                  poll(attempt + 1);
+                }, 1200);
+              };
+              poll(0);
+            }}
+          />
+        </div>
 
         {/* Thumbnail filmstrip — wraps on narrow screens so ≤375px viewports
             don't push thumbs off the edge; scrolls horizontally when wider. */}
@@ -1062,7 +977,6 @@ function ReviewView({
             const status = getSlideDisplayStatus(slide, false);
             const isActive = i === selectedSlide;
             const isFailed = status === 'FAILED_IMAGE';
-            const isRegen = !!regenerating[slide.slideIndex];
             return (
               <button
                 key={slide.id}
@@ -1072,9 +986,7 @@ function ReviewView({
                     ? 'ring-2 ring-accent ring-offset-2 ring-offset-background'
                     : isFailed
                       ? 'ring-2 ring-danger/60'
-                      : isRegen
-                        ? 'ring-2 ring-warning/60'
-                        : 'ring-1 ring-border hover:ring-border-hover'
+                      : 'ring-1 ring-border hover:ring-border-hover'
                 }`}
                 aria-label={`Select slide ${i + 1}`}
               >
