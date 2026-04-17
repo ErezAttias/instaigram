@@ -224,8 +224,8 @@ export function CarouselDesignPanel({ channelId, jobId, slideCount, onRestyleSta
 
   return (
     <div className="rounded-2xl border border-border bg-surface overflow-hidden">
-      {/* Target tabs + scope chip + save state */}
-      <div className="flex items-center justify-between gap-2 px-3 pt-3 flex-wrap">
+      {/* Target tabs + scope chip + save state — all centered */}
+      <div className="flex flex-col items-center gap-2 px-3 pt-3">
         <div className="inline-flex rounded-xl border-2 border-border p-1">
           {(['title', 'body'] as const).map(t => {
             const isActive = target === t
@@ -245,7 +245,7 @@ export function CarouselDesignPanel({ channelId, jobId, slideCount, onRestyleSta
             )
           })}
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center justify-center gap-3 flex-wrap">
           {saveState === 'saving' && (
             <span className="text-[10px] text-muted-light flex items-center gap-1.5">
               <span className="w-3 h-3 border-2 border-muted/30 border-t-muted rounded-full animate-spin" />
@@ -272,8 +272,8 @@ export function CarouselDesignPanel({ channelId, jobId, slideCount, onRestyleSta
         </div>
       </div>
 
-      {/* 5 segmented tools */}
-      <div className="flex gap-1.5 p-3">
+      {/* 5 segmented tools — centered row */}
+      <div className="flex justify-center gap-1.5 p-3">
         <ToolSegment
           icon={<FontIcon />}
           label="Font"
@@ -312,11 +312,11 @@ export function CarouselDesignPanel({ channelId, jobId, slideCount, onRestyleSta
         />
       </div>
 
-      {/* Drawer */}
+      {/* Drawer — contents centered */}
       {openTool && (
-        <div className="border-t border-border/60 px-4 py-4 bg-surface">
+        <div className="border-t border-border/60 px-4 py-4 bg-surface flex flex-col items-center">
           {openTool === 'font' && (
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap justify-center gap-2">
               {TITLE_FONTS.map((f: FontOption) => (
                 <button
                   key={f.id}
@@ -382,7 +382,7 @@ export function CarouselDesignPanel({ channelId, jobId, slideCount, onRestyleSta
           )}
 
           {openTool === 'weight' && (
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap justify-center gap-2">
               {WEIGHTS.map(w => (
                 <button
                   key={w.id}
@@ -400,7 +400,7 @@ export function CarouselDesignPanel({ channelId, jobId, slideCount, onRestyleSta
           )}
 
           {openTool === 'color' && (
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap justify-center gap-2">
               {COLOR_SWATCHES.map(c => (
                 <button
                   key={c.id}
@@ -472,17 +472,22 @@ function FontIcon() {
 }
 
 function SizeIcon() {
+  // Big "A" + small "a" — the universal "change text size" glyph.
   return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M4 20V8l4-4h10v16M4 12h14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    <svg width="16" height="14" viewBox="0 0 24 20" fill="currentColor" aria-hidden="true">
+      <text x="0" y="17" fontFamily="'Inter', sans-serif" fontSize="18" fontWeight="800">A</text>
+      <text x="14" y="17" fontFamily="'Inter', sans-serif" fontSize="11" fontWeight="800">A</text>
     </svg>
   )
 }
 
 function WeightIcon() {
+  // Three stacked bars — light → regular → bold progression.
   return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M6 20V4h6a4 4 0 010 8H6M6 12h7a4 4 0 010 8H6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <rect x="4" y="5" width="16" height="1.6" rx="0.8" />
+      <rect x="4" y="10.2" width="16" height="3.2" rx="1" />
+      <rect x="4" y="16.8" width="16" height="5.2" rx="1.2" />
     </svg>
   )
 }
