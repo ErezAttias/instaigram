@@ -64,6 +64,16 @@ export interface BoldSlideInput {
   visualStyle?: ChannelVisualStyleContext;
   /** Pre-existing base image (for restyle) */
   baseImage?: Buffer;
+  /**
+   * User-picked Wikipedia image URL. When set, bypasses the image provider
+   * entirely — the URL is downloaded and resized to the canvas directly.
+   */
+  forcedImageUrl?: string;
+  /**
+   * Attribution text rendered as a small caption (top-right corner).
+   * Required by CC-BY licensing for Wikipedia images.
+   */
+  attributionText?: string;
 }
 
 export interface BoldSlideRenderResult {
@@ -164,6 +174,30 @@ function buildBoldOverlay(
 
   const elements: string[] = [];
 
+  // Attribution caption — small, top-right. Required by CC-BY when we use
+  // Wikipedia/Commons imagery. Rendered with a subtle dark pill so it stays
+  // legible on any photo.
+  if (input.attributionText) {
+    const attrText = input.attributionText.length > 70
+      ? input.attributionText.slice(0, 67) + '...'
+      : input.attributionText;
+    const attrFontSize = 20;
+    const attrPadX = 12;
+    const attrPadY = 6;
+    const attrTextWidth = attrText.length * attrFontSize * 0.5;
+    const attrBoxWidth = attrTextWidth + attrPadX * 2;
+    const attrBoxHeight = attrFontSize + attrPadY * 2;
+    const attrBoxX = CANVAS.width - attrBoxWidth - 24;
+    const attrBoxY = 24;
+    elements.push(
+      `<rect x="${attrBoxX}" y="${attrBoxY}" width="${attrBoxWidth}" height="${attrBoxHeight}" rx="10" fill="rgba(0,0,0,0.45)"/>`
+      + `<text x="${attrBoxX + attrPadX}" y="${attrBoxY + attrPadY + attrFontSize * 0.82}" `
+      + `font-family="'Inter', sans-serif" font-size="${attrFontSize}" font-weight="400" fill="rgba(255,255,255,0.85)">`
+      + escapeXml(attrText)
+      + `</text>`
+    );
+  }
+
   // Title lines — centered horizontally
   titleLines.forEach((line, i) => {
     const y = startY + t1Size + i * lineHeight;
@@ -252,6 +286,33 @@ function buildBoldOverlay(
 }
 
 /**
+ * Fetch an image URL (typically a Wikimedia Commons file) and fit it to
+ * the full slide canvas. Used when the user manually picks a Wikipedia
+ * image in ImagePreviewStep — we bypass the image provider so there's
+ * no AI re-generation.
+ */
+async function downloadAndFitToCanvas(url: string): Promise<Buffer> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 20_000);
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      headers: { 'User-Agent': 'InstAIgram/1.0' },
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timeout);
+  }
+  if (!res.ok) throw new Error(`Download failed (${res.status}) for ${url}`);
+  const arrayBuf = await res.arrayBuffer();
+  // Cover-fit to the full canvas: crop center, ensure full bleed regardless of source aspect ratio.
+  return sharp(Buffer.from(arrayBuf))
+    .resize(CANVAS.width, CANVAS.height, { fit: 'cover', position: 'attention' })
+    .png({ quality: 90 })
+    .toBuffer();
+}
+
+/**
  * Generate a fallback gradient for when image generation fails.
  */
 async function generateBoldFallback(): Promise<Buffer> {
@@ -297,6 +358,20 @@ export async function renderBoldSlide(
     console.log('[BoldRenderer] Restyle mode — using provided base image');
     baseImageBuffer = input.baseImage;
     imageSource = 'restyle' as ImageSourceProvider;
+  } else if (input.forcedImageUrl) {
+    // User picked a specific Wikipedia image — skip the provider and fetch it directly.
+    console.log(`[BoldRenderer] Forced Wikipedia URL: ${input.forcedImageUrl.slice(0, 80)}...`);
+    try {
+      baseImageBuffer = await downloadAndFitToCanvas(input.forcedImageUrl);
+      imageSource = 'wikipedia' as ImageSourceProvider;
+      imageSourceUrl = input.forcedImageUrl;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.warn(`[BoldRenderer] Forced-URL fetch failed: ${msg}`);
+      baseImageBuffer = await generateBoldFallback();
+      imageSource = 'fallback';
+      providerError = msg;
+    }
   } else if (imageProvider) {
     try {
       const slideRole = input.slideRole ?? 'FACT';

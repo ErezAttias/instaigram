@@ -351,6 +351,12 @@ model CarouselSlide {
   imageSource     String?             @default("generated")
   // Original Wikimedia URL — stored so sibling slides can exclude it on next Wikipedia fetch
   imageSourceUrl  String?
+  // User-edited image prompt (from ImagePreviewStep) — render path uses this instead of recomputing
+  imagePromptOverride String?
+  // Wikipedia author/attribution metadata (for CC-BY credit line on rendered slide)
+  imageAuthor     String?
+  // Wikipedia search query the user last ran for this slide (so we can restore their query on re-entry)
+  wikipediaQuery  String?
   // Approval
   status          CarouselSlideStatus @default(PENDING)
   createdAt       DateTime            @default(now())

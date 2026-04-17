@@ -264,6 +264,19 @@ Return JSON only:
 
 // ─── Render Single Slide ────────────────────────────────────
 
+/**
+ * Compose the attribution caption rendered on the top-right of a Wikipedia
+ * slide. Keeps the format short so it fits in the pill: `<Author> · Wikimedia`
+ * or just `Wikimedia Commons` when we have no author.
+ */
+function buildAttributionText(author: string | null | undefined): string {
+  const cleaned = author?.replace(/\s+/g, ' ').trim();
+  if (cleaned && cleaned.length > 0 && cleaned.length < 40) {
+    return `${cleaned} · Wikimedia`;
+  }
+  return 'Wikimedia Commons';
+}
+
 /** Result from renderSlideImage — includes both composited and raw provider image */
 interface SlideRenderOutput {
   /** Final composited image (with text overlay) as base64 */
@@ -323,6 +336,12 @@ async function renderSlideImage(
   skipReadabilityGate?: boolean,
   /** Contextual swipe CTA for OPENER slides (e.g. "Swipe to learn why") */
   swipeCta?: string,
+  /** Per-slide overrides from ImagePreviewStep (user-edited prompt, forced Wikipedia URL, attribution). */
+  override?: {
+    promptOverride?: string | null;
+    forcedImageUrl?: string | null;
+    attributionText?: string | null;
+  },
 ): Promise<SlideRenderOutput> {
   const subject = conceptHint || slide.topicEntity || (allSlides ? resolveCarouselSubject(allSlides, topic) : extractVisualSubject(topic));
   const promptOutput = buildSlidePrompt({
@@ -334,7 +353,7 @@ async function renderSlideImage(
 
   const result = await renderBoldSlide(
     {
-      imagePrompt: promptOutput.imagePrompt,
+      imagePrompt: override?.promptOverride || promptOutput.imagePrompt,
       displayTitle,
       displaySubtitle: displaySupport || undefined,
       slideRole: slide.role,
@@ -342,6 +361,8 @@ async function renderSlideImage(
       subjectName: exploreTopic || conceptHint || slide.topicEntity || undefined,
       excludeUrls,
       visualStyle,
+      forcedImageUrl: override?.forcedImageUrl ?? undefined,
+      attributionText: override?.attributionText ?? undefined,
     },
     imageGen,
   );
@@ -1610,11 +1631,21 @@ export async function runImageStage(jobId: string): Promise<void> {
         factRefs: [],
       })) as GeneratedSlideV2[];
 
+      // Build per-slide override from persisted fields (set by ImagePreviewStep).
+      const useWikipedia = slide.imageSource === 'wikipedia';
+      const attributionText = useWikipedia
+        ? buildAttributionText(slide.imageAuthor)
+        : null;
       const renderOutput = await renderSlideImage(
         v2Slide, displayTitle, displaySupport, job.topic,
         imageProvider, allV2Slides, undefined, job.direction ?? undefined,
         visualStyle, undefined, concept, exploreTopic, true,
         (slide as Record<string, unknown>).swipeCta as string | undefined,
+        {
+          promptOverride: useWikipedia ? null : slide.imagePromptOverride,
+          forcedImageUrl: useWikipedia ? slide.imageSourceUrl : null,
+          attributionText,
+        },
       );
 
       const imageUrl = await saveImage(jobId, slide.slideIndex, renderOutput.imageBase64);
