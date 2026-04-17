@@ -141,20 +141,20 @@ export function CopyReviewStep({ jobId, topic, onApprove, onRegenerate, onBack }
 
         {/* Actions */}
         {!loading && status !== 'FAILED' && (
-          <div className="flex items-center justify-between mt-8">
-            <button onClick={onBack} className="text-sm text-muted-light hover:text-foreground transition-colors">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-0 mt-8">
+            <button onClick={onBack} className="text-sm text-muted-light hover:text-foreground transition-colors self-center sm:self-auto order-3 sm:order-1">
               &larr; Back
             </button>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-3 order-1 sm:order-2">
               <button
                 onClick={onRegenerate}
-                className="h-11 px-6 border border-border rounded-full text-sm font-semibold transition-all hover:border-[#3d6fa8]/25 hover:bg-[#3d6fa8]/8"
+                className="w-full sm:w-auto h-11 px-6 border border-border rounded-full text-sm font-semibold transition-all hover:border-[#3d6fa8]/25 hover:bg-[#3d6fa8]/8 order-2 sm:order-1"
               >
                 Regenerate
               </button>
               <button
                 onClick={onApprove}
-                className="min-h-11 py-2.5 px-8 text-white rounded-full text-sm font-semibold transition-all hover:opacity-90 active:scale-[0.98]"
+                className="w-full sm:w-auto min-h-11 py-2.5 px-8 text-white rounded-full text-sm font-semibold transition-all hover:opacity-90 active:scale-[0.98] order-1 sm:order-2"
                 style={{ background: IG_GRADIENT }}
               >
                 Approve copy

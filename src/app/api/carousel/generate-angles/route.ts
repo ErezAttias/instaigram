@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server';
 import { getAIProvider } from '@/lib/ai/provider';
 import { z } from 'zod';
 
+// LLM call can easily exceed the 10s hobby-plan default; allow up to 60s.
+export const maxDuration = 60;
+
 const PreviewSchema = z.object({
   facts: z.array(z.string()).min(3).max(3),
 });

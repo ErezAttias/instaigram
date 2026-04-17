@@ -13,9 +13,12 @@ interface Chip {
 }
 
 export function DecisionsRail() {
-  const { channel, activeTab, effectiveStep, setActiveTab } = useChannelContext()
+  const { channel, activeTab, effectiveStep, setActiveTab, showWizard } = useChannelContext()
 
   if (!channel) return null
+  // While the CarouselWizard is active it shows its own 5-step progress;
+  // this 3-step channel-level rail would be redundant and mismatched.
+  if (showWizard) return null
 
   const topicValue = channel.niche || channel.exploreTopic || null
 

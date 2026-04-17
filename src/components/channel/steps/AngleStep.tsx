@@ -94,13 +94,13 @@ export function AngleStep({ topic, onSelect, onBack }: AngleStepProps) {
           </div>
         )}
 
-        <div className="flex items-center justify-between mt-8">
-          <button onClick={onBack} className="text-sm text-muted-light hover:text-foreground transition-colors">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-0 mt-8">
+          <button onClick={onBack} className="text-sm text-muted-light hover:text-foreground transition-colors self-center sm:self-auto order-2 sm:order-1">
             &larr; Change topic
           </button>
           <button
             onClick={handleContinue}
-            className="min-h-11 py-2.5 px-8 text-white rounded-full text-sm font-semibold transition-all hover:opacity-90 active:scale-[0.98]"
+            className="w-full sm:w-auto min-h-11 py-2.5 px-8 text-white rounded-full text-sm font-semibold transition-all hover:opacity-90 active:scale-[0.98] order-1 sm:order-2"
             style={{ background: IG_GRADIENT }}
           >
             Generate carousel

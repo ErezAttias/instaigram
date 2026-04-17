@@ -276,14 +276,15 @@ export default function ChannelDashboard() {
   const activeTab = ctx.activeTab
   const setActiveTab = ctx.setActiveTab
   const markAutosaved = ctx.markAutosaved
+  const showWizard = ctx.showWizard
+  const setShowWizard = ctx.setShowWizard
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
   const [error, setError] = useState('')
-  const [showWizard, setShowWizard] = useState(true)
   // Hide wizard when channel already has posts
   useEffect(() => {
     if (channel?.posts?.length) setShowWizard(false)
-  }, [channel?.posts?.length])
+  }, [channel?.posts?.length, setShowWizard])
   const [niches, setNiches] = useState<NicheOption[]>([])
   const [directTopicInput, setDirectTopicInput] = useState('')
   const [showDirectRefineChoice, setShowDirectRefineChoice] = useState(false)

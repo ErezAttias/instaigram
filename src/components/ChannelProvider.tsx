@@ -31,6 +31,9 @@ interface ChannelContextValue {
   setShowNaming: (v: boolean) => void
   showStyleEditor: boolean
   setShowStyleEditor: (v: boolean) => void
+  /** True while the CarouselWizard owns the page — hides chrome that duplicates its progress UI */
+  showWizard: boolean
+  setShowWizard: (v: boolean) => void
   autosaved: boolean
   markAutosaved: () => void
   // Allow the page component to push updates (supports updater pattern)
@@ -51,6 +54,7 @@ export function ChannelProvider({ channelId, children }: { channelId: string; ch
   const [visualStyle, setVisualStyle] = useState<ChannelVisualStyleContext>(DEFAULT_VISUAL_STYLE)
   const [showNaming, setShowNaming] = useState(false)
   const [showStyleEditor, setShowStyleEditor] = useState(false)
+  const [showWizard, setShowWizard] = useState(true)
   const [activeTab, setActiveTabState] = useState<number>(0)
   const [userNavigated, setUserNavigated] = useState(false)
   const [autosaved, setAutosaved] = useState(false)
@@ -131,6 +135,8 @@ export function ChannelProvider({ channelId, children }: { channelId: string; ch
         setShowNaming,
         showStyleEditor,
         setShowStyleEditor,
+        showWizard,
+        setShowWizard,
         autosaved,
         markAutosaved,
         setChannel,
