@@ -4,7 +4,7 @@ const IG_GRADIENT = 'linear-gradient(135deg, #f09433, #e6683c, #dc2743, #cc2366,
 const IG_GLOW = '0 0 20px rgba(220,39,67,0.35)'
 
 import { useEffect, useState, useCallback, useRef } from 'react'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import InstagramPreview from '@/components/InstagramPreview'
 import '@/components/instagram-preview.css'
@@ -268,6 +268,7 @@ function LockedStep({ label, delay }: { label: string; delay?: number }) {
 
 export default function ChannelDashboard() {
   const params = useParams()
+  const router = useRouter()
   const channelId = params.id as string
   const ctx = useChannelContext()
   // Use context state directly so sidebar stays in sync
@@ -1243,9 +1244,11 @@ export default function ChannelDashboard() {
             <CarouselWizard
               channelId={channel.id}
               initialTopic={channel.exploreTopic || channel.niche || undefined}
-              onComplete={async () => {
-                setShowWizard(false)
-                await fetchChannel()
+              onComplete={(jobId) => {
+                // Send the user straight to their freshly-rendered carousel instead
+                // of dropping them onto the legacy channel page (whose step calc still
+                // reads DRAFT because the wizard doesn't advance channel.status).
+                router.push(`/carousel/${jobId}`)
               }}
             />
           )}
