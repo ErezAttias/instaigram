@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import InstagramPreview from '@/components/InstagramPreview';
 import '@/components/instagram-preview.css';
-import { CarouselDesignPanel } from '@/components/carousel/CarouselDesignPanel';
+import { CarouselDesignPanel, type LiveDesign } from '@/components/carousel/CarouselDesignPanel';
 
 // ─── Types ──────────────────────────────────────────────────
 
@@ -405,10 +405,12 @@ function ProgressView({
 
 function SlideCard({
   slide,
+  liveDesign,
   onSaveText,
   isRegenerating,
 }: {
   slide: CarouselSlide;
+  liveDesign: LiveDesign | null;
   onSaveText: (patch: { displayTitle?: string; displaySupport?: string }) => Promise<void> | void;
   isRegenerating: boolean;
 }) {
@@ -423,10 +425,20 @@ function SlideCard({
   const statusConfig = STATUS_CONFIG[displayStatus];
   const isFailed = displayStatus === 'FAILED_IMAGE';
   const isOpener = slide.role === 'OPENER';
-  // OPENER uses displaySupport as the swipe-CTA line (one line, short).
-  // FACT/IMPLICATION use it as the multi-sentence body.
   const hasSecondary = slide.role === 'FACT' || slide.role === 'IMPLICATION' || isOpener;
   const [showTextEditor, setShowTextEditor] = useState(false);
+
+  // Real-time preview: when we have a liveDesign snapshot, render the text
+  // as a CSS overlay on the RAW image (no burned-in text) so the preview
+  // updates instantly as the user drags typography controls. The final
+  // composited image still lands on the R2 URL (for export) after the
+  // server debounce.
+  const useLivePreview = !!liveDesign && !!slide.imageUrl;
+  const rawImageUrl = slide.imageUrl
+    ? slide.imageUrl.replace(/(\.png)(\?|$)/, '-raw.png$2')
+    : null;
+  const titleText = slide.displayTitle || slide.headline || '';
+  const bodyText = hasSecondary ? (slide.displaySupport || slide.body || '') : '';
 
   return (
     <div
@@ -442,14 +454,33 @@ function SlideCard({
         disabled={isRegenerating || !slide.imageUrl}
         aria-label="Edit slide text"
         className="group aspect-[4/5] bg-surface-elevated relative block w-full text-left disabled:cursor-default"
+        style={useLivePreview ? { containerType: 'inline-size' } : undefined}
       >
         {slide.imageUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={slide.imageUrl}
-            alt={`Slide ${slide.slideIndex + 1}`}
-            className="w-full h-full object-cover"
-          />
+          <>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={useLivePreview && rawImageUrl ? rawImageUrl : slide.imageUrl}
+              alt={`Slide ${slide.slideIndex + 1}`}
+              className="w-full h-full object-cover"
+              onError={e => {
+                // If the -raw.png 404s (older carousel without a raw cache),
+                // silently fall back to the composited image.
+                const img = e.currentTarget;
+                if (useLivePreview && rawImageUrl && img.src.endsWith(rawImageUrl.split('/').pop()!)) {
+                  img.src = slide.imageUrl!;
+                }
+              }}
+            />
+            {useLivePreview && liveDesign && (
+              <LiveTextOverlay
+                design={liveDesign}
+                title={titleText}
+                body={bodyText}
+                isOpener={isOpener}
+              />
+            )}
+          </>
         ) : (
           <div className={`w-full h-full flex flex-col items-center justify-center gap-2 px-4 ${
             isFailed ? 'bg-danger/5' : ''
@@ -523,6 +554,112 @@ function SlideCard({
           }}
         />
       )}
+    </div>
+  );
+}
+
+// Real-time CSS overlay that mirrors the server's text-compositor layout.
+// Renders over the raw (pre-overlay) slide image so typography changes are
+// visible instantly — the server restyle still runs in the background so the
+// exported image stays in sync.
+function LiveTextOverlay({
+  design,
+  title,
+  body,
+  isOpener,
+}: {
+  design: LiveDesign;
+  title: string;
+  body: string;
+  isOpener: boolean;
+}) {
+  // Server canvas is 1080×1350 with PAD=65, text zone = bottom 40%.
+  // Using cqw (container-query-width) so font sizes scale to the preview
+  // card — 1cqw = 1% of the slide's rendered width.
+  const TO_CQW = 100 / 1080;
+  const titleCqw = design.titleSizePx * TO_CQW;
+  const bodyCqw = design.bodySizePx * TO_CQW;
+  const ctaCqw = 44 * TO_CQW; // BOLD_FONT.cta.size
+
+  const textAlign: React.CSSProperties['textAlign'] =
+    (isOpener || !body ? design.titleAlign : design.titleAlign) as never;
+
+  const showBodyAsBlock = !isOpener && !!body; // FACT / IMPLICATION
+  const showCtaLine = isOpener && !!body; // OPENER — body is swipe CTA
+
+  return (
+    <div
+      className="absolute inset-x-0 bottom-0 flex flex-col justify-center items-stretch pointer-events-none"
+      style={{
+        height: '42%',
+        paddingInline: '6%',
+        paddingBottom: '4.8%',
+      }}
+    >
+      {/* Gradient to match the server overlay so text stays legible on any photo. */}
+      <div
+        aria-hidden="true"
+        className="absolute inset-x-0 bottom-0"
+        style={{
+          top: '-30%',
+          background: 'linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.4) 40%, rgba(0,0,0,0.88) 100%)',
+        }}
+      />
+      <div className="relative flex flex-col gap-[1.3cqw]" style={{ textAlign }}>
+        <div
+          style={{
+            fontFamily: `'${design.titleFontFamily}', sans-serif`,
+            fontSize: `${titleCqw}cqw`,
+            fontWeight: design.titleWeight,
+            color: design.titleColor,
+            lineHeight: 1.15,
+            letterSpacing: '-0.014em',
+            textShadow: '0 0.2cqw 1.2cqw rgba(0,0,0,0.35)',
+            wordBreak: 'break-word',
+          }}
+        >
+          {title}
+        </div>
+        {showBodyAsBlock && (
+          <div
+            style={{
+              fontFamily: `'${design.bodyFontFamily}', sans-serif`,
+              fontSize: `${bodyCqw}cqw`,
+              fontWeight: design.bodyWeight,
+              color: design.bodyColor,
+              lineHeight: 1.35,
+              opacity: 0.95,
+              wordBreak: 'break-word',
+            }}
+          >
+            {body}
+          </div>
+        )}
+        {showCtaLine && (
+          <div
+            style={{
+              fontFamily: `'${design.bodyFontFamily}', sans-serif`,
+              fontSize: `${ctaCqw}cqw`,
+              fontWeight: 500,
+              color: design.bodyColor,
+              lineHeight: 1.3,
+              opacity: 0.9,
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent:
+                design.titleAlign === 'left'
+                  ? 'flex-start'
+                  : design.titleAlign === 'right'
+                    ? 'flex-end'
+                    : 'center',
+              gap: '0.6cqw',
+            }}
+          >
+            <span>{body}</span>
+            <span style={{ opacity: 0.6 }}>»</span>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -777,6 +914,10 @@ function ReviewView({
   const [message, setMessage] = useState('');
   const [selectedSlide, setSelectedSlide] = useState(0);
   const [needsReapproval, setNeedsReapproval] = useState(false);
+  // Live typography snapshot — published by the design panel on every change.
+  // When present, SlideCard renders a CSS overlay on the raw image for an
+  // instant preview instead of waiting for the server restyle to round-trip.
+  const [liveDesign, setLiveDesign] = useState<LiveDesign | null>(null);
 
   // Auto-dismiss status messages
   useEffect(() => {
@@ -941,6 +1082,7 @@ function ReviewView({
           <div className="w-full max-w-sm">
             <SlideCard
               slide={{ ...currentSlide, imageUrl: bustImgSrc(currentSlide.imageUrl) }}
+              liveDesign={liveDesign}
               onSaveText={(patch) => handleSaveText(currentSlide.slideIndex, patch)}
               isRegenerating={false}
             />
@@ -954,6 +1096,7 @@ function ReviewView({
             channelId={job.channelId}
             jobId={job.id}
             slideCount={job.slides.length}
+            onLiveDesign={setLiveDesign}
             onRestyleStarted={() => {
               setMessage('Applying new design...');
               setImageVersion(v => v + 1);

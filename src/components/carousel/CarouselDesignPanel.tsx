@@ -4,6 +4,21 @@ import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { TITLE_FONTS, type FontOption } from '@/lib/visual/font-pairings-data'
 import type { ChannelVisualStyleContext } from '@/lib/visual/visual-style'
 
+export type LiveDesign = {
+  titleFontFamily: string
+  titleFontWeightDefault: number
+  titleSizePx: number
+  titleAlign: 'left' | 'center' | 'right'
+  titleWeight: number
+  titleColor: string
+  bodyFontFamily: string
+  bodyFontWeightDefault: number
+  bodySizePx: number
+  bodyAlign: 'left' | 'center' | 'right'
+  bodyWeight: number
+  bodyColor: string
+}
+
 /**
  * Inline typography toolbar shown under the slide preview.
  *
@@ -62,11 +77,17 @@ interface CarouselDesignPanelProps {
   slideCount: number
   /** Called after a save+restyle succeeds so the viewer can refresh. */
   onRestyleStarted?: () => void
+  /**
+   * Emitted on every state change (including load). Lets the viewer render
+   * a live CSS/SVG preview on top of the raw image so the user sees changes
+   * instantly — instead of waiting for the server restyle to round-trip.
+   */
+  onLiveDesign?: (design: LiveDesign) => void
 }
 
 type SaveState = 'idle' | 'saving' | 'error'
 
-export function CarouselDesignPanel({ channelId, jobId, slideCount, onRestyleStarted }: CarouselDesignPanelProps) {
+export function CarouselDesignPanel({ channelId, jobId, slideCount, onRestyleStarted, onLiveDesign }: CarouselDesignPanelProps) {
   const [loaded, setLoaded] = useState(false)
   const [target, setTarget] = useState<Target>('title')
   const [openTool, setOpenTool] = useState<ToolId | null>('font')
@@ -211,6 +232,28 @@ export function CarouselDesignPanel({ channelId, jobId, slideCount, onRestyleSta
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
     inflightRef.current?.abort()
   }, [])
+
+  // Publish the live design snapshot whenever anything visual changes so the
+  // viewer can render an instant CSS overlay on the raw image.
+  const titleFont = TITLE_FONTS.find(f => f.id === titleFontId) ?? TITLE_FONTS[0]
+  const bodyFontMeta = TITLE_FONTS.find(f => f.id === bodyFontId) ?? TITLE_FONTS[0]
+  const onLiveDesignRef = useRef(onLiveDesign)
+  useEffect(() => { onLiveDesignRef.current = onLiveDesign }, [onLiveDesign])
+  useEffect(() => {
+    if (!loaded) return
+    onLiveDesignRef.current?.({
+      titleFontFamily: titleFont.family,
+      titleFontWeightDefault: titleFont.weight,
+      titleSizePx, titleAlign, titleWeight, titleColor,
+      bodyFontFamily: bodyFontMeta.family,
+      bodyFontWeightDefault: bodyFontMeta.weight,
+      bodySizePx, bodyAlign, bodyWeight, bodyColor,
+    })
+  }, [
+    loaded,
+    titleFont, titleSizePx, titleAlign, titleWeight, titleColor,
+    bodyFontMeta, bodySizePx, bodyAlign, bodyWeight, bodyColor,
+  ])
 
   const clampSize = (n: number) => Math.min(active.range.max, Math.max(active.range.min, n))
   const toggle = (id: ToolId) => setOpenTool(prev => (prev === id ? null : id))
