@@ -453,7 +453,8 @@ function ToolSegment({
     >
       <div className="flex items-center gap-1.5">
         {icon}
-        <span className="text-[10px] font-bold uppercase tracking-wider">{label}</span>
+        {/* Label is hidden on mobile (icon-only) and re-appears at sm+. */}
+        <span className="hidden sm:inline text-[10px] font-bold uppercase tracking-wider">{label}</span>
       </div>
       <span className="text-[10px] opacity-80 truncate max-w-full" style={valueStyle}>{value}</span>
     </button>
