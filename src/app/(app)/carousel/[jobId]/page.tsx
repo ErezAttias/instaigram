@@ -428,7 +428,10 @@ function SlideCard({
   const displayStatus = isRegenerating ? 'REGENERATING' : getSlideDisplayStatus(slide, false);
   const statusConfig = STATUS_CONFIG[displayStatus];
   const isFailed = displayStatus === 'FAILED_IMAGE';
-  const hasBody = slide.role === 'FACT' || slide.role === 'IMPLICATION';
+  const isOpener = slide.role === 'OPENER';
+  // OPENER uses displaySupport as the swipe-CTA line (one line, short).
+  // FACT/IMPLICATION use it as the multi-sentence body.
+  const hasSecondary = slide.role === 'FACT' || slide.role === 'IMPLICATION' || isOpener;
   const [showTextEditor, setShowTextEditor] = useState(false);
 
   return (
@@ -558,7 +561,10 @@ function SlideCard({
       {showTextEditor && (
         <SlideTextEditor
           title={slide.displayTitle || slide.headline || ''}
-          body={hasBody ? (slide.displaySupport || slide.body || '') : null}
+          body={hasSecondary ? (slide.displaySupport || slide.body || '') : null}
+          bodyLabel={isOpener ? 'Swipe CTA' : 'Body'}
+          bodyHint={isOpener ? 'Short invite shown below the title in the paragraph font.' : undefined}
+          bodyMultiline={!isOpener}
           onClose={() => setShowTextEditor(false)}
           onSave={async patch => {
             await onSaveText(patch);
@@ -574,11 +580,17 @@ function SlideCard({
 function SlideTextEditor({
   title: initialTitle,
   body: initialBody,
+  bodyLabel = 'Body',
+  bodyHint,
+  bodyMultiline = true,
   onClose,
   onSave,
 }: {
   title: string;
   body: string | null;
+  bodyLabel?: string;
+  bodyHint?: string;
+  bodyMultiline?: boolean;
   onClose: () => void;
   onSave: (patch: { displayTitle?: string; displaySupport?: string }) => Promise<void> | void;
 }) {
@@ -644,13 +656,26 @@ function SlideTextEditor({
 
         {initialBody !== null && (
           <>
-            <label className="text-[10px] uppercase tracking-wider text-muted/60 mb-1.5 block">Body</label>
-            <textarea
-              rows={4}
-              value={body}
-              onChange={e => setBody(e.target.value)}
-              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-[#dc2743]/60 resize-none mb-4"
-            />
+            <label className="text-[10px] uppercase tracking-wider text-muted/60 mb-1.5 block">{bodyLabel}</label>
+            {bodyMultiline ? (
+              <textarea
+                rows={4}
+                value={body}
+                onChange={e => setBody(e.target.value)}
+                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-[#dc2743]/60 resize-none mb-1"
+              />
+            ) : (
+              <input
+                type="text"
+                value={body}
+                maxLength={40}
+                onChange={e => setBody(e.target.value)}
+                placeholder="Swipe to find out"
+                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-[#dc2743]/60 mb-1"
+              />
+            )}
+            {bodyHint && <p className="text-[11px] text-muted-light mb-4">{bodyHint}</p>}
+            {!bodyHint && <div className="mb-3" />}
           </>
         )}
 

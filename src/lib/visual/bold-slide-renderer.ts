@@ -30,7 +30,7 @@ import type { ImageGenerator, ImageSourceProvider } from '../ai/image-provider';
 import { ProviderFailedError } from '../ai/retry';
 import { generateFullBleedImage } from './layout-compositor';
 import { type ChannelVisualStyleContext, DEFAULT_VISUAL_STYLE } from './visual-style';
-import { getTitleFont, buildFontStyleBlock } from './font-pairings';
+import { getTitleFont, getBodyFont, buildFontStyleBlock } from './font-pairings';
 import { buildLogoCompositeInput } from './logo-compositor';
 
 // ─── Constants ──────────────────────────────────────────────────
@@ -133,6 +133,8 @@ function buildBoldOverlay(
   const t2Color = style.bodyColor ?? '#D0D0D0';
   const titleFont = getTitleFont(style.titleFontId);
   const displayFontFamily = `'${titleFont.family}', sans-serif`;
+  const bodyFont = getBodyFont(style.bodyFontId);
+  const bodyFontFamily = `'${bodyFont.family}', sans-serif`;
 
   const t1Size = Math.min(style?.t1FontSizePx ?? BOLD_FONT.title.size, BOLD_FONT.title.size);
   const PAD = 65;
@@ -229,12 +231,18 @@ function buildBoldOverlay(
     });
   }
 
-  // Swipe CTA for OPENER slides (smaller, centered below title with chevron)
-  if (isOpener && input.swipeCta) {
+  // Swipe CTA for OPENER slides — rendered in the BODY font (paragraph voice),
+  // not the display font. Source: displaySubtitle (from slide.displaySupport),
+  // with the legacy `swipeCta` field as a fallback and a generic default so the
+  // line never disappears on openers.
+  const ctaText = isOpener
+    ? (input.displaySubtitle?.trim() || input.swipeCta?.trim() || 'Swipe to find out')
+    : null;
+  if (isOpener && ctaText) {
     const ctaY = Math.round(startY + titleBlockHeight + ctaGap + ctaFontSize);
     const chevronColor = 'rgba(208,208,208,0.6)';
-    // Estimate text width for chevron positioning
-    const ctaTextWidth = input.swipeCta.length * ctaFontSize * 0.5;
+    // Estimate text width for chevron positioning (body font is narrower than display).
+    const ctaTextWidth = ctaText.length * ctaFontSize * 0.48;
     const chevronGap = 12;
     const chevronSize = Math.round(ctaFontSize * 0.32);
     const chevronX = CANVAS.width / 2 + ctaTextWidth / 2 + chevronGap;
@@ -243,10 +251,10 @@ function buildBoldOverlay(
     elements.push(
       `<text x="${CANVAS.width / 2}" y="${ctaY}" `
       + `text-anchor="middle" `
-      + `font-family="${displayFontFamily}" `
+      + `font-family="${bodyFontFamily}" `
       + `font-size="${ctaFontSize}" font-weight="${BOLD_FONT.cta.weight}" `
-      + `fill="${t2Color}" opacity="0.8">`
-      + escapeXml(input.swipeCta)
+      + `fill="${t2Color}" opacity="0.85">`
+      + escapeXml(ctaText)
       + `</text>`
     );
     // Double chevron >> after text

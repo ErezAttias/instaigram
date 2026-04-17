@@ -764,7 +764,13 @@ export async function runCarouselGeneration(
           noveltyScore: Math.round(slide.noveltyScore ?? 3),
           topicEntity: slide.topicEntity,
           displayTitle: compressed?.displayTitle ?? null,
-          displaySupport: compressed?.displaySupport ?? null,
+          // OPENER slides use displaySupport as the swipe-CTA line (rendered
+          // in the body font). If the LLM returned a dedicated `swipeCta`,
+          // promote it here; otherwise fall back to a generic invite so the
+          // line is always present. FACT/IMPLICATION keep their normal body.
+          displaySupport: slide.role === 'OPENER'
+            ? (compressed?.swipeCta || compressed?.displaySupport || 'Swipe to find out')
+            : (compressed?.displaySupport ?? null),
           imageUrl: null,
           imageError: null,
           status: 'PENDING' as const,
@@ -799,7 +805,13 @@ export async function runCarouselGeneration(
       const slideNum = slide.slideNumber + 1;
       const compressed = finalCompressed.find(c => c.slideNumber === slide.slideNumber);
       const displayTitle = compressed?.displayTitle || slide.headline;
-      const displaySupport = compressed?.displaySupport || '';
+      // For OPENER/HOOK slides, displaySupport carries the swipe-CTA line
+      // (rendered in the body font). Prefer the compressed swipeCta, then any
+      // displaySupport, then a generic invite so the line is always present.
+      const isOpenerRole = slide.role === 'OPENER';
+      const displaySupport = isOpenerRole
+        ? (compressed?.swipeCta || compressed?.displaySupport || 'Swipe to find out')
+        : (compressed?.displaySupport || '');
 
       emit('render', `Rendering slide ${i + 1}/${finalSlides.length}...`, 50 + Math.round((i / finalSlides.length) * 40));
 
@@ -832,7 +844,9 @@ export async function runCarouselGeneration(
             noveltyScore: Math.round(slide.noveltyScore ?? 3),
             topicEntity: slide.topicEntity,
             displayTitle: compressed?.displayTitle ?? null,
-            displaySupport: compressed?.displaySupport ?? null,
+            displaySupport: slide.role === 'OPENER'
+              ? (compressed?.swipeCta || compressed?.displaySupport || 'Swipe to find out')
+              : (compressed?.displaySupport ?? null),
             imageUrl: null,
             imageError: 'CTA_ENFORCEMENT_FAILED: CTA does not contain a valid call to action after all retry attempts',
             status: 'FAILED_IMAGE',
