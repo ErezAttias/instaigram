@@ -175,6 +175,13 @@ model ChannelVisualStyle {
   t1FontSizePx   Int      @default(72)
   t2FontSizePx   Int      @default(36)
 
+  // Typography refinements — exposed via the carousel Design toolbar.
+  // Stored so the server composite matches the live CSS preview exactly.
+  titleAlign     String   @default("left")   // left | center | right
+  titleWeight    Int      @default(800)
+  bodyAlign      String   @default("left")
+  bodyWeight     Int      @default(400)
+
   channel Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
 }
 

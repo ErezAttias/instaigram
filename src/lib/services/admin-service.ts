@@ -103,9 +103,25 @@ export async function updateChannelProfile(
 
 // ─── Channel Visual Style ───────────────────────────────────
 
-export async function getChannelVisualStyle(channelId: string): Promise<ChannelVisualStyleContext> {
-  const record = await prisma.channelVisualStyle.findUnique({ where: { channelId } });
-  if (!record) return { ...DEFAULT_VISUAL_STYLE };
+function toStyleContext(record: {
+  titleFontId: string;
+  bodyFontId: string;
+  singleFont: boolean;
+  headlineColor: string | null;
+  emphasisColor: string | null;
+  bodyColor: string | null;
+  textBgEnabled: boolean;
+  textBgColor: string | null;
+  logoBase64: string | null;
+  logoPosition: string;
+  logoSizePx: number;
+  t1FontSizePx: number;
+  t2FontSizePx: number;
+  titleAlign: string;
+  titleWeight: number;
+  bodyAlign: string;
+  bodyWeight: number;
+}): ChannelVisualStyleContext {
   return {
     titleFontId: record.titleFontId,
     bodyFontId: record.bodyFontId,
@@ -120,7 +136,17 @@ export async function getChannelVisualStyle(channelId: string): Promise<ChannelV
     logoSizePx: record.logoSizePx,
     t1FontSizePx: record.t1FontSizePx,
     t2FontSizePx: record.t2FontSizePx,
+    titleAlign: record.titleAlign as ChannelVisualStyleContext['titleAlign'],
+    titleWeight: record.titleWeight,
+    bodyAlign: record.bodyAlign as ChannelVisualStyleContext['bodyAlign'],
+    bodyWeight: record.bodyWeight,
   };
+}
+
+export async function getChannelVisualStyle(channelId: string): Promise<ChannelVisualStyleContext> {
+  const record = await prisma.channelVisualStyle.findUnique({ where: { channelId } });
+  if (!record) return { ...DEFAULT_VISUAL_STYLE };
+  return toStyleContext(record);
 }
 
 export async function upsertChannelVisualStyle(
@@ -132,21 +158,7 @@ export async function upsertChannelVisualStyle(
     update: data,
     create: { channelId, ...DEFAULT_VISUAL_STYLE, ...data },
   });
-  return {
-    titleFontId: record.titleFontId,
-    bodyFontId: record.bodyFontId,
-    singleFont: record.singleFont,
-    headlineColor: record.headlineColor,
-    emphasisColor: record.emphasisColor,
-    bodyColor: record.bodyColor,
-    textBgEnabled: record.textBgEnabled,
-    textBgColor: record.textBgColor,
-    logoBase64: record.logoBase64,
-    logoPosition: record.logoPosition as ChannelVisualStyleContext['logoPosition'],
-    logoSizePx: record.logoSizePx,
-    t1FontSizePx: record.t1FontSizePx,
-    t2FontSizePx: record.t2FontSizePx,
-  };
+  return toStyleContext(record);
 }
 
 // ─── Carousel Queries ───────────────────────────────────────

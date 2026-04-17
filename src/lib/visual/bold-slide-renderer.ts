@@ -136,7 +136,15 @@ function buildBoldOverlay(
   const bodyFont = getBodyFont(style.bodyFontId);
   const bodyFontFamily = `'${bodyFont.family}', sans-serif`;
 
-  const t1Size = Math.min(style?.t1FontSizePx ?? BOLD_FONT.title.size, BOLD_FONT.title.size);
+  // Honor the user's typography choices from the Design toolbar. Fall back to
+  // the legacy defaults so older records without these fields still render.
+  const titleWeight = style.titleWeight ?? BOLD_FONT.title.weight;
+  const bodyWeight = style.bodyWeight ?? 400;
+  const titleAlign = style.titleAlign ?? 'left';
+  const bodyAlign = style.bodyAlign ?? 'left';
+
+  // Size caps are now 100/56 to match the Design toolbar sliders exactly.
+  const t1Size = Math.min(style?.t1FontSizePx ?? BOLD_FONT.title.size, 100);
   const PAD = 65;
   const contentWidth = CANVAS.width - PAD * 2;
 
@@ -149,8 +157,8 @@ function buildBoldOverlay(
   const lineHeight = t1Size * BOLD_FONT.title.lineHeight;
   const titleBlockHeight = t1Size + (titleLines.length - 1) * lineHeight;
 
-  // Subtitle (displaySupport) for FACT slides
-  const subtitleSize = 40;
+  // Subtitle (displaySupport) for FACT slides — honors the user's body size.
+  const subtitleSize = Math.min(style?.t2FontSizePx ?? 40, 56);
   const subtitleLineHeight = subtitleSize * 1.35;
   const hasSubtitle = !!input.displaySubtitle && input.slideRole !== 'OPENER' && input.slideRole !== 'HOOK';
   const subtitleMaxChars = Math.floor(contentWidth / (subtitleSize * 0.48));
@@ -164,6 +172,12 @@ function buildBoldOverlay(
   const ctaGap = isOpener ? ctaFontSize * 0.8 : 0;
   const ctaHeight = isOpener ? ctaFontSize : 0;
   const totalTextHeight = titleBlockHeight + subtitleGap + subtitleBlockHeight + ctaGap + ctaHeight;
+
+  // Horizontal anchor helpers so the align setting actually drives layout.
+  const anchorFor = (a: 'left' | 'center' | 'right') =>
+    a === 'left' ? 'start' : a === 'right' ? 'end' : 'middle';
+  const xFor = (a: 'left' | 'center' | 'right') =>
+    a === 'left' ? PAD : a === 'right' ? CANVAS.width - PAD : CANVAS.width / 2;
 
   // Position text in the bottom third, centered vertically in the zone
   const textZoneTop = CANVAS.height * 0.60;
@@ -200,31 +214,35 @@ function buildBoldOverlay(
     );
   }
 
-  // Title lines — centered horizontally
+  // Title lines — align, weight, font all honor the user's Design toolbar.
+  const titleAnchor = anchorFor(titleAlign);
+  const titleX = xFor(titleAlign);
   titleLines.forEach((line, i) => {
     const y = startY + t1Size + i * lineHeight;
     elements.push(
-      `<text x="${CANVAS.width / 2}" y="${Math.round(y)}" `
-      + `text-anchor="middle" `
+      `<text x="${titleX}" y="${Math.round(y)}" `
+      + `text-anchor="${titleAnchor}" `
       + `font-family="${displayFontFamily}" `
-      + `font-size="${t1Size}" font-weight="${BOLD_FONT.title.weight}" `
+      + `font-size="${t1Size}" font-weight="${titleWeight}" `
       + `fill="${t1Color}" letter-spacing="-1.5">`
       + escapeXml(line)
       + `</text>`
     );
   });
 
-  // Subtitle lines — smaller, lighter, below title
+  // Subtitle lines — align, weight, font, size, color honor the toolbar.
   if (hasSubtitle) {
     const subtitleStartY = startY + titleBlockHeight + subtitleGap;
+    const subtitleAnchor = anchorFor(bodyAlign);
+    const subtitleX = xFor(bodyAlign);
     subtitleLines.forEach((line, i) => {
       const y = subtitleStartY + subtitleSize + i * subtitleLineHeight;
       elements.push(
-        `<text x="${CANVAS.width / 2}" y="${Math.round(y)}" `
-        + `text-anchor="middle" `
-        + `font-family="'Inter', sans-serif" `
-        + `font-size="${subtitleSize}" font-weight="400" `
-        + `fill="${t2Color}" opacity="0.9">`
+        `<text x="${subtitleX}" y="${Math.round(y)}" `
+        + `text-anchor="${subtitleAnchor}" `
+        + `font-family="${bodyFontFamily}" `
+        + `font-size="${subtitleSize}" font-weight="${bodyWeight}" `
+        + `fill="${t2Color}" opacity="0.95">`
         + escapeXml(line)
         + `</text>`
       );
@@ -245,12 +263,21 @@ function buildBoldOverlay(
     const ctaTextWidth = ctaText.length * ctaFontSize * 0.48;
     const chevronGap = 12;
     const chevronSize = Math.round(ctaFontSize * 0.32);
-    const chevronX = CANVAS.width / 2 + ctaTextWidth / 2 + chevronGap;
+    // Anchor the CTA to the title's alignment so the preview + final match.
+    const ctaAnchor = anchorFor(titleAlign);
+    const ctaX = xFor(titleAlign);
+    const ctaRightX =
+      titleAlign === 'left'
+        ? ctaX + ctaTextWidth
+        : titleAlign === 'right'
+          ? ctaX
+          : ctaX + ctaTextWidth / 2;
+    const chevronX = ctaRightX + chevronGap;
     const chevronCenterY = ctaY - ctaFontSize * 0.35;
 
     elements.push(
-      `<text x="${CANVAS.width / 2}" y="${ctaY}" `
-      + `text-anchor="middle" `
+      `<text x="${ctaX}" y="${ctaY}" `
+      + `text-anchor="${ctaAnchor}" `
       + `font-family="${bodyFontFamily}" `
       + `font-size="${ctaFontSize}" font-weight="${BOLD_FONT.cta.weight}" `
       + `fill="${t2Color}" opacity="0.85">`

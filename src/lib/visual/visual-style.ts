@@ -1,3 +1,5 @@
+export type TextAlign = 'left' | 'center' | 'right';
+
 export interface ChannelVisualStyleContext {
   titleFontId: string;
   bodyFontId: string;
@@ -12,6 +14,10 @@ export interface ChannelVisualStyleContext {
   logoSizePx: number;
   t1FontSizePx: number;
   t2FontSizePx: number;
+  titleAlign: TextAlign;
+  titleWeight: number;
+  bodyAlign: TextAlign;
+  bodyWeight: number;
 }
 
 export const DEFAULT_VISUAL_STYLE: ChannelVisualStyleContext = {
@@ -28,4 +34,8 @@ export const DEFAULT_VISUAL_STYLE: ChannelVisualStyleContext = {
   logoSizePx: 80,
   t1FontSizePx: 72,
   t2FontSizePx: 40,
+  titleAlign: 'left',
+  titleWeight: 800,
+  bodyAlign: 'left',
+  bodyWeight: 400,
 };

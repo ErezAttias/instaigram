@@ -77,6 +77,26 @@ export async function PUT(req: NextRequest, { params }: RouteContext) {
     body.t2FontSizePx = size;
   }
 
+  // Validate align
+  const ALIGN_VALUES = ['left', 'center', 'right'] as const;
+  for (const field of ['titleAlign', 'bodyAlign'] as const) {
+    const val = body[field];
+    if (val !== undefined && !ALIGN_VALUES.includes(val as typeof ALIGN_VALUES[number])) {
+      return NextResponse.json({ error: `${field} must be left | center | right` }, { status: 400 });
+    }
+  }
+
+  // Validate weight range (200..900 covers all common CSS weights)
+  for (const field of ['titleWeight', 'bodyWeight'] as const) {
+    if (body[field] !== undefined) {
+      const w = Number(body[field]);
+      if (isNaN(w) || w < 100 || w > 900) {
+        return NextResponse.json({ error: `${field} must be between 100 and 900` }, { status: 400 });
+      }
+      body[field] = w;
+    }
+  }
+
   // Validate logoBase64 — must be a non-empty string (raw base64, no data URI)
   if (body.logoBase64 !== undefined && body.logoBase64 !== null) {
     if (typeof body.logoBase64 !== 'string') {

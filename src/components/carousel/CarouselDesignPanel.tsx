@@ -117,6 +117,10 @@ export function CarouselDesignPanel({ channelId, jobId, slideCount, onRestyleSta
         if (data.t2FontSizePx) setBodySizePx(data.t2FontSizePx)
         if (data.headlineColor) setTitleColor(data.headlineColor)
         if (data.bodyColor) setBodyColor(data.bodyColor)
+        if (data.titleAlign) setTitleAlign(data.titleAlign)
+        if (data.bodyAlign) setBodyAlign(data.bodyAlign)
+        if (typeof data.titleWeight === 'number') setTitleWeight(data.titleWeight)
+        if (typeof data.bodyWeight === 'number') setBodyWeight(data.bodyWeight)
       })
       .catch(() => {})
       .finally(() => setLoaded(true))
@@ -192,6 +196,7 @@ export function CarouselDesignPanel({ channelId, jobId, slideCount, onRestyleSta
             titleFontId, bodyFontId,
             headlineColor: titleColor, bodyColor,
             t1FontSizePx: titleSizePx, t2FontSizePx: bodySizePx,
+            titleAlign, titleWeight, bodyAlign, bodyWeight,
           }),
           signal: ctrl.signal,
         })
@@ -216,6 +221,7 @@ export function CarouselDesignPanel({ channelId, jobId, slideCount, onRestyleSta
     channelId, jobId, loaded,
     titleFontId, bodyFontId, titleColor, bodyColor,
     titleSizePx, bodySizePx,
+    titleAlign, titleWeight, bodyAlign, bodyWeight,
   ])
 
   useEffect(() => {

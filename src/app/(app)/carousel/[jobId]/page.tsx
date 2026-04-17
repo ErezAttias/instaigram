@@ -558,10 +558,11 @@ function SlideCard({
   );
 }
 
-// Real-time CSS overlay that mirrors the server's text-compositor layout.
-// Renders over the raw (pre-overlay) slide image so typography changes are
-// visible instantly — the server restyle still runs in the background so the
-// exported image stays in sync.
+// Real-time CSS overlay that mirrors the server's text-compositor layout so
+// the preview matches the exported image. Server canvas is 1080×1350 with
+// PAD=65, text zone = bottom ~35% centered vertically. We express everything
+// in cqw (= 1% of this card's rendered width) so the math stays 1:1 with the
+// server's pixel math regardless of how wide the preview is drawn.
 function LiveTextOverlay({
   design,
   title,
@@ -573,39 +574,56 @@ function LiveTextOverlay({
   body: string;
   isOpener: boolean;
 }) {
-  // Server canvas is 1080×1350 with PAD=65, text zone = bottom 40%.
-  // Using cqw (container-query-width) so font sizes scale to the preview
-  // card — 1cqw = 1% of the slide's rendered width.
   const TO_CQW = 100 / 1080;
   const titleCqw = design.titleSizePx * TO_CQW;
   const bodyCqw = design.bodySizePx * TO_CQW;
-  const ctaCqw = 44 * TO_CQW; // BOLD_FONT.cta.size
+  const ctaCqw = 44 * TO_CQW; // BOLD_FONT.cta.size — matches server
 
-  const textAlign: React.CSSProperties['textAlign'] =
-    (isOpener || !body ? design.titleAlign : design.titleAlign) as never;
+  const showBodyAsBlock = !isOpener && !!body;
+  const showCtaLine = isOpener && !!body;
 
-  const showBodyAsBlock = !isOpener && !!body; // FACT / IMPLICATION
-  const showCtaLine = isOpener && !!body; // OPENER — body is swipe CTA
+  const titleAlignCss: React.CSSProperties['textAlign'] = design.titleAlign;
+  const bodyAlignCss: React.CSSProperties['textAlign'] = design.bodyAlign;
+  const ctaJustify =
+    design.titleAlign === 'left'
+      ? 'flex-start'
+      : design.titleAlign === 'right'
+        ? 'flex-end'
+        : 'center';
+  const alignItemsForColumn =
+    design.titleAlign === 'left'
+      ? 'flex-start'
+      : design.titleAlign === 'right'
+        ? 'flex-end'
+        : 'center';
 
   return (
     <div
-      className="absolute inset-x-0 bottom-0 flex flex-col justify-center items-stretch pointer-events-none"
+      className="absolute inset-x-0 bottom-0 pointer-events-none"
       style={{
-        height: '42%',
-        paddingInline: '6%',
-        paddingBottom: '4.8%',
+        top: '60%', // server textZoneTop = CANVAS.height * 0.60
+        paddingInline: `${(65 / 1080) * 100}%`, // PAD=65 on the server
+        paddingBottom: `${(65 / 1350) * 100}%`,
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        alignItems: alignItemsForColumn,
       }}
     >
       {/* Gradient to match the server overlay so text stays legible on any photo. */}
       <div
         aria-hidden="true"
-        className="absolute inset-x-0 bottom-0"
+        className="absolute inset-x-0"
         style={{
-          top: '-30%',
-          background: 'linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.4) 40%, rgba(0,0,0,0.88) 100%)',
+          top: '-50%',
+          bottom: 0,
+          background: 'linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.4) 50%, rgba(0,0,0,0.88) 100%)',
         }}
       />
-      <div className="relative flex flex-col gap-[1.3cqw]" style={{ textAlign }}>
+      <div
+        className="relative flex flex-col w-full"
+        style={{ gap: `${(20 / 1080) * 100}cqw`, alignItems: alignItemsForColumn }}
+      >
         <div
           style={{
             fontFamily: `'${design.titleFontFamily}', sans-serif`,
@@ -613,8 +631,9 @@ function LiveTextOverlay({
             fontWeight: design.titleWeight,
             color: design.titleColor,
             lineHeight: 1.15,
-            letterSpacing: '-0.014em',
-            textShadow: '0 0.2cqw 1.2cqw rgba(0,0,0,0.35)',
+            letterSpacing: `${-1.5 / 1080 * 100}cqw`,
+            textAlign: titleAlignCss,
+            width: '100%',
             wordBreak: 'break-word',
           }}
         >
@@ -629,6 +648,8 @@ function LiveTextOverlay({
               color: design.bodyColor,
               lineHeight: 1.35,
               opacity: 0.95,
+              textAlign: bodyAlignCss,
+              width: '100%',
               wordBreak: 'break-word',
             }}
           >
@@ -642,17 +663,12 @@ function LiveTextOverlay({
               fontSize: `${ctaCqw}cqw`,
               fontWeight: 500,
               color: design.bodyColor,
-              lineHeight: 1.3,
-              opacity: 0.9,
+              opacity: 0.85,
               display: 'inline-flex',
               alignItems: 'center',
-              justifyContent:
-                design.titleAlign === 'left'
-                  ? 'flex-start'
-                  : design.titleAlign === 'right'
-                    ? 'flex-end'
-                    : 'center',
-              gap: '0.6cqw',
+              justifyContent: ctaJustify,
+              gap: `${(12 / 1080) * 100}cqw`,
+              lineHeight: 1.3,
             }}
           >
             <span>{body}</span>
