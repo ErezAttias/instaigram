@@ -16,7 +16,7 @@ export function SubjectStep({ onSubmit, initialValue = '' }: SubjectStepProps) {
     <div className="animate-fade-up bg-surface rounded-2xl border border-border py-12 px-6 lg:py-16 lg:px-10">
       <div className="max-w-lg mx-auto text-center">
         <p className="text-[11px] font-semibold uppercase tracking-[0.08em] mb-2 bg-clip-text text-transparent" style={{ backgroundImage: IG_GRADIENT }}>
-          Step 1 of 5
+          Step 1 of 4
         </p>
         <h2 className="text-2xl font-bold tracking-tight mb-2">What&apos;s your carousel about?</h2>
         <p className="text-sm text-muted-light mb-8">Enter any topic — we&apos;ll find the best angle and write the facts for you.</p>

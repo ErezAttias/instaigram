@@ -306,8 +306,13 @@ async function downloadAndFitToCanvas(url: string): Promise<Buffer> {
   if (!res.ok) throw new Error(`Download failed (${res.status}) for ${url}`);
   const arrayBuf = await res.arrayBuffer();
   // Cover-fit to the full canvas: crop center, ensure full bleed regardless of source aspect ratio.
+  // `position: 'top'` matches the existing celebrity Wikipedia provider's crop
+  // strategy — keeps the subject's head in the upper half of the canvas so it
+  // doesn't get covered by the text block in the bottom third. `attention`
+  // looked smarter on paper but centered on eyes, which are exactly where the
+  // title overlay lands.
   return sharp(Buffer.from(arrayBuf))
-    .resize(CANVAS.width, CANVAS.height, { fit: 'cover', position: 'attention' })
+    .resize(CANVAS.width, CANVAS.height, { fit: 'cover', position: 'top' })
     .png({ quality: 90 })
     .toBuffer();
 }

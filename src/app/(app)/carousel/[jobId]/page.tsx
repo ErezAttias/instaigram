@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import InstagramPreview from '@/components/InstagramPreview';
 import '@/components/instagram-preview.css';
+import { CarouselDesignPanel } from '@/components/carousel/CarouselDesignPanel';
 
 // ─── Types ──────────────────────────────────────────────────
 
@@ -23,6 +24,7 @@ interface CarouselSlide {
 
 interface CarouselJob {
   id: string;
+  channelId: string | null;
   topic: string;
   direction: string | null;
   status: 'PENDING' | 'GENERATING' | 'RENDERING' | 'COMPLETE' | 'FAILED';
@@ -392,6 +394,84 @@ function ProgressView({
   );
 }
 
+// ─── Editable text — click-to-edit with save-on-blur ────────
+
+/**
+ * Click-to-edit display for slide headline/body on the viewer. Shows the
+ * current value as plain text until clicked, then flips into a textarea
+ * (or input for single-line). Blur/Enter saves; Escape cancels.
+ */
+function EditableText({
+  label,
+  value,
+  multiline,
+  disabled,
+  onSave,
+  className,
+}: {
+  label: string;
+  value: string;
+  multiline: boolean;
+  disabled?: boolean;
+  onSave: (next: string) => void | Promise<void>;
+  className?: string;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(value);
+  const [saving, setSaving] = useState(false);
+
+  // Keep draft in sync when the slide's saved value changes externally (e.g. restyle).
+  useEffect(() => {
+    if (!editing) setDraft(value);
+  }, [value, editing]);
+
+  const commit = useCallback(async () => {
+    setEditing(false);
+    const trimmed = draft.trim();
+    if (trimmed === value.trim()) return;
+    setSaving(true);
+    try { await onSave(trimmed); } finally { setSaving(false); }
+  }, [draft, value, onSave]);
+
+  const cancel = useCallback(() => {
+    setDraft(value);
+    setEditing(false);
+  }, [value]);
+
+  if (editing) {
+    const sharedProps = {
+      value: draft,
+      onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setDraft(e.target.value),
+      onBlur: commit,
+      onKeyDown: (e: React.KeyboardEvent) => {
+        if (e.key === 'Escape') { e.preventDefault(); cancel(); }
+        if (e.key === 'Enter' && !multiline) { e.preventDefault(); commit(); }
+        if (e.key === 'Enter' && multiline && (e.metaKey || e.ctrlKey)) { e.preventDefault(); commit(); }
+      },
+      autoFocus: true,
+      className: `w-full resize-none rounded-md border border-[#dc2743]/40 bg-surface-elevated px-2 py-1.5 outline-none ${className ?? ''}`,
+    };
+    return multiline
+      ? <textarea rows={3} {...(sharedProps as React.TextareaHTMLAttributes<HTMLTextAreaElement>)} />
+      : <input type="text" {...(sharedProps as React.InputHTMLAttributes<HTMLInputElement>)} />;
+  }
+
+  return (
+    <div
+      role="button"
+      tabIndex={disabled ? -1 : 0}
+      aria-label={`Edit ${label.toLowerCase()}`}
+      onClick={() => !disabled && setEditing(true)}
+      onKeyDown={e => { if (!disabled && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); setEditing(true); } }}
+      className={`${className ?? ''} cursor-text rounded-md px-2 py-1.5 hover:bg-surface-hover transition-colors ${disabled ? 'opacity-60 cursor-not-allowed' : ''}`}
+      title="Click to edit"
+    >
+      {value || <span className="text-muted-light italic">—</span>}
+      {saving && <span className="ml-2 text-[10px] text-muted-light">saving…</span>}
+    </div>
+  );
+}
+
 // ─── Slide Card ─────────────────────────────────────────────
 
 function SlideCard({
@@ -399,12 +479,14 @@ function SlideCard({
   onRegenCopy,
   onRegenImage,
   onRegenFull,
+  onSaveText,
   isRegenerating,
 }: {
   slide: CarouselSlide;
   onRegenCopy: () => void;
   onRegenImage: () => void;
   onRegenFull: () => void;
+  onSaveText: (patch: { displayTitle?: string; displaySupport?: string }) => Promise<void> | void;
   isRegenerating: boolean;
 }) {
   const roleColors: Record<string, string> = {
@@ -483,17 +565,26 @@ function SlideCard({
         </div>
       )}
 
-      {/* Content — hide text for FACT/CTA slides where it's already baked into the image */}
+      {/* Editable text — click to edit. Saves run the update-text endpoint
+          which persists and re-composites this one slide's overlay. */}
       <div className="p-4 flex-1 flex flex-col">
-        {!((slide.role === 'OPENER' || slide.role === 'FACT' || slide.role === 'CTA') && slide.imageUrl) && (
-          <>
-            <h3 className="text-sm font-semibold text-foreground mb-1 line-clamp-2">
-              {slide.displayTitle || slide.headline || '—'}
-            </h3>
-            <p className="text-xs text-muted-light mb-4 line-clamp-2 flex-1">
-              {slide.displaySupport || slide.body?.slice(0, 100) || '—'}
-            </p>
-          </>
+        <EditableText
+          label="Title"
+          value={slide.displayTitle || slide.headline || ''}
+          multiline={false}
+          disabled={isRegenerating}
+          onSave={next => onSaveText({ displayTitle: next })}
+          className="text-sm font-semibold text-foreground mb-2"
+        />
+        {(slide.role === 'FACT' || slide.role === 'IMPLICATION') && (
+          <EditableText
+            label="Body"
+            value={slide.displaySupport || slide.body || ''}
+            multiline
+            disabled={isRegenerating}
+            onSave={next => onSaveText({ displaySupport: next })}
+            className="text-xs text-muted-light mb-4"
+          />
         )}
 
         {/* Action buttons */}
@@ -571,6 +662,11 @@ function DecisionBar({
   let buttonAction: () => void;
   let buttonDisabled: boolean;
   let buttonClass: string;
+  let buttonStyle: React.CSSProperties | undefined;
+
+  // IG gradient (matches the wizard's primary CTAs). Applied inline so the
+  // disabled-state classes can still override opacity without losing the fill.
+  const IG_GRADIENT = 'linear-gradient(135deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888)';
 
   if (approved) {
     buttonLabel = 'Preview Post';
@@ -581,7 +677,8 @@ function DecisionBar({
     buttonLabel = isProcessing ? 'Approving...' : 'Approve All';
     buttonAction = onApprove;
     buttonDisabled = isProcessing;
-    buttonClass = 'bg-accent text-background hover:bg-accent-hover disabled:opacity-40';
+    buttonClass = 'text-white hover:opacity-90 disabled:opacity-40';
+    buttonStyle = { background: IG_GRADIENT };
   } else {
     buttonLabel = 'Fix slides to approve';
     buttonAction = () => {};
@@ -628,7 +725,8 @@ function DecisionBar({
         <button
           onClick={buttonAction}
           disabled={buttonDisabled}
-          className={`w-full sm:w-auto h-11 px-6 font-semibold rounded-lg text-sm transition-colors whitespace-nowrap ${buttonClass}`}
+          style={buttonStyle}
+          className={`w-full sm:w-auto h-11 px-6 font-semibold rounded-full text-sm transition-all whitespace-nowrap active:scale-[0.98] ${buttonClass}`}
         >
           {isProcessing && (
             <svg className="animate-spin -ml-1 mr-2 h-4 w-4 inline-block" viewBox="0 0 24 24" fill="none">
@@ -692,6 +790,37 @@ function ReviewView({
 
   // Current slide
   const currentSlide = job.slides[selectedSlide];
+
+  // Save user-edited text for a slide and re-composite the overlay (no AI call).
+  const handleSaveText = useCallback(
+    async (slideIndex: number, patch: { displayTitle?: string; displaySupport?: string }) => {
+      try {
+        const res = await fetch(
+          `/api/carousel/${job.id}/slides/${slideIndex}/update-text`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(patch),
+          },
+        );
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data.error || 'Save failed');
+        }
+        if (job.approved) setNeedsReapproval(true);
+        // Poll a few times — restyle runs in the background via waitUntil.
+        const poll = (attempt: number) => {
+          if (attempt > 5) return;
+          setTimeout(() => { onRefresh(); poll(attempt + 1); }, 1200);
+        };
+        poll(0);
+        setMessage(`Slide ${slideIndex + 1} text updated`);
+      } catch (err) {
+        setMessage(`Error: ${err instanceof Error ? err.message : 'Unknown'}`);
+      }
+    },
+    [job.id, job.approved, onRefresh],
+  );
 
   const handleRegen = useCallback(async (slideIndex: number, mode: 'copy' | 'image' | 'full') => {
     setRegenerating(prev => ({ ...prev, [slideIndex]: true }));
@@ -781,6 +910,23 @@ function ReviewView({
         </div>
       )}
 
+      {/* Design panel — typography tuning that re-composites in place */}
+      <div className="mb-4">
+        <CarouselDesignPanel
+          channelId={job.channelId}
+          jobId={job.id}
+          onRestyleStarted={() => {
+            setMessage('Applying new design...');
+            // Poll the job a few times so slides refresh as restyle completes.
+            const poll = (attempt: number) => {
+              if (attempt > 6) return;
+              setTimeout(() => { onRefresh(); poll(attempt + 1); }, 1200);
+            };
+            poll(0);
+          }}
+        />
+      </div>
+
       {/* Focused slide view */}
       <div className="flex flex-col items-center pb-24">
 
@@ -815,6 +961,7 @@ function ReviewView({
               onRegenCopy={() => handleRegen(currentSlide.slideIndex, 'copy')}
               onRegenImage={() => handleRegen(currentSlide.slideIndex, 'image')}
               onRegenFull={() => handleRegen(currentSlide.slideIndex, 'full')}
+              onSaveText={(patch) => handleSaveText(currentSlide.slideIndex, patch)}
               isRegenerating={!!regenerating[currentSlide.slideIndex]}
             />
           </div>

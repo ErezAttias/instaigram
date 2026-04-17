@@ -4,19 +4,23 @@ import { useState, useCallback } from 'react'
 import { SubjectStep } from './SubjectStep'
 import { AngleStep } from './AngleStep'
 import { CopyReviewStep } from './CopyReviewStep'
-import { DesignStep } from './DesignStep'
 import { ImagePreviewStep } from './ImagePreviewStep'
 
-export type WizardStep = 'subject' | 'angle' | 'copy' | 'design' | 'images' | 'done'
+// 4 steps now — design used to sit between copy and images, but typography
+// decisions depend on the actual photo contrast/composition, so design has
+// moved to the carousel viewer where the user can judge readability against
+// the real rendered slides.
+export type WizardStep = 'subject' | 'angle' | 'copy' | 'images' | 'done'
 
 const STEP_NUMBER: Record<WizardStep, number> = {
   subject: 1,
   angle: 2,
   copy: 3,
-  design: 4,
-  images: 5,
-  done: 5,
+  images: 4,
+  done: 4,
 }
+
+const TOTAL_STEPS = 4
 
 interface CarouselWizardProps {
   channelId?: string
@@ -30,7 +34,6 @@ export function CarouselWizard({ channelId, initialTopic, onComplete }: Carousel
   const [step, setStep] = useState<WizardStep>(initialTopic ? 'angle' : 'subject')
   const [subject, setSubject] = useState(initialTopic || '')
   const [jobId, setJobId] = useState<string | null>(null)
-  const [sampleSlide, setSampleSlide] = useState({ title: '', subtitle: '' })
   const [generating, setGenerating] = useState(false)
 
   // Step 1 → Step 2
@@ -65,25 +68,10 @@ export function CarouselWizard({ channelId, initialTopic, onComplete }: Carousel
     }
   }, [channelId])
 
-  // Step 3 → Step 4: Copy approved, extract sample for design preview
-  const handleCopyApprove = useCallback(async () => {
-    if (!jobId) return
-    try {
-      const res = await fetch(`/api/carousel/${jobId}`)
-      const text = await res.text()
-      const data = JSON.parse(text.replace(/[\x00-\x1f]/g, ' '))
-      const factSlide = data.slides?.find((s: { role: string }) => s.role === 'FACT')
-      if (factSlide) {
-        setSampleSlide({
-          title: factSlide.displayTitle || factSlide.headline || 'Sample Title',
-          subtitle: factSlide.displaySupport || factSlide.body || 'Sample subtitle text here.',
-        })
-      }
-    } catch {
-      setSampleSlide({ title: 'Sample Title', subtitle: 'Sample subtitle text' })
-    }
-    setStep('design')
-  }, [jobId])
+  // Step 3 → Step 4: Copy approved, jump straight to image preview (design now lives on the viewer)
+  const handleCopyApprove = useCallback(() => {
+    setStep('images')
+  }, [])
 
   // Step 3: Regenerate copy
   const handleCopyRegenerate = useCallback(async () => {
@@ -112,12 +100,7 @@ export function CarouselWizard({ channelId, initialTopic, onComplete }: Carousel
     }
   }, [jobId, subject, channelId])
 
-  // Step 4 → Step 5: Design approved
-  const handleDesignApprove = useCallback(() => {
-    setStep('images')
-  }, [])
-
-  // Step 5: Images done
+  // Step 4: Images done
   const handleImagesComplete = useCallback(() => {
     setStep('done')
     if (jobId) onComplete?.(jobId)
@@ -125,7 +108,7 @@ export function CarouselWizard({ channelId, initialTopic, onComplete }: Carousel
 
   // Progress bar
   const currentStepNum = STEP_NUMBER[step]
-  const progressPct = (currentStepNum / 5) * 100
+  const progressPct = (currentStepNum / TOTAL_STEPS) * 100
 
   if (step === 'done' && jobId) {
     return (
@@ -161,7 +144,7 @@ export function CarouselWizard({ channelId, initialTopic, onComplete }: Carousel
           />
         </div>
         <span className="text-xs text-muted/50 shrink-0">
-          Step {currentStepNum} of 5
+          Step {currentStepNum} of {TOTAL_STEPS}
         </span>
       </div>
 
@@ -191,21 +174,11 @@ export function CarouselWizard({ channelId, initialTopic, onComplete }: Carousel
         />
       )}
 
-      {step === 'design' && (
-        <DesignStep
-          sampleTitle={sampleSlide.title}
-          sampleSubtitle={sampleSlide.subtitle}
-          channelId={channelId}
-          onApprove={handleDesignApprove}
-          onBack={() => setStep('copy')}
-        />
-      )}
-
       {step === 'images' && jobId && (
         <ImagePreviewStep
           jobId={jobId}
           onComplete={handleImagesComplete}
-          onBack={() => setStep('design')}
+          onBack={() => setStep('copy')}
         />
       )}
 

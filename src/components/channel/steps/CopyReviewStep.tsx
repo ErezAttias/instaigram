@@ -80,7 +80,7 @@ export function CopyReviewStep({ jobId, topic, onApprove, onRegenerate, onBack }
     <div className="animate-fade-up bg-surface rounded-2xl border border-border py-10 px-6 lg:py-12 lg:px-10">
       <div className="max-w-2xl mx-auto">
         <p className="text-[11px] font-semibold uppercase tracking-[0.08em] mb-2 text-center bg-clip-text text-transparent" style={{ backgroundImage: IG_GRADIENT }}>
-          Step 3 of 5
+          Step 3 of 4
         </p>
         <h2 className="text-2xl font-bold tracking-tight mb-1 text-center">Review your carousel</h2>
         <p className="text-sm text-muted-light mb-8 text-center">

@@ -133,13 +133,41 @@ export class GeminiImageProvider {
 
   /**
    * Generate an image from a text prompt using Gemini.
+   *
+   * Fallback chain: if the role-appropriate model (pro for OPENER/CTA,
+   * flash for FACT/IMPLICATION) fails after retries, and it was the pro
+   * model, we try flash once before giving up. That turns "OPENER/CTA
+   * render as a pure gradient because pro timed out" into "OPENER/CTA
+   * render with the flash model instead", which is what users expect.
    */
   async generateImage(
     prompt: string,
     options?: ImageGenerationOptions
   ): Promise<AIResult<Buffer>> {
+    const primaryModel = this.resolveModel(options?.slideRole);
+    try {
+      return await this.generateWithModel(prompt, primaryModel, options);
+    } catch (err) {
+      const isProviderFail = err instanceof ProviderFailedError;
+      const proFailed = primaryModel === this.modelPro;
+      const flashAvailable = this.modelFlash && this.modelFlash !== primaryModel;
+      if (isProviderFail && proFailed && flashAvailable) {
+        console.warn(
+          `[Gemini] Pro model ${primaryModel} failed — falling back to ${this.modelFlash} so OPENER/CTA slides still get imagery.`
+        );
+        return await this.generateWithModel(prompt, this.modelFlash, options);
+      }
+      throw err;
+    }
+  }
+
+  /** Internal: one attempt at a specific model (with the usual retry loop). */
+  private async generateWithModel(
+    prompt: string,
+    model: string,
+    options?: ImageGenerationOptions,
+  ): Promise<AIResult<Buffer>> {
     const startTime = Date.now();
-    const model = this.resolveModel(options?.slideRole);
     const aspectRatio = this.resolveAspectRatio(options?.width, options?.height);
 
     console.log(`[Gemini] Model: ${model} (role: ${options?.slideRole ?? 'unset'})`);
