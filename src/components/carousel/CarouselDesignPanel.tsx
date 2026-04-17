@@ -160,6 +160,12 @@ export function CarouselDesignPanel({ channelId, jobId, onRestyleStarted }: Caro
   const versionRef = useRef(0)
   const skipFirstSaveRef = useRef(true)
 
+  // Hold the latest onRestyleStarted in a ref so queueSave's identity doesn't
+  // churn every parent render — otherwise the effect below would fire on every
+  // poll tick and keep toggling `saving` on with no user input.
+  const onRestyleStartedRef = useRef(onRestyleStarted)
+  useEffect(() => { onRestyleStartedRef.current = onRestyleStarted }, [onRestyleStarted])
+
   const queueSave = useCallback(() => {
     if (!channelId || !loaded) return
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
@@ -201,7 +207,7 @@ export function CarouselDesignPanel({ channelId, jobId, onRestyleStarted }: Caro
 
         if (myVersion !== versionRef.current) return
         setSaveState('idle')
-        onRestyleStarted?.()
+        onRestyleStartedRef.current?.()
       } catch (err) {
         if ((err as Error).name === 'AbortError') return
         if (myVersion !== versionRef.current) return
@@ -211,7 +217,7 @@ export function CarouselDesignPanel({ channelId, jobId, onRestyleStarted }: Caro
   }, [
     channelId, jobId, loaded,
     titleFontId, bodyFontId, titleColor, bodyColor,
-    titleSizePx, bodySizePx, onRestyleStarted,
+    titleSizePx, bodySizePx,
   ])
 
   // Every state change queues a save — except the first render after load

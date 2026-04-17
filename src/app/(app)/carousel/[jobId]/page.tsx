@@ -401,77 +401,6 @@ function ProgressView({
  * current value as plain text until clicked, then flips into a textarea
  * (or input for single-line). Blur/Enter saves; Escape cancels.
  */
-function EditableText({
-  label,
-  value,
-  multiline,
-  disabled,
-  onSave,
-  className,
-}: {
-  label: string;
-  value: string;
-  multiline: boolean;
-  disabled?: boolean;
-  onSave: (next: string) => void | Promise<void>;
-  className?: string;
-}) {
-  const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState(value);
-  const [saving, setSaving] = useState(false);
-
-  // Keep draft in sync when the slide's saved value changes externally (e.g. restyle).
-  useEffect(() => {
-    if (!editing) setDraft(value);
-  }, [value, editing]);
-
-  const commit = useCallback(async () => {
-    setEditing(false);
-    const trimmed = draft.trim();
-    if (trimmed === value.trim()) return;
-    setSaving(true);
-    try { await onSave(trimmed); } finally { setSaving(false); }
-  }, [draft, value, onSave]);
-
-  const cancel = useCallback(() => {
-    setDraft(value);
-    setEditing(false);
-  }, [value]);
-
-  if (editing) {
-    const sharedProps = {
-      value: draft,
-      onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setDraft(e.target.value),
-      onBlur: commit,
-      onKeyDown: (e: React.KeyboardEvent) => {
-        if (e.key === 'Escape') { e.preventDefault(); cancel(); }
-        if (e.key === 'Enter' && !multiline) { e.preventDefault(); commit(); }
-        if (e.key === 'Enter' && multiline && (e.metaKey || e.ctrlKey)) { e.preventDefault(); commit(); }
-      },
-      autoFocus: true,
-      className: `w-full resize-none rounded-md border border-[#dc2743]/40 bg-surface-elevated px-2 py-1.5 outline-none ${className ?? ''}`,
-    };
-    return multiline
-      ? <textarea rows={3} {...(sharedProps as React.TextareaHTMLAttributes<HTMLTextAreaElement>)} />
-      : <input type="text" {...(sharedProps as React.InputHTMLAttributes<HTMLInputElement>)} />;
-  }
-
-  return (
-    <div
-      role="button"
-      tabIndex={disabled ? -1 : 0}
-      aria-label={`Edit ${label.toLowerCase()}`}
-      onClick={() => !disabled && setEditing(true)}
-      onKeyDown={e => { if (!disabled && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); setEditing(true); } }}
-      className={`${className ?? ''} cursor-text rounded-md px-2 py-1.5 hover:bg-surface-hover transition-colors ${disabled ? 'opacity-60 cursor-not-allowed' : ''}`}
-      title="Click to edit"
-    >
-      {value || <span className="text-muted-light italic">—</span>}
-      {saving && <span className="ml-2 text-[10px] text-muted-light">saving…</span>}
-    </div>
-  );
-}
-
 // ─── Slide Card ─────────────────────────────────────────────
 
 function SlideCard({
@@ -499,6 +428,8 @@ function SlideCard({
   const displayStatus = isRegenerating ? 'REGENERATING' : getSlideDisplayStatus(slide, false);
   const statusConfig = STATUS_CONFIG[displayStatus];
   const isFailed = displayStatus === 'FAILED_IMAGE';
+  const hasBody = slide.role === 'FACT' || slide.role === 'IMPLICATION';
+  const [showTextEditor, setShowTextEditor] = useState(false);
 
   return (
     <div
@@ -507,8 +438,14 @@ function SlideCard({
       }`}
       {...(isFailed ? { 'data-slide-failed': '' } : {})}
     >
-      {/* Image preview */}
-      <div className="aspect-[4/5] bg-surface-elevated relative">
+      {/* Image preview — click to edit the text that's baked into the image. */}
+      <button
+        type="button"
+        onClick={() => !isRegenerating && slide.imageUrl && setShowTextEditor(true)}
+        disabled={isRegenerating || !slide.imageUrl}
+        aria-label="Edit slide text"
+        className="group aspect-[4/5] bg-surface-elevated relative block w-full text-left disabled:cursor-default"
+      >
         {slide.imageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -533,6 +470,16 @@ function SlideCard({
           </div>
         )}
 
+        {/* Hover affordance — so users know the image is editable. */}
+        {slide.imageUrl && !isRegenerating && (
+          <div className="absolute inset-0 flex items-end justify-center opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity pointer-events-none">
+            <div className="m-3 px-3 py-1.5 rounded-full bg-background/80 backdrop-blur-sm text-[11px] font-semibold text-foreground flex items-center gap-1.5">
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M11 2l3 3-8 8H3v-3l8-8z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" /></svg>
+              Tap to edit text
+            </div>
+          </div>
+        )}
+
         {/* Role badge */}
         <div className="absolute top-3 left-3">
           <span className={`text-xs font-bold tracking-wider uppercase ${roleColors[slide.role] || 'text-muted-light'}`}>
@@ -544,7 +491,7 @@ function SlideCard({
         <div className="absolute top-3 right-3 w-7 h-7 bg-background/80 backdrop-blur-sm rounded-full flex items-center justify-center">
           <span className="text-xs font-bold text-foreground">{slide.slideIndex + 1}</span>
         </div>
-      </div>
+      </button>
 
       {/* Status strip — only shown for actionable states */}
       {(displayStatus === 'GENERATING' || displayStatus === 'REGENERATING' || displayStatus === 'FAILED_IMAGE' || displayStatus === 'APPROVED') && (
@@ -565,29 +512,8 @@ function SlideCard({
         </div>
       )}
 
-      {/* Editable text — click to edit. Saves run the update-text endpoint
-          which persists and re-composites this one slide's overlay. */}
+      {/* Action buttons — text lives on the image itself, edited via modal. */}
       <div className="p-4 flex-1 flex flex-col">
-        <EditableText
-          label="Title"
-          value={slide.displayTitle || slide.headline || ''}
-          multiline={false}
-          disabled={isRegenerating}
-          onSave={next => onSaveText({ displayTitle: next })}
-          className="text-sm font-semibold text-foreground mb-2"
-        />
-        {(slide.role === 'FACT' || slide.role === 'IMPLICATION') && (
-          <EditableText
-            label="Body"
-            value={slide.displaySupport || slide.body || ''}
-            multiline
-            disabled={isRegenerating}
-            onSave={next => onSaveText({ displaySupport: next })}
-            className="text-xs text-muted-light mb-4"
-          />
-        )}
-
-        {/* Action buttons */}
         <div className="flex gap-1.5">
           <div className="flex-1 flex flex-col gap-1">
             <button
@@ -626,6 +552,125 @@ function SlideCard({
             </button>
             <span className="text-[10px] text-muted text-center leading-tight">Replaces everything</span>
           </div>
+        </div>
+      </div>
+
+      {showTextEditor && (
+        <SlideTextEditor
+          title={slide.displayTitle || slide.headline || ''}
+          body={hasBody ? (slide.displaySupport || slide.body || '') : null}
+          onClose={() => setShowTextEditor(false)}
+          onSave={async patch => {
+            await onSaveText(patch);
+            setShowTextEditor(false);
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+// Modal-style editor for the text that's baked into the slide image.
+function SlideTextEditor({
+  title: initialTitle,
+  body: initialBody,
+  onClose,
+  onSave,
+}: {
+  title: string;
+  body: string | null;
+  onClose: () => void;
+  onSave: (patch: { displayTitle?: string; displaySupport?: string }) => Promise<void> | void;
+}) {
+  const [title, setTitle] = useState(initialTitle);
+  const [body, setBody] = useState(initialBody ?? '');
+  const [saving, setSaving] = useState(false);
+
+  const dirty =
+    title.trim() !== initialTitle.trim() ||
+    (initialBody !== null && body.trim() !== initialBody.trim());
+
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', handleEsc);
+    return () => window.removeEventListener('keydown', handleEsc);
+  }, [onClose]);
+
+  const handleSave = async () => {
+    if (!dirty) { onClose(); return; }
+    setSaving(true);
+    try {
+      const patch: { displayTitle?: string; displaySupport?: string } = {};
+      if (title.trim() !== initialTitle.trim()) patch.displayTitle = title.trim();
+      if (initialBody !== null && body.trim() !== initialBody.trim()) patch.displaySupport = body.trim();
+      await onSave(patch);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-4"
+      onClick={onClose}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Edit slide text"
+        onClick={e => e.stopPropagation()}
+        className="w-full max-w-md bg-surface border border-border rounded-2xl shadow-2xl p-5 animate-scale-in"
+      >
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-sm font-semibold text-foreground">Edit slide text</h3>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close editor"
+            className="w-8 h-8 rounded-lg text-muted-light hover:text-foreground hover:bg-surface-hover transition-colors flex items-center justify-center"
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>
+          </button>
+        </div>
+
+        <label className="text-[10px] uppercase tracking-wider text-muted/60 mb-1.5 block">Title</label>
+        <input
+          type="text"
+          value={title}
+          onChange={e => setTitle(e.target.value)}
+          autoFocus
+          className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-[#dc2743]/60 mb-4"
+        />
+
+        {initialBody !== null && (
+          <>
+            <label className="text-[10px] uppercase tracking-wider text-muted/60 mb-1.5 block">Body</label>
+            <textarea
+              rows={4}
+              value={body}
+              onChange={e => setBody(e.target.value)}
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-[#dc2743]/60 resize-none mb-4"
+            />
+          </>
+        )}
+
+        <div className="flex items-center justify-end gap-2">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={saving}
+            className="h-9 px-4 text-sm font-medium text-muted-light hover:text-foreground disabled:opacity-40 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={saving || !dirty}
+            className="h-9 px-4 rounded-full text-sm font-semibold text-white bg-[#dc2743] hover:bg-[#dc2743]/90 disabled:opacity-40 transition-colors"
+          >
+            {saving ? 'Saving…' : 'Save'}
+          </button>
         </div>
       </div>
     </div>
