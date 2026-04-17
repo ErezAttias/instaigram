@@ -445,17 +445,15 @@ function ToolSegment({
       type="button"
       onClick={onClick}
       aria-pressed={active}
-      className={`flex-1 min-w-0 h-[52px] rounded-xl border transition-all flex flex-col items-center justify-center gap-0.5 px-1 ${
+      aria-label={label}
+      title={label}
+      className={`flex-1 min-w-0 h-[52px] rounded-xl border transition-all flex flex-col items-center justify-center gap-1 px-1 ${
         active
           ? 'bg-[#dc2743] border-[#dc2743] text-white'
           : 'bg-surface-elevated border-border text-foreground hover:border-[#dc2743]/40'
       }`}
     >
-      <div className="flex items-center gap-1.5">
-        {icon}
-        {/* Label is hidden on mobile (icon-only) and re-appears at sm+. */}
-        <span className="hidden sm:inline text-[10px] font-bold uppercase tracking-wider">{label}</span>
-      </div>
+      {icon}
       <span className="text-[10px] opacity-80 truncate max-w-full" style={valueStyle}>{value}</span>
     </button>
   )
