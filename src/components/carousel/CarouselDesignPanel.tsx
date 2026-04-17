@@ -7,15 +7,9 @@ import type { ChannelVisualStyleContext } from '@/lib/visual/visual-style'
 /**
  * Typography controls for the carousel viewer.
  *
- * Mirrors the Design step the user used to see before images were rendered,
- * but now lives on the viewer so typography decisions can be made against
- * the actual photos. Auto-saves channel-level visual style on change, then
- * kicks off `POST /restyle-all` so every slide re-composites with the new
- * settings (no AI re-generation — just the text overlay).
- *
- * Per-title/body target model: title font/size/align/weight/color and body
- * font/size/align/weight/color are independently adjustable. Matches the
- * DesignStep's Title/Body target segmented control.
+ * Auto-saves channel visual style + kicks `POST /restyle-all` with a 400ms
+ * debounce. Stale responses are dropped by a monotonically-increasing
+ * `designVersion`; in-flight requests are aborted on the next change.
  */
 
 const IG_GRADIENT = 'linear-gradient(135deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888)'
@@ -45,30 +39,45 @@ type Target = 'title' | 'body'
 const TITLE_RANGE = { min: 40, max: 100, step: 4 }
 const BODY_RANGE = { min: 20, max: 56, step: 2 }
 
+const DEFAULTS = {
+  titleFontId: 'inter',
+  titleSizePx: 72,
+  titleAlign: 'left' as Align,
+  titleWeight: 800,
+  titleColor: '#FFFFFF',
+  bodyFontId: 'inter',
+  bodySizePx: 40,
+  bodyAlign: 'left' as Align,
+  bodyWeight: 400,
+  bodyColor: '#D0D0D0',
+}
+
 interface CarouselDesignPanelProps {
   channelId: string | null
   jobId: string
-  /** Called after a save+restyle is kicked off so the viewer can show a re-rendering state. */
+  /** Called after a save+restyle succeeds so the viewer can refresh. */
   onRestyleStarted?: () => void
 }
+
+type SaveState = 'idle' | 'saving' | 'error'
 
 export function CarouselDesignPanel({ channelId, jobId, onRestyleStarted }: CarouselDesignPanelProps) {
   const [loaded, setLoaded] = useState(false)
   const [isOpen, setIsOpen] = useState(false)
   const [target, setTarget] = useState<Target>('title')
-  const [saving, setSaving] = useState(false)
+  const [saveState, setSaveState] = useState<SaveState>('idle')
 
-  const [titleFontId, setTitleFontId] = useState<string>('inter')
-  const [titleSizePx, setTitleSizePx] = useState<number>(72)
-  const [titleAlign, setTitleAlign] = useState<Align>('left')
-  const [titleWeight, setTitleWeight] = useState<number>(800)
-  const [titleColor, setTitleColor] = useState<string>('#FFFFFF')
+  const [titleFontId, setTitleFontId] = useState<string>(DEFAULTS.titleFontId)
+  const [titleSizePx, setTitleSizePx] = useState<number>(DEFAULTS.titleSizePx)
+  const [titleAlign, setTitleAlign] = useState<Align>(DEFAULTS.titleAlign)
+  const [titleWeight, setTitleWeight] = useState<number>(DEFAULTS.titleWeight)
+  const [titleColor, setTitleColor] = useState<string>(DEFAULTS.titleColor)
 
-  const [bodyFontId, setBodyFontId] = useState<string>('inter')
-  const [bodySizePx, setBodySizePx] = useState<number>(40)
-  const [bodyAlign, setBodyAlign] = useState<Align>('left')
-  const [bodyWeight, setBodyWeight] = useState<number>(400)
-  const [bodyColor, setBodyColor] = useState<string>('#D0D0D0')
+  const [bodyFontId, setBodyFontId] = useState<string>(DEFAULTS.bodyFontId)
+  const [bodySizePx, setBodySizePx] = useState<number>(DEFAULTS.bodySizePx)
+  const [bodyAlign, setBodyAlign] = useState<Align>(DEFAULTS.bodyAlign)
+  const [bodyWeight, setBodyWeight] = useState<number>(DEFAULTS.bodyWeight)
+  const [bodyColor, setBodyColor] = useState<string>(DEFAULTS.bodyColor)
 
   // Load channel visual style on mount so the controls reflect what's saved.
   useEffect(() => {
@@ -145,37 +154,58 @@ export function CarouselDesignPanel({ channelId, jobId, onRestyleStarted }: Caro
   const titleFont = TITLE_FONTS.find(f => f.id === titleFontId) ?? TITLE_FONTS[0]
   const bodyFont = TITLE_FONTS.find(f => f.id === bodyFontId) ?? TITLE_FONTS[0]
 
-  // Debounced save: any control change queues a save + restyle ~400ms later.
+  // Save coordination: debounce, cancel inflight, drop stale responses.
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  // Skip the very first post-load render so hydrating from the server doesn't
-  // trigger a pointless save + restyle round-trip.
+  const inflightRef = useRef<AbortController | null>(null)
+  const versionRef = useRef(0)
   const skipFirstSaveRef = useRef(true)
 
   const queueSave = useCallback(() => {
     if (!channelId || !loaded) return
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+
     saveTimerRef.current = setTimeout(async () => {
-      setSaving(true)
+      // Cancel any in-flight save — we'll issue a fresh one with current state.
+      inflightRef.current?.abort()
+      const ctrl = new AbortController()
+      inflightRef.current = ctrl
+      const myVersion = ++versionRef.current
+
+      setSaveState('saving')
       try {
-        await fetch(`/api/admin/channels/${channelId}/visual-style`, {
+        const stylePayload = {
+          titleFontId,
+          bodyFontId,
+          headlineColor: titleColor,
+          bodyColor: bodyColor,
+          t1FontSizePx: titleSizePx,
+          t2FontSizePx: bodySizePx,
+        }
+        const styleRes = await fetch(`/api/admin/channels/${channelId}/visual-style`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            titleFontId,
-            bodyFontId,
-            headlineColor: titleColor,
-            bodyColor: bodyColor,
-            t1FontSizePx: titleSizePx,
-            t2FontSizePx: bodySizePx,
-          }),
+          body: JSON.stringify(stylePayload),
+          signal: ctrl.signal,
         })
-        // Kick off the re-composite for every slide (no AI, just overlay).
-        await fetch(`/api/carousel/${jobId}/restyle-all`, { method: 'POST' })
+        if (!styleRes.ok) throw new Error(`style save failed (${styleRes.status})`)
+
+        // If a newer change started while we were saving style, abort now —
+        // the next queueSave() will do the restyle with the newer state.
+        if (myVersion !== versionRef.current) return
+
+        const restyleRes = await fetch(`/api/carousel/${jobId}/restyle-all`, {
+          method: 'POST',
+          signal: ctrl.signal,
+        })
+        if (!restyleRes.ok) throw new Error(`restyle failed (${restyleRes.status})`)
+
+        if (myVersion !== versionRef.current) return
+        setSaveState('idle')
         onRestyleStarted?.()
-      } catch {
-        // Silent — the polling pipeline on the viewer will still pick up changes.
-      } finally {
-        setSaving(false)
+      } catch (err) {
+        if ((err as Error).name === 'AbortError') return
+        if (myVersion !== versionRef.current) return
+        setSaveState('error')
       }
     }, 400)
   }, [
@@ -193,17 +223,34 @@ export function CarouselDesignPanel({ channelId, jobId, onRestyleStarted }: Caro
       return
     }
     queueSave()
-    return () => {
-      if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
-    }
   }, [
     queueSave, loaded,
     titleFontId, titleSizePx, titleAlign, titleWeight, titleColor,
     bodyFontId, bodySizePx, bodyAlign, bodyWeight, bodyColor,
   ])
 
-  const decSize = () => active.setSizePx(Math.max(active.range.min, active.sizePx - active.range.step))
-  const incSize = () => active.setSizePx(Math.min(active.range.max, active.sizePx + active.range.step))
+  // Cleanup on unmount.
+  useEffect(() => () => {
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+    inflightRef.current?.abort()
+  }, [])
+
+  const clampSize = (n: number) => Math.min(active.range.max, Math.max(active.range.min, n))
+  const decSize = () => active.setSizePx(clampSize(active.sizePx - active.range.step))
+  const incSize = () => active.setSizePx(clampSize(active.sizePx + active.range.step))
+
+  const handleReset = () => {
+    setTitleFontId(DEFAULTS.titleFontId)
+    setTitleSizePx(DEFAULTS.titleSizePx)
+    setTitleAlign(DEFAULTS.titleAlign)
+    setTitleWeight(DEFAULTS.titleWeight)
+    setTitleColor(DEFAULTS.titleColor)
+    setBodyFontId(DEFAULTS.bodyFontId)
+    setBodySizePx(DEFAULTS.bodySizePx)
+    setBodyAlign(DEFAULTS.bodyAlign)
+    setBodyWeight(DEFAULTS.bodyWeight)
+    setBodyColor(DEFAULTS.bodyColor)
+  }
 
   return (
     <div className="rounded-2xl border border-border bg-surface overflow-hidden">
@@ -211,21 +258,29 @@ export function CarouselDesignPanel({ channelId, jobId, onRestyleStarted }: Caro
       <button
         type="button"
         onClick={() => setIsOpen(v => !v)}
+        aria-expanded={isOpen}
+        aria-controls="design-panel-body"
         className="w-full flex items-center justify-between px-4 py-3 hover:bg-surface-hover transition-colors"
       >
-        <div className="flex items-center gap-3">
-          <span className="text-xs font-semibold uppercase tracking-wider bg-clip-text text-transparent" style={{ backgroundImage: IG_GRADIENT }}>
+        <div className="flex items-center gap-3 min-w-0">
+          <span className="text-xs font-semibold uppercase tracking-wider bg-clip-text text-transparent shrink-0" style={{ backgroundImage: IG_GRADIENT }}>
             Design
           </span>
-          <span className="text-xs text-muted-light">
-            Tune typography. Re-composites instantly — no new AI calls.
+          <span className="text-xs text-muted-light truncate">
+            {isOpen ? 'Tune typography. Re-composites instantly — no new AI calls.' : 'Tap to tune typography'}
           </span>
         </div>
-        <div className="flex items-center gap-2">
-          {saving && (
+        <div className="flex items-center gap-2 shrink-0">
+          {saveState === 'saving' && (
             <span className="text-[10px] text-muted-light flex items-center gap-1.5">
               <span className="w-3 h-3 border-2 border-muted/30 border-t-muted rounded-full animate-spin" />
               Saving
+            </span>
+          )}
+          {saveState === 'error' && (
+            <span className="text-[10px] text-danger flex items-center gap-1.5" title="Save failed — change something to retry">
+              <span className="w-1.5 h-1.5 rounded-full bg-danger" />
+              Save failed
             </span>
           )}
           <svg
@@ -233,6 +288,7 @@ export function CarouselDesignPanel({ channelId, jobId, onRestyleStarted }: Caro
             viewBox="0 0 16 16"
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
+            aria-hidden="true"
           >
             <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
@@ -240,28 +296,40 @@ export function CarouselDesignPanel({ channelId, jobId, onRestyleStarted }: Caro
       </button>
 
       {isOpen && (
-        <div className="px-4 pb-4 pt-2 space-y-5 border-t border-border/60">
-          {/* Target selector */}
-          <div>
-            <label className="text-[10px] uppercase tracking-wider text-muted/60 mb-1.5 block">Editing</label>
-            <div className="inline-flex rounded-xl border-2 border-border p-1">
-              {(['title', 'body'] as const).map(t => {
-                const isActive = target === t
-                const swatch = t === 'title' ? titleColor : bodyColor
-                return (
-                  <button
-                    key={t}
-                    onClick={() => setTarget(t)}
-                    className={`px-4 h-9 rounded-lg flex items-center gap-2 text-sm font-semibold transition-all ${
-                      isActive ? 'bg-[#dc2743]/10 text-[#dc2743]' : 'text-muted-light hover:text-foreground'
-                    }`}
-                  >
-                    <span className="w-3 h-3 rounded-full border border-white/20" style={{ background: swatch }} />
-                    {t === 'title' ? 'Title' : 'Body'}
-                  </button>
-                )
-              })}
+        <div id="design-panel-body" className="px-4 pb-4 pt-2 space-y-5 border-t border-border/60">
+          {/* Target selector + Reset */}
+          <div className="flex items-end justify-between flex-wrap gap-2">
+            <div>
+              <label className="text-[10px] uppercase tracking-wider text-muted/60 mb-1.5 block">Editing</label>
+              <div className="inline-flex rounded-xl border-2 border-border p-1">
+                {(['title', 'body'] as const).map(t => {
+                  const isActive = target === t
+                  const swatch = t === 'title' ? titleColor : bodyColor
+                  return (
+                    <button
+                      key={t}
+                      onClick={() => setTarget(t)}
+                      aria-pressed={isActive}
+                      className={`px-4 h-9 rounded-lg flex items-center gap-2 text-sm font-semibold transition-all ${
+                        isActive
+                          ? 'bg-[#dc2743] text-white shadow-sm ring-1 ring-[#dc2743]'
+                          : 'text-muted-light hover:text-foreground'
+                      }`}
+                    >
+                      <span className="w-3 h-3 rounded-full border border-white/30" style={{ background: swatch }} />
+                      {t === 'title' ? 'Title' : 'Body'}
+                    </button>
+                  )
+                })}
+              </div>
             </div>
+            <button
+              type="button"
+              onClick={handleReset}
+              className="text-[11px] font-semibold text-muted-light hover:text-foreground underline underline-offset-2 transition-colors"
+            >
+              Reset design
+            </button>
           </div>
 
           {/* Font */}
@@ -302,8 +370,21 @@ export function CarouselDesignPanel({ channelId, jobId, onRestyleStarted }: Caro
                 >
                   −
                 </button>
-                <div className="min-w-[58px] text-center tabular-nums text-sm font-semibold text-foreground">
-                  {active.sizePx}px
+                <div className="flex items-center">
+                  <input
+                    type="number"
+                    min={active.range.min}
+                    max={active.range.max}
+                    step={active.range.step}
+                    value={active.sizePx}
+                    onChange={e => {
+                      const raw = parseInt(e.target.value, 10)
+                      if (Number.isFinite(raw)) active.setSizePx(clampSize(raw))
+                    }}
+                    aria-label={target === 'title' ? 'Title size in pixels' : 'Body size in pixels'}
+                    className="w-12 text-center bg-transparent tabular-nums text-sm font-semibold text-foreground outline-none focus:ring-1 focus:ring-[#dc2743]/40 rounded-md"
+                  />
+                  <span className="text-xs text-muted-light">px</span>
                 </div>
                 <button
                   type="button"
@@ -325,8 +406,9 @@ export function CarouselDesignPanel({ channelId, jobId, onRestyleStarted }: Caro
                     key={a}
                     onClick={() => active.setAlign(a)}
                     aria-label={`Align ${a}`}
+                    aria-pressed={active.align === a}
                     className={`w-10 h-9 rounded-lg flex items-center justify-center transition-all ${
-                      active.align === a ? 'bg-[#dc2743]/10 text-[#dc2743]' : 'text-muted-light hover:text-foreground'
+                      active.align === a ? 'bg-[#dc2743] text-white' : 'text-muted-light hover:text-foreground'
                     }`}
                   >
                     <AlignIcon align={a} />

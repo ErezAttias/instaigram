@@ -94,6 +94,12 @@ RULES (non-negotiable):
 - Vary the formats across all 5 types
 - Every fact must be TIMELESS — true yesterday, true today, true in 10 years
 
+TRUTHFULNESS (hard filter — reject any hook that fails ANY check):
+- Do NOT invent or estimate numbers. If you are not certain of a specific count, length, weight, or date, omit the number entirely rather than guessing. "Dumbledore's full name has 149 letters" is wrong; only state a number you can defend letter-by-letter.
+- Do NOT assert causal or temporal links you cannot verify. "X was arrested, SO their character was killed" — the "so" needs a documented causal chain. If the cause is your inference, drop it.
+- Do NOT dress up opinion as fact. "The best Harry Potter scene" is not a fact.
+- A hook that is engaging but unverifiable must be discarded. It is better to return fewer hooks than to include a single false one.
+
 OUTPUT: Return a JSON object with this exact structure:
 {
   "hooks": [

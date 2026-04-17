@@ -876,6 +876,14 @@ function ReviewView({
     }
   }, [job.id, onRefresh, onTransitionToPreview]);
 
+  // Bumped after every successful restyle so slide image URLs gain a fresh
+  // ?v= query param and the browser drops its cached composite.
+  const [imageVersion, setImageVersion] = useState(0);
+  const bustImgSrc = useCallback((url: string | null) => {
+    if (!url) return url;
+    return imageVersion > 0 ? `${url}${url.includes('?') ? '&' : '?'}v=${imageVersion}` : url;
+  }, [imageVersion]);
+
   // Jump to first failed slide — selects it instead of scrolling
   const handleJumpToIssue = useCallback(() => {
     const firstFailedIndex = job.slides.findIndex(s => s.status === 'FAILED_IMAGE' || !s.imageUrl);
@@ -890,9 +898,9 @@ function ReviewView({
   }, [onTransitionToPreview]);
 
   return (
-    <div className="animate-fade-up">
+    <div className="animate-fade-up flex flex-col">
       {/* Header */}
-      <div className="mb-6">
+      <div className="mb-6 order-1">
         <h1 className="text-xl font-bold tracking-tight">{job.topic}</h1>
         {failedSlides.length === job.slides.length ? (
           <p className="text-sm text-danger mt-1">Generation finished — no usable slides were produced</p>
@@ -910,25 +918,35 @@ function ReviewView({
         </div>
       )}
 
-      {/* Design panel — typography tuning that re-composites in place */}
-      <div className="mb-4">
+      {/* Design panel — typography tuning that re-composites in place.
+          On small viewports it sits below the slide preview so the user can
+          see their change land; on lg+ it returns to its place above. */}
+      <div className="mb-4 order-2 lg:order-none">
         <CarouselDesignPanel
           channelId={job.channelId}
           jobId={job.id}
           onRestyleStarted={() => {
             setMessage('Applying new design...');
+            // Bump the image version so <img> srcs get a fresh ?v= and the
+            // browser drops its cached composite.
+            setImageVersion(v => v + 1);
             // Poll the job a few times so slides refresh as restyle completes.
             const poll = (attempt: number) => {
               if (attempt > 6) return;
-              setTimeout(() => { onRefresh(); poll(attempt + 1); }, 1200);
+              setTimeout(() => {
+                onRefresh();
+                setImageVersion(v => v + 1);
+                poll(attempt + 1);
+              }, 1200);
             };
             poll(0);
           }}
         />
       </div>
 
-      {/* Focused slide view */}
-      <div className="flex flex-col items-center pb-24">
+      {/* Focused slide view — on mobile this appears above the design panel
+          so style changes land in view. */}
+      <div className="flex flex-col items-center pb-24 order-1 lg:order-none">
 
         {/* Navigation bar */}
         <div className="flex items-center gap-4 mb-4 w-full max-w-sm">
@@ -957,7 +975,7 @@ function ReviewView({
         {currentSlide && (
           <div className="w-full max-w-sm">
             <SlideCard
-              slide={currentSlide}
+              slide={{ ...currentSlide, imageUrl: bustImgSrc(currentSlide.imageUrl) }}
               onRegenCopy={() => handleRegen(currentSlide.slideIndex, 'copy')}
               onRegenImage={() => handleRegen(currentSlide.slideIndex, 'image')}
               onRegenFull={() => handleRegen(currentSlide.slideIndex, 'full')}
@@ -967,8 +985,9 @@ function ReviewView({
           </div>
         )}
 
-        {/* Thumbnail filmstrip */}
-        <div className="flex gap-2 mt-6 px-4 overflow-x-auto max-w-full scrollbar-hide">
+        {/* Thumbnail filmstrip — wraps on narrow screens so ≤375px viewports
+            don't push thumbs off the edge; scrolls horizontally when wider. */}
+        <div className="flex flex-wrap sm:flex-nowrap justify-center gap-2 mt-6 px-4 sm:overflow-x-auto max-w-full scrollbar-hide">
           {job.slides.map((slide, i) => {
             const status = getSlideDisplayStatus(slide, false);
             const isActive = i === selectedSlide;
@@ -992,7 +1011,7 @@ function ReviewView({
                 {slide.imageUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
-                    src={slide.imageUrl}
+                    src={bustImgSrc(slide.imageUrl) ?? slide.imageUrl}
                     alt={`Slide ${i + 1} thumbnail`}
                     className={`w-full h-full object-cover ${isActive ? '' : 'opacity-70 hover:opacity-100'}`}
                   />
