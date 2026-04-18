@@ -607,14 +607,29 @@ function LiveTextOverlay({
         alignItems: alignItemsForColumn,
       }}
     >
-      {/* Gradient to match the server overlay so text stays legible on any photo. */}
+      {/* Gradient — mirrors the server overlay so the preview matches the
+          exported image. Expressed in canvas-space (top 60% → 100%), it
+          ramps from transparent → 1.0 black by the 75% seam where the
+          base image ends, then stays solid below. Because both the live
+          preview and the server composite reach full black at the seam,
+          the image→text transition has no visible edge. */}
       <div
         aria-hidden="true"
         className="absolute inset-x-0"
         style={{
-          top: '-50%',
+          top: '-50%', // extends up to ~35% of the slide
           bottom: 0,
-          background: 'linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.4) 50%, rgba(0,0,0,0.88) 100%)',
+          background: [
+            'linear-gradient(to bottom,',
+            '  rgba(0,0,0,0) 0%,',
+            '  rgba(0,0,0,0) 12%,',          // slide ~55%
+            '  rgba(0,0,0,0.22) 25%,',       // slide ~60%
+            '  rgba(0,0,0,0.48) 45%,',       // slide ~68%
+            '  rgba(0,0,0,0.74) 65%,',       // slide ~73%
+            '  rgba(0,0,0,0.92) 72%,',       // slide ~75%
+            '  rgba(0,0,0,1) 78%,',          // seam
+            '  rgba(0,0,0,1) 100%)',
+          ].join(' '),
         }}
       />
       <div

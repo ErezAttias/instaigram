@@ -295,19 +295,22 @@ function buildBoldOverlay(
     );
   }
 
-  // Heavy gradient overlay — stronger than detailed layout
-  // Starts transparent at top, becomes fully black by ~55% of the canvas
+  // Subject-safe gradient — transparent over the top 40% (subject stays
+  // clean), ramps to fully black by the 75% seam where the image ends
+  // and solid-black text space begins. Because the gradient reaches 1.0
+  // at exactly the seam, the transition reads as a continuous fade with
+  // no visible boundary between image and bar.
   const gradient = `
     <defs>
       <linearGradient id="boldGrad" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stop-color="#000000" stop-opacity="0"/>
-        <stop offset="30%" stop-color="#000000" stop-opacity="0"/>
-        <stop offset="45%" stop-color="#000000" stop-opacity="0.15"/>
-        <stop offset="55%" stop-color="#000000" stop-opacity="0.40"/>
-        <stop offset="65%" stop-color="#000000" stop-opacity="0.65"/>
-        <stop offset="75%" stop-color="#000000" stop-opacity="0.82"/>
-        <stop offset="85%" stop-color="#000000" stop-opacity="0.92"/>
-        <stop offset="100%" stop-color="#000000" stop-opacity="0.96"/>
+        <stop offset="0%"  stop-color="#000000" stop-opacity="0"/>
+        <stop offset="40%" stop-color="#000000" stop-opacity="0"/>
+        <stop offset="50%" stop-color="#000000" stop-opacity="0.22"/>
+        <stop offset="58%" stop-color="#000000" stop-opacity="0.48"/>
+        <stop offset="66%" stop-color="#000000" stop-opacity="0.74"/>
+        <stop offset="72%" stop-color="#000000" stop-opacity="0.92"/>
+        <stop offset="75%" stop-color="#000000" stop-opacity="1"/>
+        <stop offset="100%" stop-color="#000000" stop-opacity="1"/>
       </linearGradient>
     </defs>
     <rect x="0" y="0" width="${CANVAS.width}" height="${CANVAS.height}" fill="url(#boldGrad)"/>`;

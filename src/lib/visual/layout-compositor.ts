@@ -205,14 +205,18 @@ async function assembleSlide(
 // ─── Full-Bleed API (Bold Layout) ────────────────────────────────
 
 /**
- * Generate a full-bleed slide image that fills the entire 1080x1350 canvas.
- * Used by Bold layout — no text bar, text is overlaid directly on the image.
+ * Subject-safe base image for the Bold layout.
  *
- * Pipeline:
- *   1. Generate image at 3:4 portrait
- *   2. Cover-crop to full 1080x1350
- *   3. Return buffer (no bar, no stacking)
+ * Gemini is asked for a 1:1 image, which concentrates the subject near the
+ * square's center. We fit that square into the top 75% of the 1080×1350
+ * slide (1080×1013) anchored to the top — so the subject lands around the
+ * slide's ~35% mark, comfortably above all text. The bottom 337px is pure
+ * black so text has a fully legible backdrop. The gradient overlay in
+ * bold-slide-renderer fades to 100% black at the 75% seam, which is why the
+ * darkening reads as continuous, not as two stacked regions.
  */
+const BOLD_IMAGE_FILL_HEIGHT = Math.round(CANVAS.height * 0.75); // 1013
+
 export async function generateFullBleedImage(
   originalPrompt: string,
   imageProvider: ImageGenerator,
@@ -223,23 +227,39 @@ export async function generateFullBleedImage(
 
   const result = await imageProvider.generateImage(subjectPrompt, {
     ...options,
-    width: 768,
+    width: 1024,
     height: 1024,
   });
 
   console.log(`[LayoutCompositor:FullBleed] Generated via ${result.imageSource} (${result.meta.durationMs}ms)`);
 
-  // Cover-crop to full canvas size (no text bar)
-  const fullBleed = await sharp(result.data)
-    .resize(CANVAS.width, CANVAS.height, {
+  // Fit the 1:1 image into the top 75% (1080×1013). `position: top`
+  // anchors the subject high — cover-cropping trims the bottom edge of
+  // the square, which is the area we darken anyway.
+  const topImage = await sharp(result.data)
+    .resize(CANVAS.width, BOLD_IMAGE_FILL_HEIGHT, {
       fit: 'cover',
-      position: 'centre',
+      position: 'top',
     })
     .png()
     .toBuffer();
 
+  // Paste on a pure black canvas; remaining 337px below stays black so
+  // the gradient overlay can fade to it seamlessly.
+  const fullBleed = await sharp({
+    create: {
+      width: CANVAS.width,
+      height: CANVAS.height,
+      channels: 3,
+      background: { r: 0, g: 0, b: 0 },
+    },
+  })
+    .composite([{ input: topImage, top: 0, left: 0 }])
+    .png()
+    .toBuffer();
+
   const outMeta = await sharp(fullBleed).metadata();
-  console.log(`[LayoutCompositor:FullBleed] Output: ${outMeta.width}x${outMeta.height}`);
+  console.log(`[LayoutCompositor:FullBleed] Output: ${outMeta.width}x${outMeta.height} (image top ${BOLD_IMAGE_FILL_HEIGHT}px)`);
 
   return {
     image: fullBleed,
