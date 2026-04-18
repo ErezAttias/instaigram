@@ -462,7 +462,47 @@ function SlideCard({
             <img
               src={slide.imageUrl}
               alt={`Slide ${slide.slideIndex + 1}`}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-contain"
+            />
+            {/* Gradient + blur strip — always rendered so the fade works for
+                both live-overlay slides and legacy slides with baked-in text.
+                Positioned directly in slide-space (button = aspect-square). */}
+            <div
+              aria-hidden="true"
+              className="absolute inset-x-0"
+              style={{
+                top: '35%',
+                bottom: 0,
+                background: [
+                  'linear-gradient(to bottom,',
+                  '  rgba(0,0,0,0) 0%,',
+                  '  rgba(0,0,0,0.01) 5%,',
+                  '  rgba(0,0,0,0.03) 12%,',
+                  '  rgba(0,0,0,0.06) 20%,',
+                  '  rgba(0,0,0,0.12) 28%,',
+                  '  rgba(0,0,0,0.20) 35%,',
+                  '  rgba(0,0,0,0.32) 42%,',
+                  '  rgba(0,0,0,0.45) 50%,',
+                  '  rgba(0,0,0,0.58) 57%,',
+                  '  rgba(0,0,0,0.70) 63%,',
+                  '  rgba(0,0,0,0.82) 69%,',
+                  '  rgba(0,0,0,0.92) 74%,',
+                  '  rgba(0,0,0,1) 80%,',
+                  '  rgba(0,0,0,1) 100%)',
+                ].join(' '),
+              }}
+            />
+            <div
+              aria-hidden="true"
+              className="absolute inset-x-0"
+              style={{
+                top: '28%',
+                height: '32%',
+                backdropFilter: 'blur(12px)',
+                WebkitBackdropFilter: 'blur(12px)',
+                maskImage: 'linear-gradient(to bottom, transparent 0%, black 30%, black 70%, transparent 100%)',
+                WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, black 30%, black 70%, transparent 100%)',
+              }}
             />
             {useLivePreview && liveDesign && (
               <LiveTextOverlay
@@ -607,53 +647,6 @@ function LiveTextOverlay({
         alignItems: alignItemsForColumn,
       }}
     >
-      {/* Gradient — mirrors the server overlay so the preview matches the
-          exported image. Expressed in canvas-space (top 60% → 100%), it
-          ramps from transparent → 1.0 black by the 75% seam where the
-          base image ends, then stays solid below. Because both the live
-          preview and the server composite reach full black at the seam,
-          the image→text transition has no visible edge. */}
-      <div
-        aria-hidden="true"
-        className="absolute inset-x-0"
-        style={{
-          top: '-50%', // extends up to ~35% of the slide
-          bottom: 0,
-          background: [
-            'linear-gradient(to bottom,',
-            '  rgba(0,0,0,0) 0%,',
-            '  rgba(0,0,0,0.01) 5%,',
-            '  rgba(0,0,0,0.03) 12%,',
-            '  rgba(0,0,0,0.06) 20%,',
-            '  rgba(0,0,0,0.12) 28%,',
-            '  rgba(0,0,0,0.20) 35%,',
-            '  rgba(0,0,0,0.32) 42%,',
-            '  rgba(0,0,0,0.45) 50%,',
-            '  rgba(0,0,0,0.58) 57%,',
-            '  rgba(0,0,0,0.70) 63%,',
-            '  rgba(0,0,0,0.82) 69%,',
-            '  rgba(0,0,0,0.92) 74%,',
-            '  rgba(0,0,0,1) 80%,',
-            '  rgba(0,0,0,1) 100%)',
-          ].join(' '),
-        }}
-      />
-      {/* Blur strip — softens image pixels at the gradient seam so the
-          image→black transition disappears behind a haze rather than a line.
-          Positioned to span ~30–62% of the slide (container starts at 60%).
-          The mask gradient feathers the blur itself so it leaves no hard edges. */}
-      <div
-        aria-hidden="true"
-        className="absolute inset-x-0"
-        style={{
-          top: '-75%',
-          height: '80%',
-          backdropFilter: 'blur(12px)',
-          WebkitBackdropFilter: 'blur(12px)',
-          maskImage: 'linear-gradient(to bottom, transparent 0%, black 25%, black 75%, transparent 100%)',
-          WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, black 25%, black 75%, transparent 100%)',
-        }}
-      />
       <div
         className="relative flex flex-col w-full"
         style={{ gap: `${(20 / 1080) * 100}cqw`, alignItems: alignItemsForColumn }}
