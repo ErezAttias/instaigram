@@ -462,11 +462,9 @@ function SlideCard({
             <img
               src={slide.imageUrl}
               alt={`Slide ${slide.slideIndex + 1}`}
-              className="w-full h-full object-contain"
+              className="w-full h-full object-cover"
             />
-            {/* Gradient + blur strip — always rendered so the fade works for
-                both live-overlay slides and legacy slides with baked-in text.
-                Positioned directly in slide-space (button = aspect-square). */}
+            {/* Gradient — always rendered, covers bottom 65% of slide. */}
             <div
               aria-hidden="true"
               className="absolute inset-x-0"
@@ -492,16 +490,17 @@ function SlideCard({
                 ].join(' '),
               }}
             />
+            {/* Feathered black seam strip — a solid black div with filter:blur
+                so its own edges are soft. Bleeds up into the image and down
+                into the text zone, hiding the hard boundary. */}
             <div
               aria-hidden="true"
               className="absolute inset-x-0"
               style={{
-                top: '28%',
-                height: '32%',
-                backdropFilter: 'blur(12px)',
-                WebkitBackdropFilter: 'blur(12px)',
-                maskImage: 'linear-gradient(to bottom, transparent 0%, black 30%, black 70%, transparent 100%)',
-                WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, black 30%, black 70%, transparent 100%)',
+                top: 'calc(60% - 20px)',
+                height: '40px',
+                background: 'black',
+                filter: 'blur(18px)',
               }}
             />
             {useLivePreview && liveDesign && (
