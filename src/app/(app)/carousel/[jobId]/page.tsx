@@ -638,6 +638,22 @@ function LiveTextOverlay({
           ].join(' '),
         }}
       />
+      {/* Blur strip — softens image pixels at the gradient seam so the
+          image→black transition disappears behind a haze rather than a line.
+          Positioned to span ~30–62% of the slide (container starts at 60%).
+          The mask gradient feathers the blur itself so it leaves no hard edges. */}
+      <div
+        aria-hidden="true"
+        className="absolute inset-x-0"
+        style={{
+          top: '-75%',
+          height: '80%',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+          maskImage: 'linear-gradient(to bottom, transparent 0%, black 25%, black 75%, transparent 100%)',
+          WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, black 25%, black 75%, transparent 100%)',
+        }}
+      />
       <div
         className="relative flex flex-col w-full"
         style={{ gap: `${(20 / 1080) * 100}cqw`, alignItems: alignItemsForColumn }}
