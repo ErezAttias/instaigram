@@ -997,12 +997,17 @@ export async function runCarouselGeneration(
         slideStatus = 'PENDING'; // frontend maps PENDING+imageUrl → READY display
       }
 
-      // Save image to storage (R2 or local disk); store URL in DB
-      const savedImageUrl = imageBase64
-        ? await saveImage(jobId, slide.slideNumber, imageBase64)
+      // Save the raw image (no text) as the slide's primary image — preview
+      // draws text as a CSS overlay on top. Compositing to a flat PNG happens
+      // on demand at export/publish time (see composeSlideForPublish).
+      // Fall back to the composited image only when no raw is available (e.g.
+      // documentary-style text-only fallback) so the slide still has an image.
+      const primaryBase64 = rawImageBase64 ?? imageBase64;
+      const savedImageUrl = primaryBase64
+        ? await saveImage(jobId, slide.slideNumber, primaryBase64)
         : null;
 
-      // Save raw image (before text overlay) for future restyle operations
+      // Also keep the -raw.png sibling for legacy callers (restyleCarouselSlide)
       if (rawImageBase64) {
         await saveRawImage(jobId, slide.slideNumber, rawImageBase64).catch(err =>
           console.warn(`[ImageStage] Failed to save raw image for slide ${slide.slideNumber}: ${err}`)
@@ -1027,6 +1032,7 @@ export async function runCarouselGeneration(
           displayTitle: compressed?.displayTitle ?? null,
           displaySupport: compressed?.displaySupport ?? null,
           imageUrl: savedImageUrl,
+          hasEmbeddedText: !rawImageBase64,
           imageError,
           status: slideStatus,
           ...(resolvedImageSource !== null && { imageSource: resolvedImageSource }),
@@ -1034,6 +1040,7 @@ export async function runCarouselGeneration(
         },
         update: {
           imageUrl: savedImageUrl,
+          hasEmbeddedText: !rawImageBase64,
           imageError,
           status: slideStatus,
           ...(resolvedImageSource !== null && { imageSource: resolvedImageSource }),
@@ -1420,9 +1427,10 @@ export async function regenerateCarouselSlideImage(
       undefined, // swipeCta
     );
 
-    const regenImageUrl = await saveImage(jobId, slideIndex, renderOutput.imageBase64);
+    // Save the raw (no-text) as primary; preview overlays text in CSS.
+    const primaryBase64 = renderOutput.rawImageBase64 ?? renderOutput.imageBase64;
+    const regenImageUrl = await saveImage(jobId, slideIndex, primaryBase64);
 
-    // Save raw image for future restyle operations
     if (renderOutput.rawImageBase64) {
       await saveRawImage(jobId, slideIndex, renderOutput.rawImageBase64).catch(err =>
         console.warn(`[Regen] Failed to save raw image for slide ${slideIndex}: ${err}`)
@@ -1433,6 +1441,7 @@ export async function regenerateCarouselSlideImage(
       where: { id: slide.id },
       data: {
         imageUrl: regenImageUrl,
+        hasEmbeddedText: !renderOutput.rawImageBase64,
         imageError: null,
         status: 'PENDING',
         ...(renderOutput.resolvedImageSource !== null && { imageSource: renderOutput.resolvedImageSource }),
@@ -1558,6 +1567,81 @@ export async function restyleCarouselSlide(jobId: string, slideIndex: number) {
   }
 }
 
+// ─── Compose for publish (flat PNG with text baked in) ─────
+
+/**
+ * Composites a slide's raw image with the channel's current text/design and
+ * writes the flat PNG to storage under a `-pub.png` sibling key. Returns the
+ * public URL. Does NOT mutate `CarouselSlide.imageUrl` — the slide's primary
+ * URL stays pointed at the raw (text-free) image for live preview.
+ *
+ * Used by the Instagram publish path; Instagram requires a single flat image.
+ */
+export async function composeSlideForPublish(
+  jobId: string,
+  slideIndex: number,
+): Promise<string> {
+  const job = await prisma.carouselJob.findUnique({
+    where: { id: jobId },
+    include: { slides: { orderBy: { slideIndex: 'asc' } } },
+  });
+  if (!job) throw new Error('CarouselJob not found');
+  const slide = job.slides.find(s => s.slideIndex === slideIndex);
+  if (!slide) throw new Error(`Slide ${slideIndex} not found`);
+
+  const rawImage = await loadRawImage(jobId, slideIndex);
+  if (!rawImage) {
+    // No raw cached (old carousel or non-photographic fallback) — just
+    // reuse the stored image as-is. It may already be a baked composite.
+    if (!slide.imageUrl) throw new Error(`Slide ${slideIndex} has no image`);
+    return slide.imageUrl;
+  }
+
+  let channelId = job.channelId;
+  if (!channelId) {
+    const linkedPost = await prisma.post.findFirst({
+      where: { carouselJobId: job.id },
+      select: { channelId: true },
+    });
+    channelId = linkedPost?.channelId ?? null;
+  }
+  let visualStyle: ChannelVisualStyleContext = DEFAULT_VISUAL_STYLE;
+  if (channelId) {
+    const styleRecord = await prisma.channelVisualStyle.findUnique({
+      where: { channelId },
+    });
+    if (styleRecord) {
+      visualStyle = styleRecord as unknown as ChannelVisualStyleContext;
+    }
+  }
+
+  const displayTitle = slide.displayTitle || slide.headline || '';
+  const displaySupport = slide.displaySupport || '';
+  const promptOutput = buildSlidePrompt({
+    slideRole: slide.role as 'HOOK' | 'FACT' | 'CTA',
+    subject: slide.topicEntity || job.topic,
+    topic: job.topic,
+    headlineText: displayTitle,
+    bodyText: displaySupport,
+  });
+
+  const boldResult = await renderBoldSlide({
+    imagePrompt: promptOutput.imagePrompt,
+    displayTitle,
+    displaySubtitle: displaySupport || undefined,
+    slideRole: slide.role,
+    visualStyle,
+    baseImage: rawImage,
+  });
+  if (!boldResult.image) {
+    throw new Error(`Publish composite returned no image for slide ${slideIndex}`);
+  }
+
+  // Save under a dedicated `-pub.png` key so the slide's primary raw stays intact.
+  const { saveImageWithSuffix } = await import('@/lib/storage/image-storage');
+  return saveImageWithSuffix(jobId, slideIndex, boldResult.image.toString('base64'), '-pub');
+}
+
 // ─── Regenerate Full Slide (copy + image) ───────────────────
 
 export async function regenerateCarouselSlide(jobId: string, slideIndex: number, imageSource?: 'wikipedia' | 'generated') {
@@ -1662,11 +1746,18 @@ export async function runImageStage(jobId: string): Promise<void> {
         },
       );
 
-      const imageUrl = await saveImage(jobId, slide.slideIndex, renderOutput.imageBase64);
+      const primaryBase64 = renderOutput.rawImageBase64 ?? renderOutput.imageBase64;
+      const imageUrl = await saveImage(jobId, slide.slideIndex, primaryBase64);
+      if (renderOutput.rawImageBase64) {
+        await saveRawImage(jobId, slide.slideIndex, renderOutput.rawImageBase64).catch(err =>
+          console.warn(`[Regen] Failed to save raw image for slide ${slide.slideIndex}: ${err}`)
+        );
+      }
       await prisma.carouselSlide.update({
         where: { id: slide.id },
         data: {
           imageUrl,
+          hasEmbeddedText: !renderOutput.rawImageBase64,
           imageSource: renderOutput.resolvedImageSource,
           imageSourceUrl: renderOutput.imageSourceUrl ?? null,
           status: 'PENDING',

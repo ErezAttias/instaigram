@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/db/prisma';
 import { Channel } from '@/generated/prisma/client';
+import { composeSlideForPublish } from '@/lib/services/standalone-carousel-service';
 
 const GRAPH_API = 'https://graph.instagram.com/v21.0';
 
@@ -37,13 +38,18 @@ export async function publishCarouselToInstagram(
   const igUserId = channel.instagramUserId;
   const token = channel.instagramAccessToken;
 
-  // Step 1: Create a media container for each slide
+  // Step 1: Create a media container for each slide.
+  // The stored slide image is raw (text-free) — preview draws text as a CSS
+  // overlay. For Instagram we need a flat PNG, so composite on demand.
   const childIds: string[] = [];
   for (const slide of job.slides) {
-    // Use R2 URL directly if available — Instagram fetches it server-side and needs a public URL
-    const imageUrl = slide.imageUrl?.startsWith('https://')
-      ? slide.imageUrl
-      : `${appUrl}/api/carousel/${jobId}/slides/${slide.slideIndex}/image`;
+    if (!slide.imageUrl) {
+      throw new Error(`Slide ${slide.slideIndex} has no image to publish`);
+    }
+    const flatUrl = await composeSlideForPublish(jobId, slide.slideIndex);
+    const imageUrl = flatUrl.startsWith('https://')
+      ? flatUrl
+      : `${appUrl}${flatUrl.startsWith('/') ? '' : '/'}${flatUrl}`;
     const res = await fetch(`${GRAPH_API}/${igUserId}/media`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

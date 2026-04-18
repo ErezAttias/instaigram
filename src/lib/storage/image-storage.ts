@@ -76,6 +76,41 @@ export async function saveImage(
 }
 
 /**
+ * Save an image under `{slideIndex}{suffix}.png`. Used for derived assets
+ * (e.g. the flat publish composite `-pub`) that must not overwrite the
+ * primary slide image.
+ */
+export async function saveImageWithSuffix(
+  jobId: string,
+  slideIndex: number,
+  imageBase64: string,
+  suffix: string,
+): Promise<string> {
+  const buffer = Buffer.from(imageBase64, 'base64');
+  const key = `carousel-images/${jobId}/${slideIndex}${suffix}.png`;
+  const client = getR2Client();
+
+  if (client) {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { PutObjectCommand } = require('@aws-sdk/client-s3');
+    await client.send(
+      new PutObjectCommand({
+        Bucket: process.env.CLOUDFLARE_R2_BUCKET_NAME,
+        Key: key,
+        Body: buffer,
+        ContentType: 'image/png',
+      }),
+    );
+    return `${process.env.CLOUDFLARE_R2_PUBLIC_URL}/${key}`;
+  }
+
+  const dir = path.join(LOCAL_DIR, jobId);
+  fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(path.join(dir, `${slideIndex}${suffix}.png`), buffer);
+  return `/${key}`;
+}
+
+/**
  * Save the raw (pre-overlay) image for restyle operations.
  * Stored alongside the final image with a `-raw` suffix.
  */

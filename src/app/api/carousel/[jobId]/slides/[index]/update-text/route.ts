@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { waitUntil } from '@vercel/functions';
 import { prisma } from '@/lib/db/prisma';
-import { restyleCarouselSlide } from '@/lib/services/standalone-carousel-service';
 
-// Restyle is fast (no AI call) but extend timeout for safety.
-export const maxDuration = 60;
+export const maxDuration = 10;
 
 interface UpdateTextBody {
   displayTitle?: string;
@@ -44,7 +41,8 @@ export async function POST(
       );
     }
 
-    // Persist the user's text, then re-composite using the saved raw image.
+    // Text is rendered as a CSS overlay on the preview — persisting the new
+    // title/body is sufficient for the viewer to update. No re-composite.
     await prisma.carouselSlide.update({
       where: { carouselJobId_slideIndex: { carouselJobId: jobId, slideIndex } },
       data: {
@@ -53,18 +51,10 @@ export async function POST(
       },
     });
 
-    // Invalidate approval so the user has to re-approve after an edit.
     await prisma.carouselJob.update({
       where: { id: jobId },
       data: { approved: false },
     });
-
-    // Run re-composite in the background so the request returns fast.
-    waitUntil(
-      restyleCarouselSlide(jobId, slideIndex).catch(err => {
-        console.error(`[update-text] restyle failed for ${jobId}/${slideIndex}: ${err.message}`);
-      }),
-    );
 
     return NextResponse.json({ success: true });
   } catch (error) {

@@ -18,6 +18,7 @@ interface CarouselSlide {
   displayTitle: string | null;
   displaySupport: string | null;
   imageUrl: string | null;
+  hasEmbeddedText: boolean;
   imageError: string | null;
   status: 'PENDING' | 'FAILED_IMAGE' | 'REGENERATING' | 'APPROVED';
 }
@@ -428,15 +429,11 @@ function SlideCard({
   const hasSecondary = slide.role === 'FACT' || slide.role === 'IMPLICATION' || isOpener;
   const [showTextEditor, setShowTextEditor] = useState(false);
 
-  // Real-time preview: when we have a liveDesign snapshot, render the text
-  // as a CSS overlay on the RAW image (no burned-in text) so the preview
-  // updates instantly as the user drags typography controls. The final
-  // composited image still lands on the R2 URL (for export) after the
-  // server debounce.
-  const useLivePreview = !!liveDesign && !!slide.imageUrl;
-  const rawImageUrl = slide.imageUrl
-    ? slide.imageUrl.replace(/(\.png)(\?|$)/, '-raw.png$2')
-    : null;
+  // `slide.imageUrl` now points at the raw (text-free) image; text is drawn
+  // as a CSS overlay. Compositing to a flat PNG happens on demand at publish.
+  // Legacy carousels have text baked into the stored image — skip the overlay
+  // for those so we don't double-render text.
+  const useLivePreview = !!liveDesign && !!slide.imageUrl && !slide.hasEmbeddedText;
   const titleText = slide.displayTitle || slide.headline || '';
   const bodyText = hasSecondary ? (slide.displaySupport || slide.body || '') : '';
 
@@ -453,24 +450,16 @@ function SlideCard({
         onClick={() => !isRegenerating && slide.imageUrl && setShowTextEditor(true)}
         disabled={isRegenerating || !slide.imageUrl}
         aria-label="Edit slide text"
-        className="group aspect-[4/5] bg-surface-elevated relative block w-full text-left disabled:cursor-default"
+        className="group aspect-[4/5] bg-surface-elevated relative block w-full text-left disabled:cursor-default rounded-none p-0"
         style={useLivePreview ? { containerType: 'inline-size' } : undefined}
       >
         {slide.imageUrl ? (
           <>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={useLivePreview && rawImageUrl ? rawImageUrl : slide.imageUrl}
+              src={slide.imageUrl}
               alt={`Slide ${slide.slideIndex + 1}`}
               className="w-full h-full object-cover"
-              onError={e => {
-                // If the -raw.png 404s (older carousel without a raw cache),
-                // silently fall back to the composited image.
-                const img = e.currentTarget;
-                if (useLivePreview && rawImageUrl && img.src.endsWith(rawImageUrl.split('/').pop()!)) {
-                  img.src = slide.imageUrl!;
-                }
-              }}
             />
             {useLivePreview && liveDesign && (
               <LiveTextOverlay
@@ -985,12 +974,9 @@ function ReviewView({
           throw new Error(data.error || 'Save failed');
         }
         if (job.approved) setNeedsReapproval(true);
-        // Poll a few times — restyle runs in the background via waitUntil.
-        const poll = (attempt: number) => {
-          if (attempt > 5) return;
-          setTimeout(() => { onRefresh(); poll(attempt + 1); }, 1200);
-        };
-        poll(0);
+        // Text is a CSS overlay now — a single refresh pulls the updated
+        // headline/body from the DB; no background re-composite to wait for.
+        onRefresh();
         setMessage(`Slide ${slideIndex + 1} text updated`);
       } catch (err) {
         setMessage(`Error: ${err instanceof Error ? err.message : 'Unknown'}`);
@@ -1114,17 +1100,10 @@ function ReviewView({
             slideCount={job.slides.length}
             onLiveDesign={setLiveDesign}
             onRestyleStarted={() => {
-              setMessage('Applying new design...');
-              setImageVersion(v => v + 1);
-              const poll = (attempt: number) => {
-                if (attempt > 6) return;
-                setTimeout(() => {
-                  onRefresh();
-                  setImageVersion(v => v + 1);
-                  poll(attempt + 1);
-                }, 1200);
-              };
-              poll(0);
+              // Design changes apply instantly via the CSS overlay — nothing
+              // to poll for. Just refresh once to pick up the invalidated
+              // approval state from the server.
+              onRefresh();
             }}
           />
         </div>

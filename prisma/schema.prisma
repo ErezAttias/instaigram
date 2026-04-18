@@ -353,6 +353,9 @@ model CarouselSlide {
   displaySupport  String?
   // Rendered image (base64 stored in DB for MVP — move to S3 later)
   imageUrl        String?
+  // true when imageUrl points at a flat PNG with text already baked in
+  // (legacy carousels); false for new carousels where text is a CSS overlay.
+  hasEmbeddedText Boolean             @default(true)
   imageError      String?
   // Image source: 'wikipedia' = real photo from Wikimedia, 'generated' = AI-generated
   imageSource     String?             @default("generated")
