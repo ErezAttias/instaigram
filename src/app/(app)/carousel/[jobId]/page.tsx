@@ -1048,6 +1048,19 @@ function ReviewView({
   const [message, setMessage] = useState('');
   const [selectedSlide, setSelectedSlide] = useState(0);
   const [needsReapproval, setNeedsReapproval] = useState(false);
+  const swipeTouchRef = useRef<{ x: number; y: number } | null>(null);
+  const handleSwipeTouchStart = useCallback((e: React.TouchEvent) => {
+    swipeTouchRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+  }, []);
+  const handleSwipeTouchEnd = useCallback((e: React.TouchEvent) => {
+    if (!swipeTouchRef.current) return;
+    const dx = e.changedTouches[0].clientX - swipeTouchRef.current.x;
+    const dy = e.changedTouches[0].clientY - swipeTouchRef.current.y;
+    swipeTouchRef.current = null;
+    if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy)) return;
+    if (dx < 0) setSelectedSlide(s => Math.min(s + 1, job.slides.length - 1));
+    else setSelectedSlide(s => Math.max(s - 1, 0));
+  }, [job.slides.length]);
   // Live typography snapshot — published by the design panel on every change.
   // When present, SlideCard renders a CSS overlay on the raw image for an
   // instant preview instead of waiting for the server restyle to round-trip.
@@ -1253,7 +1266,11 @@ function ReviewView({
 
         {/* Large slide preview */}
         {currentSlide && (
-          <div className="w-full max-w-sm">
+          <div
+            className="w-full max-w-sm"
+            onTouchStart={handleSwipeTouchStart}
+            onTouchEnd={handleSwipeTouchEnd}
+          >
             <SlideCard
               slide={{ ...currentSlide, imageUrl: bustImgSrc(currentSlide.imageUrl) }}
               liveDesign={liveDesign}
