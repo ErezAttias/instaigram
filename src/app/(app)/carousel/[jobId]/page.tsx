@@ -622,12 +622,14 @@ function LiveTextOverlay({
           background: [
             'linear-gradient(to bottom,',
             '  rgba(0,0,0,0) 0%,',
-            '  rgba(0,0,0,0) 12%,',          // slide ~55%
-            '  rgba(0,0,0,0.22) 25%,',       // slide ~60%
-            '  rgba(0,0,0,0.48) 45%,',       // slide ~68%
-            '  rgba(0,0,0,0.74) 65%,',       // slide ~73%
-            '  rgba(0,0,0,0.92) 72%,',       // slide ~75%
-            '  rgba(0,0,0,1) 78%,',          // seam
+            '  rgba(0,0,0,0.02) 10%,',       // slide ~52% — feather start
+            '  rgba(0,0,0,0.10) 20%,',       // slide ~57%
+            '  rgba(0,0,0,0.25) 33%,',       // slide ~62%
+            '  rgba(0,0,0,0.46) 48%,',       // slide ~67%
+            '  rgba(0,0,0,0.68) 62%,',       // slide ~72%
+            '  rgba(0,0,0,0.85) 71%,',       // slide ~75%
+            '  rgba(0,0,0,0.96) 76%,',       // approaching seam
+            '  rgba(0,0,0,1) 80%,',          // seam
             '  rgba(0,0,0,1) 100%)',
           ].join(' '),
         }}
