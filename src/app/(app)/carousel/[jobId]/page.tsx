@@ -464,7 +464,8 @@ function SlideCard({
               alt={`Slide ${slide.slideIndex + 1}`}
               className="w-full h-full object-cover"
             />
-            {/* Gradient — always rendered, covers bottom 65% of slide. */}
+            {/* Gradient — always rendered, aggressive enough to ensure text
+                readability on any image including bright/light backgrounds. */}
             <div
               aria-hidden="true"
               className="absolute inset-x-0"
@@ -474,33 +475,17 @@ function SlideCard({
                 background: [
                   'linear-gradient(to bottom,',
                   '  rgba(0,0,0,0) 0%,',
-                  '  rgba(0,0,0,0.01) 5%,',
-                  '  rgba(0,0,0,0.03) 12%,',
-                  '  rgba(0,0,0,0.06) 20%,',
-                  '  rgba(0,0,0,0.12) 28%,',
-                  '  rgba(0,0,0,0.20) 35%,',
-                  '  rgba(0,0,0,0.32) 42%,',
-                  '  rgba(0,0,0,0.45) 50%,',
-                  '  rgba(0,0,0,0.58) 57%,',
-                  '  rgba(0,0,0,0.70) 63%,',
-                  '  rgba(0,0,0,0.82) 69%,',
-                  '  rgba(0,0,0,0.92) 74%,',
-                  '  rgba(0,0,0,1) 80%,',
+                  '  rgba(0,0,0,0.03) 8%,',
+                  '  rgba(0,0,0,0.10) 18%,',
+                  '  rgba(0,0,0,0.25) 28%,',
+                  '  rgba(0,0,0,0.45) 38%,',
+                  '  rgba(0,0,0,0.65) 48%,',
+                  '  rgba(0,0,0,0.80) 55%,',
+                  '  rgba(0,0,0,0.90) 62%,',
+                  '  rgba(0,0,0,0.96) 68%,',
+                  '  rgba(0,0,0,1) 75%,',
                   '  rgba(0,0,0,1) 100%)',
                 ].join(' '),
-              }}
-            />
-            {/* Feathered black seam strip — a solid black div with filter:blur
-                so its own edges are soft. Bleeds up into the image and down
-                into the text zone, hiding the hard boundary. */}
-            <div
-              aria-hidden="true"
-              className="absolute inset-x-0"
-              style={{
-                top: 'calc(60% - 20px)',
-                height: '40px',
-                background: 'black',
-                filter: 'blur(18px)',
               }}
             />
             {useLivePreview && liveDesign && (
