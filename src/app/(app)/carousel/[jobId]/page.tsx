@@ -316,7 +316,7 @@ function ProgressView({
                   className="bg-surface border border-border rounded-lg overflow-hidden animate-scale-in"
                 >
                   {/* Image area */}
-                  <div className="aspect-square bg-surface-elevated relative">
+                  <div className="aspect-[4/5] bg-surface-elevated relative">
                     {slide.imageUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
@@ -453,7 +453,7 @@ function SlideCard({
         onClick={() => !isRegenerating && slide.imageUrl && setShowTextEditor(true)}
         disabled={isRegenerating || !slide.imageUrl}
         aria-label="Edit slide text"
-        className="group aspect-square bg-surface-elevated relative block w-full text-left disabled:cursor-default rounded-none p-0"
+        className="group aspect-[4/5] bg-surface-elevated relative block w-full text-left disabled:cursor-default rounded-none p-0"
         style={useLivePreview ? { containerType: 'inline-size' } : undefined}
       >
         {slide.imageUrl ? (
@@ -1317,7 +1317,7 @@ function ReviewView({
               <button
                 key={slide.id}
                 onClick={() => setSelectedSlide(i)}
-                className={`w-14 h-14 rounded-lg overflow-hidden flex-shrink-0 transition-all ${
+                className={`w-14 h-[70px] rounded-lg overflow-hidden flex-shrink-0 transition-all ${
                   isActive
                     ? 'ring-2 ring-accent ring-offset-2 ring-offset-background'
                     : isFailed
