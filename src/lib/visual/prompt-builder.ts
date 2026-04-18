@@ -264,7 +264,7 @@ function buildCelebrityPrompt(
     wikiClause ?? (contextSentence ? contextSentence + '.' : ''),
     styleClause,
     'A celebrity-themed social media post for Instagram.',
-    '4:5 aspect ratio.',
+    '1:1 aspect ratio.',
     noFantasyClause,
   ].filter(Boolean);
 
@@ -327,7 +327,7 @@ export function extractPlaceSearchTerm(
  *   2. Context — first sentence of body text (adds specificity)
  *   3. Feel — photography style for the topic
  *   4. Asset type — social media context
- *   5. Dimensions — 4:5 aspect ratio
+ *   5. Dimensions — 1:1 aspect ratio
  *   6. No-text — content restrictions
  */
 function buildInformationalPrompt(
@@ -369,7 +369,7 @@ function buildInformationalPrompt(
     contextSentence ? contextSentence + '.' : '',
     feel + '.',
     assetType + '.',
-    '4:5 aspect ratio.',
+    '1:1 aspect ratio.',
     'No text, no watermarks, no labels.',
   ].filter(Boolean);
 
@@ -425,7 +425,7 @@ function buildCelebrityGeminiFallbackPrompt(headlineText: string): string {
     'Editorial and documentary photography.',
     'No recognisable celebrities or famous people.',
     'Symbolic and contextual imagery: objects, environments, and settings that visually represent this concept.',
-    'A social media post for Instagram. 4:5 aspect ratio.',
+    'A social media post for Instagram. 1:1 aspect ratio.',
     'No text, no watermarks, no labels.',
   ];
   return parts.join(' ');
