@@ -20,6 +20,7 @@ interface CarouselSlide {
   imageUrl: string | null;
   hasEmbeddedText: boolean;
   imageError: string | null;
+  imagePromptOverride: string | null;
   status: 'PENDING' | 'FAILED_IMAGE' | 'REGENERATING' | 'APPROVED';
 }
 
@@ -408,11 +409,13 @@ function SlideCard({
   slide,
   liveDesign,
   onSaveText,
+  onRegenerateImage,
   isRegenerating,
 }: {
   slide: CarouselSlide;
   liveDesign: LiveDesign | null;
   onSaveText: (patch: { displayTitle?: string; displaySupport?: string }) => Promise<void> | void;
+  onRegenerateImage: (opts: { promptOverride?: string }) => Promise<void> | void;
   isRegenerating: boolean;
 }) {
   const roleColors: Record<string, string> = {
@@ -536,9 +539,14 @@ function SlideCard({
           bodyLabel={isOpener ? 'Swipe CTA' : 'Body'}
           bodyHint={isOpener ? 'Short invite shown below the title in the paragraph font.' : undefined}
           bodyMultiline={!isOpener}
+          initialPrompt={slide.imagePromptOverride ?? ''}
           onClose={() => setShowTextEditor(false)}
           onSave={async patch => {
             await onSaveText(patch);
+            setShowTextEditor(false);
+          }}
+          onRegenerateImage={async opts => {
+            await onRegenerateImage(opts);
             setShowTextEditor(false);
           }}
         />
@@ -669,40 +677,50 @@ function LiveTextOverlay({
   );
 }
 
-// Modal-style editor for the text that's baked into the slide image.
+// Modal-style editor: Text tab edits overlay copy, Image tab rerolls or
+// tweaks the image prompt.
 function SlideTextEditor({
   title: initialTitle,
   body: initialBody,
   bodyLabel = 'Body',
   bodyHint,
   bodyMultiline = true,
+  initialPrompt,
   onClose,
   onSave,
+  onRegenerateImage,
 }: {
   title: string;
   body: string | null;
   bodyLabel?: string;
   bodyHint?: string;
   bodyMultiline?: boolean;
+  initialPrompt: string;
   onClose: () => void;
   onSave: (patch: { displayTitle?: string; displaySupport?: string }) => Promise<void> | void;
+  onRegenerateImage: (opts: { promptOverride?: string }) => Promise<void> | void;
 }) {
+  const [tab, setTab] = useState<'text' | 'image'>('text');
   const [title, setTitle] = useState(initialTitle);
   const [body, setBody] = useState(initialBody ?? '');
+  const [prompt, setPrompt] = useState(initialPrompt);
   const [saving, setSaving] = useState(false);
+  const [regenerating, setRegenerating] = useState(false);
 
-  const dirty =
+  const textDirty =
     title.trim() !== initialTitle.trim() ||
     (initialBody !== null && body.trim() !== initialBody.trim());
+  const promptDirty = prompt.trim() !== initialPrompt.trim();
+  const busy = saving || regenerating;
 
   useEffect(() => {
-    const handleEsc = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    const handleEsc = (e: KeyboardEvent) => { if (e.key === 'Escape' && !busy) onClose(); };
     window.addEventListener('keydown', handleEsc);
     return () => window.removeEventListener('keydown', handleEsc);
-  }, [onClose]);
+  }, [onClose, busy]);
 
   const handleSave = async () => {
-    if (!dirty) { onClose(); return; }
+    if (!textDirty) { onClose(); return; }
     setSaving(true);
     try {
       const patch: { displayTitle?: string; displaySupport?: string } = {};
@@ -714,82 +732,172 @@ function SlideTextEditor({
     }
   };
 
+  const handleRoll = async () => {
+    setRegenerating(true);
+    try {
+      await onRegenerateImage({});
+    } finally {
+      setRegenerating(false);
+    }
+  };
+
+  const handleSavePromptAndRegen = async () => {
+    if (!promptDirty) return;
+    setRegenerating(true);
+    try {
+      await onRegenerateImage({ promptOverride: prompt.trim() });
+    } finally {
+      setRegenerating(false);
+    }
+  };
+
   return (
     <div
       className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-4"
-      onClick={onClose}
+      onClick={busy ? undefined : onClose}
     >
       <div
         role="dialog"
         aria-modal="true"
-        aria-label="Edit slide text"
+        aria-label="Edit slide"
         onClick={e => e.stopPropagation()}
         className="w-full max-w-md bg-surface border border-border rounded-2xl shadow-2xl p-5 animate-scale-in"
       >
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-semibold text-foreground">Edit slide text</h3>
+          <h3 className="text-sm font-semibold text-foreground">Edit slide</h3>
           <button
             type="button"
             onClick={onClose}
+            disabled={busy}
             aria-label="Close editor"
-            className="w-8 h-8 rounded-lg text-muted-light hover:text-foreground hover:bg-surface-hover transition-colors flex items-center justify-center"
+            className="w-8 h-8 rounded-lg text-muted-light hover:text-foreground hover:bg-surface-hover transition-colors flex items-center justify-center disabled:opacity-40"
           >
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>
           </button>
         </div>
 
-        <label className="text-[10px] uppercase tracking-wider text-muted/60 mb-1.5 block">Title</label>
-        <input
-          type="text"
-          value={title}
-          onChange={e => setTitle(e.target.value)}
-          autoFocus
-          className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-[#dc2743]/60 mb-4"
-        />
+        {/* Tabs */}
+        <div role="tablist" aria-label="Edit tabs" className="flex items-center gap-1 p-1 mb-4 rounded-full bg-background border border-border w-fit">
+          {(['text', 'image'] as const).map(t => (
+            <button
+              key={t}
+              role="tab"
+              aria-selected={tab === t}
+              type="button"
+              onClick={() => setTab(t)}
+              disabled={busy}
+              className={`h-7 px-3 text-xs font-semibold rounded-full transition-colors disabled:opacity-40 ${
+                tab === t ? 'bg-[#dc2743] text-white' : 'text-muted-light hover:text-foreground'
+              }`}
+            >
+              {t === 'text' ? 'Text' : 'Image'}
+            </button>
+          ))}
+        </div>
 
-        {initialBody !== null && (
+        {tab === 'text' && (
           <>
-            <label className="text-[10px] uppercase tracking-wider text-muted/60 mb-1.5 block">{bodyLabel}</label>
-            {bodyMultiline ? (
-              <textarea
-                rows={4}
-                value={body}
-                onChange={e => setBody(e.target.value)}
-                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-[#dc2743]/60 resize-none mb-1"
-              />
-            ) : (
-              <input
-                type="text"
-                value={body}
-                maxLength={40}
-                onChange={e => setBody(e.target.value)}
-                placeholder="Swipe to find out"
-                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-[#dc2743]/60 mb-1"
-              />
+            <label className="text-[10px] uppercase tracking-wider text-muted/60 mb-1.5 block">Title</label>
+            <input
+              type="text"
+              value={title}
+              onChange={e => setTitle(e.target.value)}
+              autoFocus
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-[#dc2743]/60 mb-4"
+            />
+
+            {initialBody !== null && (
+              <>
+                <label className="text-[10px] uppercase tracking-wider text-muted/60 mb-1.5 block">{bodyLabel}</label>
+                {bodyMultiline ? (
+                  <textarea
+                    rows={4}
+                    value={body}
+                    onChange={e => setBody(e.target.value)}
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-[#dc2743]/60 resize-none mb-1"
+                  />
+                ) : (
+                  <input
+                    type="text"
+                    value={body}
+                    maxLength={40}
+                    onChange={e => setBody(e.target.value)}
+                    placeholder="Swipe to find out"
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-[#dc2743]/60 mb-1"
+                  />
+                )}
+                {bodyHint && <p className="text-[11px] text-muted-light mb-4">{bodyHint}</p>}
+                {!bodyHint && <div className="mb-3" />}
+              </>
             )}
-            {bodyHint && <p className="text-[11px] text-muted-light mb-4">{bodyHint}</p>}
-            {!bodyHint && <div className="mb-3" />}
+
+            <div className="flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={onClose}
+                disabled={busy}
+                className="h-9 px-4 text-sm font-medium text-muted-light hover:text-foreground disabled:opacity-40 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSave}
+                disabled={busy || !textDirty}
+                className="h-9 px-4 rounded-full text-sm font-semibold text-white bg-[#dc2743] hover:bg-[#dc2743]/90 disabled:opacity-40 transition-colors"
+              >
+                {saving ? 'Saving…' : 'Save'}
+              </button>
+            </div>
           </>
         )}
 
-        <div className="flex items-center justify-end gap-2">
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={saving}
-            className="h-9 px-4 text-sm font-medium text-muted-light hover:text-foreground disabled:opacity-40 transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={saving || !dirty}
-            className="h-9 px-4 rounded-full text-sm font-semibold text-white bg-[#dc2743] hover:bg-[#dc2743]/90 disabled:opacity-40 transition-colors"
-          >
-            {saving ? 'Saving…' : 'Save'}
-          </button>
-        </div>
+        {tab === 'image' && (
+          <>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="text-[10px] uppercase tracking-wider text-muted/60">Image prompt</label>
+            </div>
+            <textarea
+              rows={6}
+              value={prompt}
+              onChange={e => setPrompt(e.target.value)}
+              autoFocus
+              disabled={busy}
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-[#dc2743]/60 resize-none mb-1 disabled:opacity-60"
+            />
+            <p className="text-[11px] text-muted-light mb-4">
+              Describe the image. &quot;Save &amp; regenerate&quot; applies the new prompt; &quot;Roll new image&quot; keeps the current prompt.
+            </p>
+
+            <div className="flex items-center justify-end gap-2 flex-wrap">
+              <button
+                type="button"
+                onClick={onClose}
+                disabled={busy}
+                className="h-9 px-4 text-sm font-medium text-muted-light hover:text-foreground disabled:opacity-40 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleRoll}
+                disabled={busy || promptDirty}
+                title={promptDirty ? 'Revert prompt changes to roll with current prompt' : 'Regenerate with the current prompt'}
+                className="h-9 px-4 rounded-full text-sm font-semibold text-foreground bg-surface-elevated border border-border hover:bg-surface-hover disabled:opacity-40 transition-colors"
+              >
+                {regenerating && !promptDirty ? 'Rolling…' : 'Roll new image'}
+              </button>
+              <button
+                type="button"
+                onClick={handleSavePromptAndRegen}
+                disabled={busy || !promptDirty}
+                className="h-9 px-4 rounded-full text-sm font-semibold text-white bg-[#dc2743] hover:bg-[#dc2743]/90 disabled:opacity-40 transition-colors"
+              >
+                {regenerating && promptDirty ? 'Regenerating…' : 'Save & regenerate'}
+              </button>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
@@ -985,6 +1093,57 @@ function ReviewView({
     [job.id, job.approved, onRefresh],
   );
 
+  // Track per-slide regeneration so the card shows the Regenerating state
+  // immediately (without waiting for a full refresh round-trip).
+  const [regeneratingSlides, setRegeneratingSlides] = useState<Set<number>>(new Set());
+
+  // Bumped after every successful restyle/regen so slide image URLs gain a
+  // fresh ?v= query param and the browser drops its cached composite.
+  const [imageVersion, setImageVersion] = useState(0);
+  const bustImgSrc = useCallback((url: string | null) => {
+    if (!url) return url;
+    return imageVersion > 0 ? `${url}${url.includes('?') ? '&' : '?'}v=${imageVersion}` : url;
+  }, [imageVersion]);
+
+  const handleRegenerateImage = useCallback(
+    async (slideIndex: number, opts: { promptOverride?: string }) => {
+      setRegeneratingSlides(prev => {
+        const next = new Set(prev);
+        next.add(slideIndex);
+        return next;
+      });
+      setMessage(opts.promptOverride !== undefined ? 'Regenerating with new prompt…' : 'Rolling a new image…');
+      try {
+        const res = await fetch(`/api/carousel/${job.id}/regenerate-slide`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            slideIndex,
+            mode: 'image',
+            ...(opts.promptOverride !== undefined ? { promptOverride: opts.promptOverride } : {}),
+          }),
+        });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data.error || 'Regenerate failed');
+        }
+        if (job.approved) setNeedsReapproval(true);
+        setImageVersion(v => v + 1);
+        await onRefresh();
+        setMessage(`Slide ${slideIndex + 1} image updated`);
+      } catch (err) {
+        setMessage(`Error: ${err instanceof Error ? err.message : 'Unknown'}`);
+      } finally {
+        setRegeneratingSlides(prev => {
+          const next = new Set(prev);
+          next.delete(slideIndex);
+          return next;
+        });
+      }
+    },
+    [job.id, job.approved, onRefresh],
+  );
+
   // Approve flow — approves slides, then transitions to preview
   const handleApprove = useCallback(async () => {
     setIsProcessing(true);
@@ -1009,14 +1168,6 @@ function ReviewView({
       setIsProcessing(false);
     }
   }, [job.id, onRefresh, onTransitionToPreview]);
-
-  // Bumped after every successful restyle so slide image URLs gain a fresh
-  // ?v= query param and the browser drops its cached composite.
-  const [imageVersion, setImageVersion] = useState(0);
-  const bustImgSrc = useCallback((url: string | null) => {
-    if (!url) return url;
-    return imageVersion > 0 ? `${url}${url.includes('?') ? '&' : '?'}v=${imageVersion}` : url;
-  }, [imageVersion]);
 
   // Jump to first failed slide — selects it instead of scrolling
   const handleJumpToIssue = useCallback(() => {
@@ -1086,7 +1237,8 @@ function ReviewView({
               slide={{ ...currentSlide, imageUrl: bustImgSrc(currentSlide.imageUrl) }}
               liveDesign={liveDesign}
               onSaveText={(patch) => handleSaveText(currentSlide.slideIndex, patch)}
-              isRegenerating={false}
+              onRegenerateImage={(opts) => handleRegenerateImage(currentSlide.slideIndex, opts)}
+              isRegenerating={regeneratingSlides.has(currentSlide.slideIndex)}
             />
           </div>
         )}

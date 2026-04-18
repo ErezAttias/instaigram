@@ -24,7 +24,7 @@ export async function POST(
   try {
     const { jobId } = await params;
     const body = await request.json();
-    const { slideIndex, mode, imageSource } = body;
+    const { slideIndex, mode, imageSource, promptOverride } = body;
 
     if (typeof slideIndex !== 'number') {
       return NextResponse.json({ error: 'slideIndex is required' }, { status: 400 });
@@ -32,6 +32,16 @@ export async function POST(
 
     const resolvedImageSource: 'wikipedia' | 'generated' | undefined =
       imageSource === 'wikipedia' || imageSource === 'generated' ? imageSource : undefined;
+
+    // Persist the edited prompt before regeneration so the renderer picks it up
+    // via CarouselSlide.imagePromptOverride. `null` clears any prior override.
+    if (promptOverride !== undefined && (mode === 'image' || mode === 'full')) {
+      const trimmed = typeof promptOverride === 'string' ? promptOverride.trim() : null;
+      await prisma.carouselSlide.updateMany({
+        where: { carouselJobId: jobId, slideIndex },
+        data: { imagePromptOverride: trimmed && trimmed.length > 0 ? trimmed : null },
+      });
+    }
 
     let result;
     switch (mode) {
