@@ -261,6 +261,98 @@ body {
 .stagger-7 { animation-delay: 420ms; }
 .stagger-8 { animation-delay: 480ms; }
 
+/* ─── Motion system ───────────────────────────────────────────
+   Central easings + durations so every transition speaks the same
+   language. Reuse via var(--ease-out-expo) etc. in inline styles. */
+:root {
+  --ease-out-expo:    cubic-bezier(0.16, 1, 0.30, 1);
+  --ease-out-back:    cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-in-out-soft: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-fast: 140ms;
+  --dur-base: 220ms;
+  --dur-slow: 420ms;
+}
+
+@keyframes slide-in-right {
+  from { opacity: 0; transform: translateX(24px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes slide-in-left {
+  from { opacity: 0; transform: translateX(-24px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes slide-out-left {
+  from { opacity: 1; transform: translateX(0); }
+  to   { opacity: 0; transform: translateX(-24px); }
+}
+@keyframes slide-out-right {
+  from { opacity: 1; transform: translateX(0); }
+  to   { opacity: 0; transform: translateX(24px); }
+}
+@keyframes pop-in {
+  from { opacity: 0; transform: scale(0.94); }
+  to   { opacity: 1; transform: scale(1); }
+}
+@keyframes ring-pop {
+  0%   { transform: scale(0.96); }
+  60%  { transform: scale(1.03); }
+  100% { transform: scale(1); }
+}
+@keyframes bloom {
+  0%   { opacity: 0; transform: scale(0.9); }
+  25%  { opacity: 1; transform: scale(1); }
+  75%  { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.02); }
+}
+
+.animate-slide-in-right { animation: slide-in-right var(--dur-base) var(--ease-out-expo) both; }
+.animate-slide-in-left  { animation: slide-in-left  var(--dur-base) var(--ease-out-expo) both; }
+.animate-pop-in         { animation: pop-in 280ms var(--ease-out-back) both; }
+.animate-ring-pop       { animation: ring-pop 180ms var(--ease-out-back) both; }
+.animate-bloom          { animation: bloom 900ms var(--ease-out-expo) both; }
+
+/* Shimmer sweep — a bright band travelling top→bottom over an image to
+   signal "this tile is loading/regenerating". Reuses the shimmer keyframe
+   name but animates a linear-gradient along the Y axis. */
+@keyframes shimmer-y {
+  0%   { background-position: 0 -150%; }
+  100% { background-position: 0 250%; }
+}
+.shimmer-overlay {
+  background: linear-gradient(
+    180deg,
+    rgba(255,255,255,0) 0%,
+    rgba(255,255,255,0.08) 45%,
+    rgba(255,255,255,0.18) 50%,
+    rgba(255,255,255,0.08) 55%,
+    rgba(255,255,255,0) 100%
+  );
+  background-size: 100% 300%;
+  animation: shimmer-y 2s ease-in-out infinite;
+}
+
+/* View Transitions — slide swap. Direction picked up from
+   [data-slide-dir] on <html> set just before startViewTransition. */
+::view-transition-old(slide-image) {
+  animation: slide-out-left var(--dur-base) var(--ease-out-expo) both;
+}
+::view-transition-new(slide-image) {
+  animation: slide-in-right 260ms var(--ease-out-expo) both;
+}
+html[data-slide-dir="prev"] ::view-transition-old(slide-image) {
+  animation-name: slide-out-right;
+}
+html[data-slide-dir="prev"] ::view-transition-new(slide-image) {
+  animation-name: slide-in-left;
+}
+
+/* Phase swap (review ↔ preview) uses a softer cross-fade */
+::view-transition-old(phase-root),
+::view-transition-new(phase-root) {
+  animation-duration: var(--dur-slow);
+  animation-timing-function: var(--ease-out-expo);
+}
+
 /* Skeleton loader */
 .skeleton {
   background: linear-gradient(
@@ -374,13 +466,24 @@ button:active:not(:disabled) {
 @media (prefers-reduced-motion: reduce) {
   .animate-fade-up,
   .animate-fade-in,
-  .animate-scale-in {
+  .animate-scale-in,
+  .animate-slide-in-right,
+  .animate-slide-in-left,
+  .animate-pop-in,
+  .animate-ring-pop,
+  .animate-bloom {
     animation: none !important;
     opacity: 1 !important;
     transform: none !important;
   }
 
-  .animate-glow {
+  .animate-glow,
+  .shimmer-overlay {
+    animation: none !important;
+  }
+
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
     animation: none !important;
   }
 

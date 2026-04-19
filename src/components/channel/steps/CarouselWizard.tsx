@@ -4,23 +4,20 @@ import { useState, useCallback } from 'react'
 import { SubjectStep } from './SubjectStep'
 import { AngleStep } from './AngleStep'
 import { CopyReviewStep } from './CopyReviewStep'
-import { ImagePreviewStep } from './ImagePreviewStep'
 
-// 4 steps now — design used to sit between copy and images, but typography
-// decisions depend on the actual photo contrast/composition, so design has
-// moved to the carousel viewer where the user can judge readability against
-// the real rendered slides.
-export type WizardStep = 'subject' | 'angle' | 'copy' | 'images' | 'done'
+// 3 steps now — the prompt-review step was removed: rendering kicks off the
+// moment the user approves copy, and any per-image fixes happen in the
+// carousel viewer (click an image → edit prompt / roll / Wikipedia).
+export type WizardStep = 'subject' | 'angle' | 'copy' | 'done'
 
 const STEP_NUMBER: Record<WizardStep, number> = {
   subject: 1,
   angle: 2,
   copy: 3,
-  images: 4,
-  done: 4,
+  done: 3,
 }
 
-const TOTAL_STEPS = 4
+const TOTAL_STEPS = 3
 
 interface CarouselWizardProps {
   channelId?: string
@@ -68,10 +65,37 @@ export function CarouselWizard({ channelId, initialTopic, onComplete }: Carousel
     }
   }, [channelId])
 
-  // Step 3 → Step 4: Copy approved, jump straight to image preview (design now lives on the viewer)
-  const handleCopyApprove = useCallback(() => {
-    setStep('images')
-  }, [])
+  // Step 3 → rendering: Copy approved → fetch default prompts → kick off
+  // image rendering with AI defaults → immediately navigate to the carousel
+  // viewer so the user watches progress + fixes images there.
+  const handleCopyApprove = useCallback(async () => {
+    if (!jobId) return
+    setGenerating(true)
+    try {
+      const pRes = await fetch(`/api/carousel/${jobId}/preview-prompts`)
+      const pData = await pRes.json()
+      const previews: Array<{ slideIndex: number; imagePrompt: string; wikipediaQuery: string | null }>
+        = pData?.previews ?? []
+      await fetch(`/api/carousel/${jobId}/render-images`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          slides: previews.map(p => ({
+            slideIndex: p.slideIndex,
+            source: 'ai' as const,
+            prompt: p.imagePrompt,
+            wikipediaQuery: p.wikipediaQuery ?? undefined,
+          })),
+        }),
+      })
+      setStep('done')
+      onComplete?.(jobId)
+    } catch (err) {
+      console.error('Failed to kick off image rendering:', err)
+    } finally {
+      setGenerating(false)
+    }
+  }, [jobId, onComplete])
 
   // Step 3: Regenerate copy
   const handleCopyRegenerate = useCallback(async () => {
@@ -99,12 +123,6 @@ export function CarouselWizard({ channelId, initialTopic, onComplete }: Carousel
       setGenerating(false)
     }
   }, [jobId, subject, channelId])
-
-  // Step 4: Images done
-  const handleImagesComplete = useCallback(() => {
-    setStep('done')
-    if (jobId) onComplete?.(jobId)
-  }, [jobId, onComplete])
 
   // Progress bar
   const currentStepNum = STEP_NUMBER[step]
@@ -171,14 +189,6 @@ export function CarouselWizard({ channelId, initialTopic, onComplete }: Carousel
           onApprove={handleCopyApprove}
           onRegenerate={handleCopyRegenerate}
           onBack={() => setStep('angle')}
-        />
-      )}
-
-      {step === 'images' && jobId && (
-        <ImagePreviewStep
-          jobId={jobId}
-          onComplete={handleImagesComplete}
-          onBack={() => setStep('copy')}
         />
       )}
 

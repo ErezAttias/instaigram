@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { getCarouselJob } from '@/lib/services/standalone-carousel-service';
+import { deleteCarousel } from '@/lib/services/admin-service';
 
 /**
  * GET /api/carousel/[jobId] — Get carousel job with all slides.
@@ -43,5 +44,23 @@ export async function GET(
   } catch (error) {
     console.error(`[api/carousel] GET error:`, error);
     return NextResponse.json({ error: 'GENERATION_FAILED' }, { status: 500 });
+  }
+}
+
+/**
+ * DELETE /api/carousel/[jobId] — Delete a carousel job + all its slides.
+ * Powers the trash icon on the flattened dashboard.
+ */
+export async function DELETE(
+  _request: NextRequest,
+  { params }: { params: Promise<{ jobId: string }> },
+) {
+  try {
+    const { jobId } = await params;
+    await deleteCarousel(jobId);
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error(`[api/carousel] DELETE error:`, error);
+    return NextResponse.json({ error: 'DELETE_FAILED' }, { status: 500 });
   }
 }

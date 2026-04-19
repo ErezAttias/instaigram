@@ -13,11 +13,16 @@ export async function createChannel(input: {
   // For direct mode, the topic goes into exploreTopic field
   const topicValue = input.directTopic || input.exploreTopic || null;
 
+  // Auto-name the channel from the topic so the dashboard doesn't fill up
+  // with "Untitled Channel" rows. Users can still rename later.
+  const autoName = topicValue?.trim() ? topicValue.trim().slice(0, 60) : undefined;
+
   const channel = await prisma.$transaction(async (tx: TransactionClient) => {
     const created = await tx.channel.create({
       data: {
         nicheMode,
         exploreTopic: topicValue,
+        ...(autoName ? { name: autoName } : {}),
         status: 'DRAFT',
         memory: {
           create: {

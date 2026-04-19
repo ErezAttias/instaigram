@@ -24,7 +24,7 @@ export async function POST(
   try {
     const { jobId } = await params;
     const body = await request.json();
-    const { slideIndex, mode, imageSource, promptOverride } = body;
+    const { slideIndex, mode, imageSource, promptOverride, wikipediaImageUrl, wikipediaQuery } = body;
 
     if (typeof slideIndex !== 'number') {
       return NextResponse.json({ error: 'slideIndex is required' }, { status: 400 });
@@ -40,6 +40,19 @@ export async function POST(
       await prisma.carouselSlide.updateMany({
         where: { carouselJobId: jobId, slideIndex },
         data: { imagePromptOverride: trimmed && trimmed.length > 0 ? trimmed : null },
+      });
+    }
+
+    // Persist Wikipedia pick before regeneration so the image service resolves
+    // forcedImageUrl via CarouselSlide.imageSourceUrl.
+    if (resolvedImageSource === 'wikipedia' && typeof wikipediaImageUrl === 'string' && wikipediaImageUrl.length > 0) {
+      await prisma.carouselSlide.updateMany({
+        where: { carouselJobId: jobId, slideIndex },
+        data: {
+          imageSource: 'wikipedia',
+          imageSourceUrl: wikipediaImageUrl,
+          ...(typeof wikipediaQuery === 'string' && wikipediaQuery.length > 0 ? { wikipediaQuery } : {}),
+        },
       });
     }
 

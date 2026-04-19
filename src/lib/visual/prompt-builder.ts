@@ -101,6 +101,56 @@ export interface PromptBuilderOutput {
   };
 }
 
+// ─── Shared composition guardrails ───────────────────────────────
+
+/**
+ * Poster-style preamble applied to every non-place prompt. Nudges the image
+ * model toward full-bleed editorial/cinematic photography and away from
+ * graphic-design layouts (magazine spreads, infographics, title cards).
+ */
+const POSTER_PREAMBLE =
+  'Full-bleed editorial photography, one continuous cinematic scene, dramatic directional lighting, shallow depth of field, saturated film color grade, poster composition, edge-to-edge framing.';
+
+/**
+ * Negative clause repeated on every prompt. The image models regularly try
+ * to render "X vs Y" topics as diptychs/collages — this explicitly forbids
+ * every variant of a split composition plus other UI-adjacent artifacts.
+ */
+const NO_SPLIT_NEGATIVE =
+  'NEGATIVE: no split-screen, no diptych, no triptych, no side-by-side panels, no vertical or horizontal dividers, no collage, no magazine spread, no before/after, no comparison layout, no frames, no borders, no white bars, no white background panels, no text, no captions, no labels, no watermarks, no logos.';
+
+/**
+ * Detects "X vs Y", "X versus Y", "rivalry between X and Y", "X or Y", and
+ * related comparison phrasings, then returns a single-subject rewrite that
+ * the image model will render as a unified scene instead of a split frame.
+ *
+ * Conservative: only rewrites when the phrasing is clearly comparative,
+ * leaves plain statements alone.
+ */
+function rewriteVersusPhrasing(text: string): { rewritten: string; changed: boolean } {
+  if (!text) return { rewritten: text, changed: false };
+  let out = text;
+  let changed = false;
+
+  // "X vs/versus Y" (case-insensitive, standalone word)
+  out = out.replace(/\b(.+?)\s+(vs\.?|versus)\s+(.+?)\b/gi, (_, a, _op, b) => {
+    changed = true;
+    return `${a.trim()} and ${b.trim()} in one unified scene`;
+  });
+
+  // "rivalry between X and Y" / "X's rivalry with Y"
+  out = out.replace(/\brivalry\s+between\s+/gi, () => { changed = true; return 'the shared story of '; });
+  out = out.replace(/\brivalry\s+with\s+/gi, () => { changed = true; return 'shared history with '; });
+
+  // "comparison of X and Y" / "X vs. Y comparison"
+  out = out.replace(/\bcomparison\s+(of|between)\s+/gi, () => { changed = true; return 'a unified view of '; });
+
+  if (changed) {
+    out += ' Single continuous composition, not a comparison layout.';
+  }
+  return { rewritten: out, changed };
+}
+
 // ─── Direct Prompt Construction ──────────────────────────────────
 
 /**
@@ -240,18 +290,28 @@ function buildCelebrityPrompt(
       : `${subject}, dramatic cinematic portrait, editorial photography, intense gaze`;
   }
 
+  // Rewrite comparative phrasings ("X vs Y", "rivalry between...") into a
+  // single unified scene — image models love to render these as diptychs.
+  // Skip for real-place slides: their scene text is already descriptor-based.
+  if (!placeSlide) {
+    sceneDescription = rewriteVersusPhrasing(sceneDescription).rewritten;
+  }
+
   // For real-place slides, skip the body context sentence — it almost always
   // contains the same fantasy-triggering proper name and recontaminates the prompt.
-  const contextSentence = (isFactSlide && !placeSlide)
+  let contextSentence = (isFactSlide && !placeSlide)
     ? bodyText?.split('.').filter(s => s.trim())[0]?.trim()
     : undefined;
+  if (contextSentence) {
+    contextSentence = rewriteVersusPhrasing(contextSentence).rewritten;
+  }
 
   const styleClause = placeSlide
     ? 'Photorealistic documentary photography, real estate photography style, natural daylight, grounded in reality.'
-    : 'High-end editorial photography, photorealistic, sharp facial detail.';
+    : `High-end editorial photography, photorealistic, sharp facial detail. ${POSTER_PREAMBLE}`;
   const noFantasyClause = placeSlide
-    ? 'No fantasy elements, no CGI, no surreal imagery, no floating objects, no castles, no magic. No text, no watermarks, no labels.'
-    : 'No text, no watermarks, no labels.';
+    ? `No fantasy elements, no CGI, no surreal imagery, no floating objects, no castles, no magic. ${NO_SPLIT_NEGATIVE}`
+    : NO_SPLIT_NEGATIVE;
 
   // Inject Wikipedia extract as a factual anchor when present.
   // Truncated to 200 chars to keep total prompt concise.
@@ -359,18 +419,26 @@ function buildInformationalPrompt(
     sceneDescription = `${subject}, dramatic close-up, cinematic composition`;
   }
 
+  // Rewrite comparative phrasings into a unified scene so the model doesn't
+  // fall back to a split-frame layout.
+  sceneDescription = rewriteVersusPhrasing(sceneDescription).rewritten;
+
   // Add the first sentence of body text for specificity (FACT slides only).
-  const contextSentence = isFactSlide
+  let contextSentence = isFactSlide
     ? bodyText?.split('.').filter(s => s.trim())[0]?.trim()
     : undefined;
+  if (contextSentence) {
+    contextSentence = rewriteVersusPhrasing(contextSentence).rewritten;
+  }
 
   const parts = [
     sceneDescription + '.',
     contextSentence ? contextSentence + '.' : '',
     feel + '.',
+    POSTER_PREAMBLE,
     assetType + '.',
     '1:1 aspect ratio.',
-    'No text, no watermarks, no labels.',
+    NO_SPLIT_NEGATIVE,
   ].filter(Boolean);
 
   return parts.join(' ');
@@ -420,13 +488,15 @@ function buildInformationalOutput(
  * Used only when Wikipedia photo lookup fails and Gemini is the fallback.
  */
 function buildCelebrityGeminiFallbackPrompt(headlineText: string): string {
+  const rewritten = rewriteVersusPhrasing(headlineText).rewritten;
   const parts = [
-    headlineText + '.',
+    rewritten + '.',
     'Editorial and documentary photography.',
     'No recognisable celebrities or famous people.',
     'Symbolic and contextual imagery: objects, environments, and settings that visually represent this concept.',
+    POSTER_PREAMBLE,
     'A social media post for Instagram. 1:1 aspect ratio.',
-    'No text, no watermarks, no labels.',
+    NO_SPLIT_NEGATIVE,
   ];
   return parts.join(' ');
 }

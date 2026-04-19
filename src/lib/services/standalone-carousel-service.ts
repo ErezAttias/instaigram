@@ -1410,6 +1410,14 @@ export async function regenerateCarouselSlideImage(
       }
     }
 
+    // When the user explicitly picked a Wikipedia image in the side panel,
+    // we stored the chosen URL on the slide before calling this function.
+    // Pass it through as a forcedImageUrl so the renderer uses that exact
+    // asset instead of regenerating/redownloading something else.
+    const forcedFromSlide = imageSource === 'wikipedia' && slide.imageSourceUrl
+      ? slide.imageSourceUrl
+      : undefined;
+
     const renderOutput = await renderSlideImage(
       slideData,
       displayTitle,
@@ -1425,6 +1433,7 @@ export async function regenerateCarouselSlideImage(
       regenExploreTopic,
       true, // skipReadabilityGate — manual regen should accept any image
       undefined, // swipeCta
+      forcedFromSlide ? { forcedImageUrl: forcedFromSlide } : undefined,
     );
 
     // Save the raw (no-text) as primary; preview overlays text in CSS.

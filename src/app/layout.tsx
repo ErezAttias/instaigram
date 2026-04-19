@@ -42,11 +42,13 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&family=Playfair+Display:wght@700;900&family=Roboto+Slab:wght@700;900&display=swap" rel="stylesheet" />
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${bricolageGrotesque.variable} antialiased bg-background text-foreground min-h-dvh`}
+        className={`${geistSans.variable} ${geistMono.variable} ${bricolageGrotesque.variable} antialiased bg-background text-foreground min-h-dvh lg:flex lg:flex-col`}
       >
         <ThemeProvider>
           <NavBar />
-          {children}
+          <div className="lg:flex-1 lg:flex lg:flex-col">
+            {children}
+          </div>
           <Footer />
         </ThemeProvider>
       </body>

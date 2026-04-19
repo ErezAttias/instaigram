@@ -13,6 +13,9 @@ export interface InstagramPreviewProps {
   profilePicUrl?: string;
   /** Array of slide image URLs */
   slides: string[];
+  /** Optional per-slide overlay nodes (e.g. title/body text). Rendered on top
+   *  of the image so the preview matches the exported text-over-photo look. */
+  slideOverlays?: React.ReactNode[];
   /** The post caption text (supports newlines) */
   caption: string;
   /** Hashtags string (e.g. "#apple #samsung #technology") */
@@ -107,6 +110,7 @@ export default function InstagramPreview({
   verified = false,
   profilePicUrl,
   slides,
+  slideOverlays,
   caption,
   hashtags,
   likesCount = '0',
@@ -178,7 +182,7 @@ export default function InstagramPreview({
               }}
             >
               {slides.map((src, i) => (
-                <div key={i} className="ig-slide">
+                <div key={i} className="ig-slide" style={{ containerType: 'inline-size' }}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={src}
@@ -186,6 +190,7 @@ export default function InstagramPreview({
                     className="ig-slide-img"
                     draggable={false}
                   />
+                  {slideOverlays?.[i]}
                 </div>
               ))}
             </div>

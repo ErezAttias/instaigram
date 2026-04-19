@@ -83,15 +83,41 @@ interface CarouselDesignPanelProps {
    * instantly — instead of waiting for the server restyle to round-trip.
    */
   onLiveDesign?: (design: LiveDesign) => void
+  /**
+   * When provided, the panel becomes controlled: target (title/body) is driven
+   * by the parent (e.g. clicking an element on the slide switches target).
+   * The internal Title/Body pill is hidden in controlled mode.
+   */
+  target?: Target
+  onTargetChange?: (t: Target) => void
 }
 
 type SaveState = 'idle' | 'saving' | 'error'
 
-export function CarouselDesignPanel({ channelId, jobId, slideCount, onRestyleStarted, onLiveDesign }: CarouselDesignPanelProps) {
+export function CarouselDesignPanel({ channelId, jobId, slideCount, onRestyleStarted, onLiveDesign, target: targetProp, onTargetChange }: CarouselDesignPanelProps) {
   const [loaded, setLoaded] = useState(false)
-  const [target, setTarget] = useState<Target>('title')
+  const [internalTarget, setInternalTarget] = useState<Target>('title')
+  const controlled = targetProp !== undefined
+  const target = controlled ? targetProp : internalTarget
+  // "Just saved" bloom: flip on for ~1.1s after a successful save, then off.
+  const [justSaved, setJustSaved] = useState(false)
+  const prevSaveStateRef = useRef<SaveState>('idle')
+  const setTarget = (t: Target) => {
+    if (controlled) onTargetChange?.(t)
+    else setInternalTarget(t)
+  }
   const [openTool, setOpenTool] = useState<ToolId | null>('font')
   const [saveState, setSaveState] = useState<SaveState>('idle')
+
+  // When saveState goes saving → idle, flash the "Saved ✓" bloom briefly.
+  useEffect(() => {
+    if (prevSaveStateRef.current === 'saving' && saveState === 'idle') {
+      setJustSaved(true)
+      const t = setTimeout(() => setJustSaved(false), 1100)
+      return () => clearTimeout(t)
+    }
+    prevSaveStateRef.current = saveState
+  }, [saveState])
 
   const [titleFontId, setTitleFontId] = useState<string>(DEFAULTS.titleFontId)
   const [titleSizePx, setTitleSizePx] = useState<number>(DEFAULTS.titleSizePx)
@@ -272,9 +298,15 @@ export function CarouselDesignPanel({ channelId, jobId, slideCount, onRestyleSta
   }
 
   return (
-    <div className="rounded-2xl border border-border bg-surface overflow-hidden">
-      {/* Target tabs + scope chip + save state — all centered */}
-      <div className="flex flex-col items-center gap-2 px-3 pt-3">
+    <div className="rounded-2xl border border-border bg-surface overflow-hidden flex flex-col lg:h-full">
+      {/* Target tabs + scope chip + save state — centered on mobile, left on desktop */}
+      <div className="flex flex-col items-center lg:items-start gap-2 px-3 pt-3">
+        {controlled ? (
+          <div className="inline-flex items-center gap-2 px-3 h-8 rounded-lg bg-[#dc2743]/10 border border-[#dc2743]/30">
+            <span className="w-2.5 h-2.5 rounded-full border border-white/30" style={{ background: target === 'title' ? titleColor : bodyColor }} />
+            <span className="text-[12px] font-semibold text-foreground">{target === 'title' ? 'Editing Title' : 'Editing Body'}</span>
+          </div>
+        ) : (
         <div className="inline-flex rounded-xl border-2 border-border p-1">
           {(['title', 'body'] as const).map(t => {
             const isActive = target === t
@@ -294,7 +326,8 @@ export function CarouselDesignPanel({ channelId, jobId, slideCount, onRestyleSta
             )
           })}
         </div>
-        <div className="flex items-center justify-center gap-3 flex-wrap">
+        )}
+        <div className="flex items-center justify-center lg:justify-start gap-3 flex-wrap">
           {saveState === 'saving' && (
             <span className="text-[10px] text-muted-light flex items-center gap-1.5">
               <span className="w-3 h-3 border-2 border-muted/30 border-t-muted rounded-full animate-spin" />
@@ -305,6 +338,12 @@ export function CarouselDesignPanel({ channelId, jobId, slideCount, onRestyleSta
             <span className="text-[10px] text-danger flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-danger" />
               Save failed
+            </span>
+          )}
+          {justSaved && saveState === 'idle' && (
+            <span className="text-[10px] text-success flex items-center gap-1.5 animate-bloom">
+              <svg width="10" height="10" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8l3 3 7-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+              Saved
             </span>
           )}
           <span className="inline-flex items-center gap-1 text-[11px] text-muted-light">
@@ -321,8 +360,9 @@ export function CarouselDesignPanel({ channelId, jobId, slideCount, onRestyleSta
         </div>
       </div>
 
-      {/* 5 segmented tools — centered row */}
-      <div className="flex justify-center gap-1.5 p-3">
+      {/* 5 segmented tools — mobile only. Desktop shows all sections at once
+          below, so there's nothing to "open". */}
+      <div className="flex justify-center gap-1.5 p-3 lg:hidden">
         <ToolSegment
           icon={<FontIcon />}
           label="Font"
@@ -361,115 +401,131 @@ export function CarouselDesignPanel({ channelId, jobId, slideCount, onRestyleSta
         />
       </div>
 
-      {/* Drawer — contents centered */}
-      {openTool && (
-        <div className="border-t border-border/60 px-4 py-4 bg-surface flex flex-col items-center">
-          {openTool === 'font' && (
-            <div className="flex flex-wrap justify-center gap-2">
-              {TITLE_FONTS.map((f: FontOption) => (
+      {/* Sections — mobile collapses to only the open tool; desktop shows
+          every section stacked with inline labels. */}
+      <div className={`${openTool ? 'flex' : 'hidden'} lg:grid lg:grid-cols-2 lg:gap-x-5 lg:gap-y-3 lg:auto-rows-min border-t border-border/60 px-4 py-3 bg-surface flex-col items-center lg:items-stretch lg:flex-1 lg:overflow-hidden lg:min-h-0 gap-0`}>
+        <div className={`w-full ${openTool === 'font' ? 'flex flex-col items-center' : 'hidden'} lg:flex lg:flex-col lg:items-stretch lg:col-span-2`}>
+          <p className="hidden lg:block text-[10px] uppercase tracking-wider text-muted/60 mb-2">Font</p>
+          <div className="flex flex-wrap justify-center lg:flex-nowrap lg:justify-start gap-2">
+            {TITLE_FONTS.map((f: FontOption) => {
+              const isActive = active.fontId === f.id
+              return (
                 <button
-                  key={f.id}
+                  key={`${f.id}-${isActive ? 'on' : 'off'}`}
                   onClick={() => active.setFontId(f.id)}
-                  className={`px-3 py-2 rounded-xl border-2 transition-all ${
-                    active.fontId === f.id ? 'border-[#dc2743] bg-[#dc2743]/5' : 'border-border hover:border-[#dc2743]/30'
+                  className={`px-3 py-2 rounded-xl border-2 transition-all active:scale-[0.96] ${
+                    isActive ? 'border-[#dc2743] bg-[#dc2743]/5 animate-ring-pop' : 'border-border hover:border-[#dc2743]/30'
                   }`}
                 >
-                  <span className="text-sm text-foreground" style={{ fontFamily: `'${f.family}', sans-serif`, fontWeight: f.weight }}>
+                  <span className="text-sm text-foreground whitespace-nowrap" style={{ fontFamily: `'${f.family}', sans-serif`, fontWeight: f.weight }}>
                     {f.label}
                   </span>
                 </button>
-              ))}
-            </div>
-          )}
+              )
+            })}
+          </div>
+        </div>
 
-          {openTool === 'size' && (
-            <div className="inline-flex items-center gap-2 rounded-xl border-2 border-border p-1">
-              <button
-                type="button"
-                onClick={() => active.setSizePx(clampSize(active.sizePx - active.range.step))}
-                disabled={active.sizePx <= active.range.min}
-                aria-label="Decrease size"
-                className="w-9 h-9 rounded-lg text-lg font-semibold text-foreground hover:bg-[#dc2743]/10 disabled:opacity-30 transition-colors"
-              >−</button>
-              <div className="flex items-center">
-                <input
-                  type="number"
-                  min={active.range.min} max={active.range.max} step={active.range.step}
-                  value={active.sizePx}
-                  onChange={e => { const n = parseInt(e.target.value, 10); if (Number.isFinite(n)) active.setSizePx(clampSize(n)) }}
-                  aria-label={target === 'title' ? 'Title size in pixels' : 'Body size in pixels'}
-                  className="w-14 text-center bg-transparent tabular-nums text-sm font-semibold text-foreground outline-none focus:ring-1 focus:ring-[#dc2743]/40 rounded-md"
-                />
-                <span className="text-xs text-muted-light">px</span>
-              </div>
-              <button
-                type="button"
-                onClick={() => active.setSizePx(clampSize(active.sizePx + active.range.step))}
-                disabled={active.sizePx >= active.range.max}
-                aria-label="Increase size"
-                className="w-9 h-9 rounded-lg text-lg font-semibold text-foreground hover:bg-[#dc2743]/10 disabled:opacity-30 transition-colors"
-              >+</button>
+        <div className={`w-full ${openTool === 'size' ? 'flex flex-col items-center' : 'hidden'} lg:flex lg:flex-col lg:items-stretch`}>
+          <p className="hidden lg:block text-[10px] uppercase tracking-wider text-muted/60 mb-2">Size</p>
+          <div className="inline-flex items-center gap-2 rounded-xl border-2 border-border p-1 self-center lg:self-start">
+            <button
+              type="button"
+              onClick={() => active.setSizePx(clampSize(active.sizePx - active.range.step))}
+              disabled={active.sizePx <= active.range.min}
+              aria-label="Decrease size"
+              className="w-9 h-9 rounded-lg text-lg font-semibold text-foreground hover:bg-[#dc2743]/10 disabled:opacity-30 transition-colors"
+            >−</button>
+            <div className="flex items-center">
+              <input
+                type="number"
+                min={active.range.min} max={active.range.max} step={active.range.step}
+                value={active.sizePx}
+                onChange={e => { const n = parseInt(e.target.value, 10); if (Number.isFinite(n)) active.setSizePx(clampSize(n)) }}
+                aria-label={target === 'title' ? 'Title size in pixels' : 'Body size in pixels'}
+                className="w-14 text-center bg-transparent tabular-nums text-sm font-semibold text-foreground outline-none focus:ring-1 focus:ring-[#dc2743]/40 rounded-md"
+              />
+              <span className="text-xs text-muted-light">px</span>
             </div>
-          )}
+            <button
+              type="button"
+              onClick={() => active.setSizePx(clampSize(active.sizePx + active.range.step))}
+              disabled={active.sizePx >= active.range.max}
+              aria-label="Increase size"
+              className="w-9 h-9 rounded-lg text-lg font-semibold text-foreground hover:bg-[#dc2743]/10 disabled:opacity-30 transition-colors"
+            >+</button>
+          </div>
+        </div>
 
-          {openTool === 'align' && (
-            <div className="inline-flex rounded-xl border-2 border-border p-1">
-              {(['left', 'center', 'right'] as const).map(a => (
+        <div className={`w-full ${openTool === 'align' ? 'flex flex-col items-center' : 'hidden'} lg:flex lg:flex-col lg:items-stretch`}>
+          <p className="hidden lg:block text-[10px] uppercase tracking-wider text-muted/60 mb-2">Align</p>
+          <div className="inline-flex rounded-xl border-2 border-border p-1 self-center lg:self-start">
+            {(['left', 'center', 'right'] as const).map(a => {
+              const isActive = active.align === a
+              return (
                 <button
-                  key={a}
+                  key={`${a}-${isActive ? 'on' : 'off'}`}
                   onClick={() => active.setAlign(a)}
                   aria-label={`Align ${a}`}
-                  aria-pressed={active.align === a}
-                  className={`w-10 h-9 rounded-lg flex items-center justify-center transition-all ${
-                    active.align === a ? 'bg-[#dc2743] text-white' : 'text-muted-light hover:text-foreground'
+                  aria-pressed={isActive}
+                  className={`w-10 h-9 rounded-lg flex items-center justify-center transition-all active:scale-[0.94] ${
+                    isActive ? 'bg-[#dc2743] text-white animate-ring-pop' : 'text-muted-light hover:text-foreground'
                   }`}
                 >
                   <AlignIcon align={a} />
                 </button>
-              ))}
-            </div>
-          )}
+              )
+            })}
+          </div>
+        </div>
 
-          {openTool === 'weight' && (
-            <div className="flex flex-wrap justify-center gap-2">
-              {WEIGHTS.map(w => (
+        <div className={`w-full ${openTool === 'weight' ? 'flex flex-col items-center' : 'hidden'} lg:flex lg:flex-col lg:items-stretch lg:col-span-2`}>
+          <p className="hidden lg:block text-[10px] uppercase tracking-wider text-muted/60 mb-2">Weight</p>
+          <div className="flex flex-wrap justify-center lg:flex-nowrap lg:justify-start gap-2 lg:gap-1.5">
+            {WEIGHTS.map(w => {
+              const isActive = active.weight === w.id
+              return (
                 <button
-                  key={w.id}
+                  key={`${w.id}-${isActive ? 'on' : 'off'}`}
                   onClick={() => active.setWeight(w.id)}
-                  className={`px-3.5 py-2 rounded-xl border-2 transition-all ${
-                    active.weight === w.id ? 'border-[#dc2743] bg-[#dc2743]/5' : 'border-border hover:border-[#dc2743]/30'
+                  className={`px-3.5 py-2 lg:px-2.5 lg:py-1.5 rounded-xl border-2 transition-all active:scale-[0.96] ${
+                    isActive ? 'border-[#dc2743] bg-[#dc2743]/5 animate-ring-pop' : 'border-border hover:border-[#dc2743]/30'
                   }`}
                 >
-                  <span className="text-xs text-foreground" style={{ fontFamily: `'${activeFont.family}', sans-serif`, fontWeight: w.id }}>
+                  <span className="text-xs text-foreground whitespace-nowrap" style={{ fontFamily: `'${activeFont.family}', sans-serif`, fontWeight: w.id }}>
                     {w.label}
                   </span>
                 </button>
-              ))}
-            </div>
-          )}
+              )
+            })}
+          </div>
+        </div>
 
-          {openTool === 'color' && (
-            <div className="flex flex-wrap justify-center gap-2">
-              {COLOR_SWATCHES.map(c => (
+        <div className={`w-full ${openTool === 'color' ? 'flex flex-col items-center' : 'hidden'} lg:flex lg:flex-col lg:items-stretch lg:col-span-2`}>
+          <p className="hidden lg:block text-[10px] uppercase tracking-wider text-muted/60 mb-2">Color</p>
+          <div className="flex flex-wrap justify-center lg:justify-start gap-2">
+            {COLOR_SWATCHES.map(c => {
+              const isActive = active.color.toUpperCase() === c.hex.toUpperCase()
+              return (
                 <button
-                  key={c.id}
+                  key={`${c.id}-${isActive ? 'on' : 'off'}`}
                   onClick={() => active.setColor(c.hex)}
-                  className={`px-3 py-2 rounded-xl border-2 transition-all ${
-                    active.color.toUpperCase() === c.hex.toUpperCase()
-                      ? 'border-[#dc2743] bg-[#dc2743]/5'
-                      : 'border-border hover:border-[#dc2743]/30'
+                  aria-label={c.label}
+                  title={c.label}
+                  className={`p-1.5 rounded-full border-2 transition-all lg:p-1 active:scale-[0.9] ${
+                    isActive ? 'border-[#dc2743] animate-ring-pop' : 'border-border hover:border-[#dc2743]/30'
                   }`}
                 >
                   <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 rounded-full border border-white/20" style={{ background: c.hex }} />
-                    <span className="text-xs font-medium text-foreground">{c.label}</span>
+                    <div className="w-5 h-5 rounded-full border border-white/20" style={{ background: c.hex }} />
+                    <span className="text-xs font-medium text-foreground pr-1.5 lg:hidden">{c.label}</span>
                   </div>
                 </button>
-              ))}
-            </div>
-          )}
+              )
+            })}
+          </div>
         </div>
-      )}
+      </div>
 
       {/* Hidden IG gradient keeps the import alive and matches the rest of the app chrome. */}
       <span className="sr-only" style={{ backgroundImage: IG_GRADIENT }}>design</span>

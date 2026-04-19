@@ -9,7 +9,6 @@ function AdminMobileNav() {
   return (
     <nav className="lg:hidden flex items-center gap-2 overflow-x-auto scrollbar-hide pb-1 -mx-1 px-1">
       <MobilePill href="/admin" icon={<GridIcon />} label="All Channels" />
-      <MobilePill href="/carousel" icon={<LightningIcon />} label="Quick Carousel" />
     </nav>
   )
 }
@@ -46,7 +45,6 @@ function CarouselMobileNav() {
   return (
     <nav className="lg:hidden flex items-center gap-2 overflow-x-auto scrollbar-hide pb-1 -mx-1 px-1">
       <MobilePill href="/admin" icon={<BackIcon />} label="Dashboard" />
-      <MobilePill href="/carousel" icon={<PlusIcon />} label="New Carousel" />
     </nav>
   )
 }

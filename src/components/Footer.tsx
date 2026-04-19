@@ -23,9 +23,6 @@ export default function Footer() {
           <Link href="/admin" className="text-sm text-muted-light hover:text-foreground transition-colors">
             Dashboard
           </Link>
-          <Link href="/carousel" className="text-sm text-muted-light hover:text-foreground transition-colors">
-            Create Carousel
-          </Link>
           <Link href="/" className="text-sm text-muted-light hover:text-foreground transition-colors">
             Home
           </Link>

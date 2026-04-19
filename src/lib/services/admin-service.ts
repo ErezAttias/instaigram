@@ -194,6 +194,49 @@ export async function getChannelCarousels(
   }));
 }
 
+/**
+ * Dashboard query — every carousel across every channel. Flattens the old
+ * "channels first" view so a single test carousel doesn't create a "channel"
+ * row the user has to scroll past. Returns a thumbnail URL by pulling the
+ * first rendered slide's image.
+ */
+export async function getAllCarousels(limit = 200) {
+  const carousels = await prisma.carouselJob.findMany({
+    select: {
+      id: true,
+      topic: true,
+      direction: true,
+      status: true,
+      approved: true,
+      createdAt: true,
+      updatedAt: true,
+      channelId: true,
+      channel: { select: { id: true, name: true } },
+      slides: {
+        where: { imageUrl: { not: null } },
+        orderBy: { slideIndex: 'asc' },
+        take: 1,
+        select: { imageUrl: true },
+      },
+    },
+    orderBy: { updatedAt: 'desc' },
+    take: limit,
+  });
+
+  return carousels.map(c => ({
+    id: c.id,
+    topic: c.topic,
+    direction: c.direction,
+    status: c.status,
+    approved: c.approved,
+    thumbnailUrl: c.slides[0]?.imageUrl ?? null,
+    channelId: c.channelId,
+    channelName: c.channel?.name ?? null,
+    createdAt: c.createdAt,
+    updatedAt: c.updatedAt,
+  }));
+}
+
 export async function deleteCarousel(jobId: string) {
   return prisma.carouselJob.delete({
     where: { id: jobId },

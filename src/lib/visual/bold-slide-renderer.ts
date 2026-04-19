@@ -350,8 +350,8 @@ async function downloadAndFitToCanvas(url: string): Promise<Buffer> {
   // looked smarter on paper but centered on eyes, which are exactly where the
   // title overlay lands.
   return sharp(Buffer.from(arrayBuf))
-    .resize(CANVAS.width, CANVAS.height, { fit: 'cover', position: 'top' })
-    .png({ quality: 90 })
+    .resize(CANVAS.width, CANVAS.height, { fit: 'cover', position: 'top', kernel: 'lanczos3' })
+    .png({ quality: 95, compressionLevel: 6 })
     .toBuffer();
 }
 

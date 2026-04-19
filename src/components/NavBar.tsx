@@ -26,12 +26,6 @@ export default function NavBar() {
           >
             Dashboard
           </Link>
-          <Link
-            href="/carousel"
-            className="text-sm font-medium text-muted-light hover:text-foreground transition-colors duration-200"
-          >
-            Create Carousel
-          </Link>
           <ThemeToggle />
         </div>
 
@@ -71,13 +65,6 @@ export default function NavBar() {
                 className="flex items-center h-11 px-3 rounded-lg text-sm font-medium text-muted-light hover:text-foreground hover:bg-surface-hover transition-colors"
               >
                 Dashboard
-              </Link>
-              <Link
-                href="/carousel"
-                onClick={() => setOpen(false)}
-                className="flex items-center h-11 px-3 rounded-lg text-sm font-medium text-muted-light hover:text-foreground hover:bg-surface-hover transition-colors"
-              >
-                Create Carousel
               </Link>
             </div>
           </div>

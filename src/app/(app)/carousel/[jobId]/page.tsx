@@ -5,6 +5,25 @@ import { useParams } from 'next/navigation';
 import InstagramPreview from '@/components/InstagramPreview';
 import '@/components/instagram-preview.css';
 import { CarouselDesignPanel, type LiveDesign } from '@/components/carousel/CarouselDesignPanel';
+import { ImageEditPanel } from '@/components/carousel/ImageEditPanel';
+
+// Mirror of CarouselDesignPanel's DEFAULTS resolved to a concrete LiveDesign
+// so slides can render their text overlay before channel visual style loads
+// (e.g. during generation). Once the real design is fetched it replaces this.
+const DEFAULT_LIVE_DESIGN: LiveDesign = {
+  titleFontFamily: 'Inter',
+  titleFontWeightDefault: 800,
+  titleSizePx: 72,
+  titleAlign: 'left',
+  titleWeight: 800,
+  titleColor: '#FFFFFF',
+  bodyFontFamily: 'Inter',
+  bodyFontWeightDefault: 400,
+  bodySizePx: 40,
+  bodyAlign: 'left',
+  bodyWeight: 400,
+  bodyColor: '#D0D0D0',
+};
 
 // ─── Types ──────────────────────────────────────────────────
 
@@ -303,12 +322,6 @@ function ProgressView({
             {slides.map((slide) => {
               const displayStatus = getSlideDisplayStatus(slide, true);
               const statusCfg = STATUS_CONFIG[displayStatus];
-              const roleColors: Record<string, string> = {
-                OPENER: 'text-accent',
-                FACT: 'text-violet',
-                IMPLICATION: 'text-warning',
-                CTA: 'text-success',
-              };
 
               return (
                 <div
@@ -316,14 +329,44 @@ function ProgressView({
                   className="bg-surface border border-border rounded-lg overflow-hidden animate-scale-in"
                 >
                   {/* Image area */}
-                  <div className="aspect-[4/5] bg-surface-elevated relative">
+                  <div
+                    className="aspect-[4/5] bg-surface-elevated relative"
+                    style={slide.imageUrl && !slide.hasEmbeddedText ? { containerType: 'inline-size' } : undefined}
+                  >
                     {slide.imageUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={slide.imageUrl}
-                        alt={`Slide ${slide.slideIndex + 1}`}
-                        className="w-full h-full object-cover animate-fade-up"
-                      />
+                      <>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={slide.imageUrl}
+                          alt={`Slide ${slide.slideIndex + 1}`}
+                          className="w-full h-full object-cover animate-fade-up"
+                        />
+                        {!slide.hasEmbeddedText && (
+                          <>
+                            {/* Matches the review-mode gradient so generating
+                                slides don't look broken with an empty strip. */}
+                            <div
+                              aria-hidden="true"
+                              className="absolute inset-x-0"
+                              style={{
+                                top: '35%',
+                                bottom: 0,
+                                background: 'linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,0.25) 28%, rgba(0,0,0,0.65) 48%, rgba(0,0,0,0.90) 62%, rgba(0,0,0,1) 75%, rgba(0,0,0,1) 100%)',
+                              }}
+                            />
+                            <LiveTextOverlay
+                              design={DEFAULT_LIVE_DESIGN}
+                              title={slide.displayTitle || slide.headline || ''}
+                              body={
+                                slide.role === 'FACT' || slide.role === 'IMPLICATION' || slide.role === 'OPENER'
+                                  ? (slide.displaySupport || slide.body || '')
+                                  : ''
+                              }
+                              isOpener={slide.role === 'OPENER'}
+                            />
+                          </>
+                        )}
+                      </>
                     ) : displayStatus === 'GENERATING' ? (
                       <div className="w-full h-full flex flex-col items-center justify-center gap-2">
                         <div className="animate-spin h-5 w-5 border-2 border-accent border-t-transparent rounded-full" />
@@ -335,13 +378,6 @@ function ProgressView({
                         <span className="text-danger text-[10px] text-center px-2">Failed</span>
                       </div>
                     )}
-
-                    {/* Role badge */}
-                    <div className="absolute top-2 left-2">
-                      <span className={`text-[10px] font-bold tracking-wider uppercase ${roleColors[slide.role] || 'text-muted-light'}`}>
-                        {slide.role}
-                      </span>
-                    </div>
 
                     {/* Slide number */}
                     <div className="absolute top-2 right-2 w-5 h-5 bg-background/80 backdrop-blur-sm rounded-full flex items-center justify-center">
@@ -384,7 +420,7 @@ function ProgressView({
             <p className="text-danger font-medium mb-1">Generation failed</p>
             <p className="text-danger/70 text-xs mb-3">Something went wrong while creating your carousel.</p>
             <a
-              href="/carousel"
+              href="/admin"
               className="text-xs text-danger underline underline-offset-2 hover:text-danger/80"
             >
               Try again
@@ -408,23 +444,20 @@ function ProgressView({
 function SlideCard({
   slide,
   liveDesign,
+  selection,
+  onSelect,
   onSaveText,
   onRegenerateImage,
   isRegenerating,
 }: {
   slide: CarouselSlide;
   liveDesign: LiveDesign | null;
+  selection?: 'title' | 'body' | 'image';
+  onSelect?: (s: 'title' | 'body' | 'image') => void;
   onSaveText: (patch: { displayTitle?: string; displaySupport?: string }) => Promise<void> | void;
   onRegenerateImage: (opts: { promptOverride?: string }) => Promise<void> | void;
   isRegenerating: boolean;
 }) {
-  const roleColors: Record<string, string> = {
-    OPENER: 'text-accent',
-    FACT: 'text-violet',
-    IMPLICATION: 'text-warning',
-    CTA: 'text-success',
-  };
-
   const displayStatus = isRegenerating ? 'REGENERATING' : getSlideDisplayStatus(slide, false);
   const statusConfig = STATUS_CONFIG[displayStatus];
   const isFailed = displayStatus === 'FAILED_IMAGE';
@@ -436,7 +469,11 @@ function SlideCard({
   // as a CSS overlay. Compositing to a flat PNG happens on demand at publish.
   // Legacy carousels have text baked into the stored image — skip the overlay
   // for those so we don't double-render text.
-  const useLivePreview = !!liveDesign && !!slide.imageUrl && !slide.hasEmbeddedText;
+  // Always render the text overlay when we have a raw image — fall back to
+  // the default design so the slide never looks half-finished (empty gradient)
+  // while the channel visual style is still loading.
+  const resolvedDesign = liveDesign ?? DEFAULT_LIVE_DESIGN;
+  const useLivePreview = !!slide.imageUrl && !slide.hasEmbeddedText;
   const titleText = slide.displayTitle || slide.headline || '';
   const bodyText = hasSecondary ? (slide.displaySupport || slide.body || '') : '';
 
@@ -447,14 +484,26 @@ function SlideCard({
       }`}
       {...(isFailed ? { 'data-slide-failed': '' } : {})}
     >
-      {/* Image preview — click to edit the text that's baked into the image. */}
+      {/* Image preview — clicking empty space selects the image element so the
+          side panel shows image tools. Clicking the title/body overlays selects
+          those instead. Double-clicking a text overlay still opens the editor. */}
       <button
         type="button"
-        onClick={() => !isRegenerating && slide.imageUrl && setShowTextEditor(true)}
+        onClick={() => {
+          if (isRegenerating || !slide.imageUrl) return;
+          if (onSelect) onSelect('image');
+          else setShowTextEditor(true);
+        }}
         disabled={isRegenerating || !slide.imageUrl}
-        aria-label="Edit slide text"
-        className="group aspect-[4/5] bg-surface-elevated relative block w-full text-left disabled:cursor-default rounded-none p-0"
-        style={useLivePreview ? { containerType: 'inline-size' } : undefined}
+        aria-label="Select slide image"
+        data-selected={selection === 'image' ? '' : undefined}
+        className={`group aspect-[4/5] bg-surface-elevated relative block w-full text-left disabled:cursor-default rounded-none p-0 transition-shadow ${
+          selection === 'image' ? 'ring-2 ring-[#dc2743] ring-inset' : ''
+        }`}
+        style={{
+          ...(useLivePreview ? { containerType: 'inline-size' as const } : {}),
+          viewTransitionName: 'slide-image',
+        }}
       >
         {slide.imageUrl ? (
           <>
@@ -488,12 +537,15 @@ function SlideCard({
                 ].join(' '),
               }}
             />
-            {useLivePreview && liveDesign && (
+            {useLivePreview && (
               <LiveTextOverlay
-                design={liveDesign}
+                design={resolvedDesign}
                 title={titleText}
                 body={bodyText}
                 isOpener={isOpener}
+                selection={selection}
+                onSelect={onSelect}
+                onSaveText={onSaveText}
               />
             )}
           </>
@@ -514,31 +566,40 @@ function SlideCard({
           </div>
         )}
 
-        {/* Hover affordance — so users know the image is editable. */}
-        {slide.imageUrl && !isRegenerating && (
-          <div className="absolute inset-0 flex items-end justify-center opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity pointer-events-none">
+        {/* Hover affordance — hints what tapping the element will do. */}
+        {slide.imageUrl && !isRegenerating && selection !== 'image' && (
+          <div className="absolute inset-0 flex items-start justify-center opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity pointer-events-none">
             <div className="m-3 px-3 py-1.5 rounded-full bg-background/80 backdrop-blur-sm text-[11px] font-semibold text-foreground flex items-center gap-1.5">
               <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M11 2l3 3-8 8H3v-3l8-8z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" /></svg>
-              Tap to edit text
+              Tap elements to edit
             </div>
           </div>
         )}
-
-        {/* Role badge */}
-        <div className="absolute top-3 left-3">
-          <span className={`text-xs font-bold tracking-wider uppercase ${roleColors[slide.role] || 'text-muted-light'}`}>
-            {slide.role}
-          </span>
-        </div>
 
         {/* Slide number */}
         <div className="absolute top-3 right-3 w-7 h-7 bg-background/80 backdrop-blur-sm rounded-full flex items-center justify-center">
           <span className="text-xs font-bold text-foreground">{slide.slideIndex + 1}</span>
         </div>
+
+        {/* Regenerating — floating glass pill with a spinning ring, overlaid
+            on the image so it reads as an in-progress state rather than a
+            warning strip. Auto-disappears once the new image arrives. */}
+        {displayStatus === 'REGENERATING' && (
+          <>
+            <div aria-hidden="true" className="absolute inset-0 bg-background/35 backdrop-blur-[1px]" />
+            <div aria-hidden="true" className="absolute inset-0 shimmer-overlay pointer-events-none" />
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div className="inline-flex items-center gap-2 px-3 h-8 rounded-full bg-background/80 backdrop-blur-md border border-white/10 shadow-lg animate-pop-in">
+                <span className="w-3.5 h-3.5 border-[1.5px] border-foreground/30 border-t-foreground rounded-full animate-spin" />
+                <span className="text-[11px] font-semibold text-foreground">Regenerating</span>
+              </div>
+            </div>
+          </>
+        )}
       </button>
 
-      {/* Status strip — only shown for actionable states */}
-      {(displayStatus === 'GENERATING' || displayStatus === 'REGENERATING' || displayStatus === 'FAILED_IMAGE' || displayStatus === 'APPROVED') && (
+      {/* Status strip — only for non-regen actionable states */}
+      {(displayStatus === 'GENERATING' || displayStatus === 'FAILED_IMAGE' || displayStatus === 'APPROVED') && (
         <div className={`px-3 py-1.5 flex items-center gap-2 ${statusConfig.bgClass}`}>
           <span className={`w-2 h-2 rounded-full flex-shrink-0 ${statusConfig.dotClass}`} />
           <span className={`text-xs font-medium ${statusConfig.textClass}`}>
@@ -589,12 +650,65 @@ function LiveTextOverlay({
   title,
   body,
   isOpener,
+  selection,
+  onSelect,
+  onSaveText,
 }: {
   design: LiveDesign;
   title: string;
   body: string;
   isOpener: boolean;
+  selection?: 'title' | 'body' | 'image';
+  onSelect?: (s: 'title' | 'body' | 'image') => void;
+  onSaveText?: (patch: { displayTitle?: string; displaySupport?: string }) => Promise<void> | void;
 }) {
+  // Inline editing: double-click the title or body on the slide to edit it
+  // directly. Enter/Blur commits, Escape cancels. No modal — keeps the slide
+  // fully visible while typing.
+  const [editing, setEditing] = useState<'title' | 'body' | null>(null);
+  const titleRef = useRef<HTMLDivElement | null>(null);
+  const bodyRef = useRef<HTMLDivElement | null>(null);
+  const savedRef = useRef(false);
+
+  useEffect(() => {
+    if (editing === 'title' && titleRef.current) {
+      titleRef.current.focus();
+      // Place caret at end.
+      const range = document.createRange(); range.selectNodeContents(titleRef.current); range.collapse(false);
+      const sel = window.getSelection(); sel?.removeAllRanges(); sel?.addRange(range);
+    } else if (editing === 'body' && bodyRef.current) {
+      bodyRef.current.focus();
+      const range = document.createRange(); range.selectNodeContents(bodyRef.current); range.collapse(false);
+      const sel = window.getSelection(); sel?.removeAllRanges(); sel?.addRange(range);
+    }
+  }, [editing]);
+
+  const commit = useCallback((which: 'title' | 'body') => {
+    if (savedRef.current) return;
+    savedRef.current = true;
+    const el = which === 'title' ? titleRef.current : bodyRef.current;
+    const next = (el?.innerText ?? '').replace(/\n+/g, ' ').trim();
+    const original = which === 'title' ? title : body;
+    if (next && next !== original.trim() && onSaveText) {
+      onSaveText(which === 'title' ? { displayTitle: next } : { displaySupport: next });
+    }
+    setEditing(null);
+    setTimeout(() => { savedRef.current = false; }, 0);
+  }, [title, body, onSaveText]);
+
+  const cancel = useCallback((which: 'title' | 'body') => {
+    if (savedRef.current) return;
+    savedRef.current = true;
+    const el = which === 'title' ? titleRef.current : bodyRef.current;
+    if (el) el.innerText = which === 'title' ? title : body;
+    setEditing(null);
+    setTimeout(() => { savedRef.current = false; }, 0);
+  }, [title, body]);
+
+  const handleKey = (which: 'title' | 'body') => (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); commit(which); }
+    else if (e.key === 'Escape') { e.preventDefault(); cancel(which); }
+  };
   const TO_CQW = 100 / 1080;
   const titleCqw = design.titleSizePx * TO_CQW;
   const bodyCqw = design.bodySizePx * TO_CQW;
@@ -622,12 +736,14 @@ function LiveTextOverlay({
     <div
       className="absolute inset-x-0 bottom-0 pointer-events-none"
       style={{
-        top: '60%', // server textZoneTop = CANVAS.height * 0.60
-        paddingInline: `${(65 / 1080) * 100}%`, // PAD=65 on the server
+        // No fixed top — text anchors at the bottom (with padding) and grows
+        // upward when copy is long, so we're guaranteed breathing room at the
+        // bottom regardless of headline length.
+        paddingInline: `${(65 / 1080) * 100}%`,
         paddingBottom: `${(65 / 1350) * 100}%`,
         display: 'flex',
         flexDirection: 'column',
-        justifyContent: 'center',
+        justifyContent: 'flex-end',
         alignItems: alignItemsForColumn,
       }}
     >
@@ -636,6 +752,13 @@ function LiveTextOverlay({
         style={{ gap: `${(20 / 1080) * 100}cqw`, alignItems: alignItemsForColumn }}
       >
         <div
+          ref={titleRef}
+          onClick={onSelect && editing !== 'title' ? (e) => { e.stopPropagation(); onSelect('title'); } : undefined}
+          onDoubleClick={onSaveText ? (e) => { e.stopPropagation(); setEditing('title'); } : undefined}
+          onBlur={editing === 'title' ? () => commit('title') : undefined}
+          onKeyDown={editing === 'title' ? handleKey('title') : undefined}
+          contentEditable={editing === 'title' ? 'plaintext-only' : false}
+          suppressContentEditableWarning
           style={{
             fontFamily: `'${design.titleFontFamily}', sans-serif`,
             fontSize: `${titleCqw}cqw`,
@@ -646,12 +769,26 @@ function LiveTextOverlay({
             textAlign: titleAlignCss,
             width: '100%',
             wordBreak: 'break-word',
+            pointerEvents: onSelect ? 'auto' : 'none',
+            cursor: editing === 'title' ? 'text' : (onSelect ? 'pointer' : undefined),
+            outline: (selection === 'title' || editing === 'title') ? '2px solid #dc2743' : 'none',
+            outlineOffset: (selection === 'title' || editing === 'title') ? '6px' : undefined,
+            borderRadius: '4px',
+            transition:
+              'outline-color 160ms var(--ease-out-expo), outline-offset 160ms var(--ease-out-expo), color 180ms var(--ease-out-expo), font-size 220ms var(--ease-out-expo), font-weight 180ms var(--ease-out-expo), text-align 200ms var(--ease-out-expo)',
           }}
         >
           {title}
         </div>
         {showBodyAsBlock && (
           <div
+            ref={bodyRef}
+            onClick={onSelect && editing !== 'body' ? (e) => { e.stopPropagation(); onSelect('body'); } : undefined}
+            onDoubleClick={onSaveText ? (e) => { e.stopPropagation(); setEditing('body'); } : undefined}
+            onBlur={editing === 'body' ? () => commit('body') : undefined}
+            onKeyDown={editing === 'body' ? handleKey('body') : undefined}
+            contentEditable={editing === 'body' ? 'plaintext-only' : false}
+            suppressContentEditableWarning
             style={{
               fontFamily: `'${design.bodyFontFamily}', sans-serif`,
               fontSize: `${bodyCqw}cqw`,
@@ -662,6 +799,13 @@ function LiveTextOverlay({
               textAlign: bodyAlignCss,
               width: '100%',
               wordBreak: 'break-word',
+              pointerEvents: onSelect ? 'auto' : 'none',
+              cursor: editing === 'body' ? 'text' : (onSelect ? 'pointer' : undefined),
+              outline: (selection === 'body' || editing === 'body') ? '2px solid #dc2743' : 'none',
+              outlineOffset: (selection === 'body' || editing === 'body') ? '6px' : undefined,
+              borderRadius: '4px',
+              transition:
+                'outline-color 160ms var(--ease-out-expo), outline-offset 160ms var(--ease-out-expo), color 180ms var(--ease-out-expo), font-size 220ms var(--ease-out-expo), font-weight 180ms var(--ease-out-expo), text-align 200ms var(--ease-out-expo)',
             }}
           >
             {body}
@@ -669,6 +813,7 @@ function LiveTextOverlay({
         )}
         {showCtaLine && (
           <div
+            onClick={onSelect ? (e) => { e.stopPropagation(); onSelect('body'); } : undefined}
             style={{
               fontFamily: `'${design.bodyFontFamily}', sans-serif`,
               fontSize: `${ctaCqw}cqw`,
@@ -678,6 +823,13 @@ function LiveTextOverlay({
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: ctaJustify,
+              pointerEvents: onSelect ? 'auto' : 'none',
+              cursor: editing === 'body' ? 'text' : (onSelect ? 'pointer' : undefined),
+              outline: (selection === 'body' || editing === 'body') ? '2px solid #dc2743' : 'none',
+              outlineOffset: (selection === 'body' || editing === 'body') ? '6px' : undefined,
+              borderRadius: '4px',
+              transition:
+                'outline-color 160ms var(--ease-out-expo), outline-offset 160ms var(--ease-out-expo), color 180ms var(--ease-out-expo)',
               gap: `${(12 / 1080) * 100}cqw`,
               lineHeight: 1.3,
             }}
@@ -1041,19 +1193,15 @@ function ReviewView({
   const [message, setMessage] = useState('');
   const [selectedSlide, setSelectedSlide] = useState(0);
   const [needsReapproval, setNeedsReapproval] = useState(false);
-  const swipeTouchRef = useRef<{ x: number; y: number } | null>(null);
-  const handleSwipeTouchStart = useCallback((e: React.TouchEvent) => {
-    swipeTouchRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-  }, []);
-  const handleSwipeTouchEnd = useCallback((e: React.TouchEvent) => {
-    if (!swipeTouchRef.current) return;
-    const dx = e.changedTouches[0].clientX - swipeTouchRef.current.x;
-    const dy = e.changedTouches[0].clientY - swipeTouchRef.current.y;
-    swipeTouchRef.current = null;
-    if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy)) return;
-    if (dx < 0) setSelectedSlide(s => Math.min(s + 1, job.slides.length - 1));
-    else setSelectedSlide(s => Math.max(s - 1, 0));
-  }, [job.slides.length]);
+  // Drives the contextual side panel: clicking the title/body/image on the
+  // slide preview sets this, and the right-hand panel swaps accordingly.
+  const [selection, setSelection] = useState<'title' | 'body' | 'image'>('title');
+  // Partial-failure recovery: when slides failed on the initial render, hide
+  // the editor behind a recovery card with a Retry button. The user can
+  // override with "Keep going anyway" to unlock the normal UI.
+  const [keepGoingAnyway, setKeepGoingAnyway] = useState(false);
+  const [isRetryingAll, setIsRetryingAll] = useState(false);
+  const autoRetriedRef = useRef(false);
   // Live typography snapshot — published by the design panel on every change.
   // When present, SlideCard renders a CSS overlay on the raw image for an
   // instant preview instead of waiting for the server restyle to round-trip.
@@ -1067,6 +1215,41 @@ function ReviewView({
     }
   }, [message]);
 
+  // Directional slide swap — routes setSelectedSlide through the browser's
+  // View Transitions API so the image crossfades + horizontally slides in the
+  // direction of travel. Silently falls back to a plain state update in
+  // browsers that don't support it (Firefox today) or when reduce-motion
+  // is on (the CSS rules disable the transition frames).
+  const switchSlide = useCallback((next: number) => {
+    const clamped = Math.max(0, Math.min(job.slides.length - 1, next));
+    if (clamped === selectedSlide) return;
+    const dir = clamped > selectedSlide ? 'next' : 'prev';
+    if (typeof document !== 'undefined') {
+      document.documentElement.dataset.slideDir = dir;
+    }
+    type DocWithVT = Document & { startViewTransition?: (cb: () => void) => void };
+    const doc = document as DocWithVT;
+    if (typeof doc.startViewTransition === 'function') {
+      doc.startViewTransition(() => setSelectedSlide(clamped));
+    } else {
+      setSelectedSlide(clamped);
+    }
+  }, [selectedSlide, job.slides.length]);
+
+  const swipeTouchRef = useRef<{ x: number; y: number } | null>(null);
+  const handleSwipeTouchStart = useCallback((e: React.TouchEvent) => {
+    swipeTouchRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+  }, []);
+  const handleSwipeTouchEnd = useCallback((e: React.TouchEvent) => {
+    if (!swipeTouchRef.current) return;
+    const dx = e.changedTouches[0].clientX - swipeTouchRef.current.x;
+    const dy = e.changedTouches[0].clientY - swipeTouchRef.current.y;
+    swipeTouchRef.current = null;
+    if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy)) return;
+    if (dx < 0) switchSlide(selectedSlide + 1);
+    else switchSlide(selectedSlide - 1);
+  }, [switchSlide, selectedSlide]);
+
   // Keyboard navigation
   useEffect(() => {
     function handleKey(e: KeyboardEvent) {
@@ -1074,18 +1257,22 @@ function ReviewView({
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
       if (e.key === 'ArrowLeft' && selectedSlide > 0) {
         e.preventDefault();
-        setSelectedSlide(s => s - 1);
+        switchSlide(selectedSlide - 1);
       }
       if (e.key === 'ArrowRight' && selectedSlide < job.slides.length - 1) {
         e.preventDefault();
-        setSelectedSlide(s => s + 1);
+        switchSlide(selectedSlide + 1);
       }
     }
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
-  }, [selectedSlide, job.slides.length]);
+  }, [selectedSlide, job.slides.length, switchSlide]);
 
-  // Compute slide health
+  // Compute slide health. A slide is "failed" for UX purposes when it's
+  // explicitly FAILED_IMAGE or when the job has finished rendering but the
+  // slide still has no image. The page-level fetchJob guard ensures we only
+  // enter review once at least one slide has resolved, so missing imageUrl
+  // here means genuine failure — not a render still in flight.
   const failedSlides = job.slides.filter(s => s.status === 'FAILED_IMAGE' || !s.imageUrl);
   const readyCount = job.slides.length - failedSlides.length;
 
@@ -1133,13 +1320,18 @@ function ReviewView({
   }, [imageVersion]);
 
   const handleRegenerateImage = useCallback(
-    async (slideIndex: number, opts: { promptOverride?: string }) => {
+    async (slideIndex: number, opts: { promptOverride?: string; wikipediaImageUrl?: string; wikipediaQuery?: string }) => {
       setRegeneratingSlides(prev => {
         const next = new Set(prev);
         next.add(slideIndex);
         return next;
       });
-      setMessage(opts.promptOverride !== undefined ? 'Regenerating with new prompt…' : 'Rolling a new image…');
+      const isWiki = typeof opts.wikipediaImageUrl === 'string';
+      setMessage(
+        isWiki ? 'Applying Wikipedia image…'
+        : opts.promptOverride !== undefined ? 'Regenerating with new prompt…'
+        : 'Rolling a new image…'
+      );
       try {
         const res = await fetch(`/api/carousel/${job.id}/regenerate-slide`, {
           method: 'POST',
@@ -1147,6 +1339,7 @@ function ReviewView({
           body: JSON.stringify({
             slideIndex,
             mode: 'image',
+            ...(isWiki ? { imageSource: 'wikipedia', wikipediaImageUrl: opts.wikipediaImageUrl, wikipediaQuery: opts.wikipediaQuery } : {}),
             ...(opts.promptOverride !== undefined ? { promptOverride: opts.promptOverride } : {}),
           }),
         });
@@ -1209,16 +1402,93 @@ function ReviewView({
     onTransitionToPreview();
   }, [onTransitionToPreview]);
 
+  // Retry every currently-failed slide sequentially. Used by the recovery
+  // card button and also fired automatically once when the user lands on a
+  // partially-failed carousel (see effect below).
+  const handleRetryAllFailed = useCallback(async () => {
+    const failing = job.slides.filter(s => s.status === 'FAILED_IMAGE' || !s.imageUrl);
+    if (failing.length === 0) return;
+    setIsRetryingAll(true);
+    try {
+      for (const s of failing) {
+        await handleRegenerateImage(s.slideIndex, {});
+      }
+    } finally {
+      setIsRetryingAll(false);
+    }
+  }, [job.slides, handleRegenerateImage]);
+
+  // Auto-retry on first mount if we landed on a partially-failed carousel.
+  // Runs at most once per session; manual retries after an edit won't loop.
+  useEffect(() => {
+    if (autoRetriedRef.current) return;
+    const hasFailures = job.slides.some(s => s.status === 'FAILED_IMAGE' || !s.imageUrl);
+    const hasAny = job.slides.length > 0;
+    if (hasAny && hasFailures) {
+      autoRetriedRef.current = true;
+      handleRetryAllFailed();
+    }
+    // Intentionally only consider the initial `job.slides` snapshot — this
+    // effect should not re-fire when slides update during retry.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   return (
     <div className="animate-fade-up flex flex-col">
-      {/* Header */}
-      <div className="mb-6 order-1">
-        <h1 className="text-xl font-bold tracking-tight">{job.topic}</h1>
-        {failedSlides.length === job.slides.length ? (
-          <p className="text-sm text-danger mt-1">Generation finished — no usable slides were produced</p>
-        ) : failedSlides.length > 0 ? (
-          <p className="text-sm text-warning mt-1">Generation finished — {failedSlides.length} slide{failedSlides.length > 1 ? 's' : ''} need attention</p>
-        ) : null}
+      {/* Header — the failure subtext is hidden while the recovery card is
+          showing so the user doesn't read the same message twice. */}
+      <div className="mb-6 flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <h1 className="text-xl font-bold tracking-tight truncate">{job.topic}</h1>
+          {keepGoingAnyway && failedSlides.length === job.slides.length ? (
+            <p className="text-sm text-danger mt-1">Generation finished — no usable slides were produced</p>
+          ) : keepGoingAnyway && failedSlides.length > 0 ? (
+            <p className="text-sm text-warning mt-1">Generation finished — {failedSlides.length} slide{failedSlides.length > 1 ? 's' : ''} need attention</p>
+          ) : failedSlides.length === 0 ? (
+            <p className="text-sm text-success mt-1">All {job.slides.length} slides ready</p>
+          ) : null}
+        </div>
+        {(failedSlides.length === 0 || keepGoingAnyway) && (
+          (() => {
+            const allReady = failedSlides.length === 0;
+            if (job.approved) {
+              return (
+                <button
+                  onClick={handlePreview}
+                  className="h-10 px-5 rounded-full text-sm font-semibold bg-success/90 text-background hover:bg-success transition-all active:scale-[0.98] whitespace-nowrap"
+                >
+                  Preview Post
+                </button>
+              );
+            }
+            if (allReady) {
+              return (
+                <button
+                  onClick={handleApprove}
+                  disabled={isProcessing}
+                  style={{ background: 'linear-gradient(135deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888)' }}
+                  className="h-10 px-5 rounded-full text-sm font-semibold text-white hover:opacity-90 disabled:opacity-40 transition-all active:scale-[0.98] whitespace-nowrap inline-flex items-center"
+                >
+                  {isProcessing && (
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 inline-block" viewBox="0 0 24 24" fill="none">
+                      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" className="opacity-25" />
+                      <path d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+                    </svg>
+                  )}
+                  {isProcessing ? 'Approving…' : 'Approve All'}
+                </button>
+              );
+            }
+            return (
+              <button
+                onClick={handleJumpToIssue}
+                className="h-10 px-5 rounded-full text-sm font-medium text-danger bg-danger/10 border border-danger/30 hover:bg-danger/15 transition-all active:scale-[0.98] whitespace-nowrap"
+              >
+                Jump to first issue
+              </button>
+            );
+          })()
+        )}
       </div>
 
       {/* Status message */}
@@ -1230,33 +1500,66 @@ function ReviewView({
         </div>
       )}
 
-      {/* Focused slide view. Design panel now lives below the slide so it
-          replaces the old action-button row (Rewrite / New image / Redo). */}
-      <div className="flex flex-col items-center pb-24">
-
-        {/* Navigation bar */}
-        <div className="flex items-center gap-4 mb-4 w-full max-w-sm">
-          <button
-            onClick={() => setSelectedSlide(s => s - 1)}
-            disabled={selectedSlide === 0}
-            className="py-1.5 px-3 text-sm bg-surface border border-border rounded-lg hover:bg-surface-hover disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-            aria-label="Previous slide"
-          >
-            &larr; Prev
-          </button>
-          <span className="flex-1 text-center text-sm text-muted-light">
-            Slide {selectedSlide + 1} of {job.slides.length}
-          </span>
-          <button
-            onClick={() => setSelectedSlide(s => s + 1)}
-            disabled={selectedSlide === job.slides.length - 1}
-            className="py-1.5 px-3 text-sm bg-surface border border-border rounded-lg hover:bg-surface-hover disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-            aria-label="Next slide"
-          >
-            Next &rarr;
-          </button>
+      {/* Recovery card — shown when slides failed so the user sees a single
+          clear action instead of a red-striped half-broken editor. */}
+      {failedSlides.length > 0 && !keepGoingAnyway && (
+        <div className="flex flex-col items-center pb-24">
+          <div className="w-full max-w-lg bg-surface border border-border rounded-2xl p-6 sm:p-8 text-center animate-scale-in">
+            <div className="w-12 h-12 mx-auto rounded-full bg-warning/15 flex items-center justify-center mb-4">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M12 8v5M12 17h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-warning" />
+                <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.8" className="text-warning/60" />
+              </svg>
+            </div>
+            <h2 className="text-lg font-bold text-foreground mb-2">
+              {failedSlides.length === job.slides.length
+                ? `We couldn't generate any of your ${job.slides.length} slides`
+                : `${failedSlides.length} of ${job.slides.length} slides couldn't finish`}
+            </h2>
+            <p className="text-sm text-muted-light mb-6 leading-relaxed">
+              {isRetryingAll
+                ? 'Retrying now — this usually takes 20–40 seconds.'
+                : 'This happens occasionally when the image service is busy. Retry and we\'ll pick up where we left off.'}
+            </p>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-2">
+              <button
+                onClick={handleRetryAllFailed}
+                disabled={isRetryingAll}
+                className="w-full sm:w-auto h-11 px-6 rounded-full text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50 transition-all active:scale-[0.98]"
+                style={{ background: 'linear-gradient(135deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888)' }}
+              >
+                {isRetryingAll ? (
+                  <>
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 inline-block" viewBox="0 0 24 24" fill="none">
+                      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" className="opacity-25" />
+                      <path d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+                    </svg>
+                    Retrying {failedSlides.length} slide{failedSlides.length > 1 ? 's' : ''}…
+                  </>
+                ) : (
+                  <>Retry failed slides</>
+                )}
+              </button>
+              <button
+                onClick={() => setKeepGoingAnyway(true)}
+                disabled={isRetryingAll}
+                className="w-full sm:w-auto h-11 px-6 rounded-full text-sm font-medium text-muted-light hover:text-foreground disabled:opacity-40 transition-colors"
+              >
+                Keep going anyway
+              </button>
+            </div>
+          </div>
         </div>
+      )}
 
+      {/* Focused slide view. On mobile the design panel stacks below the slide;
+          on desktop (lg+) it sits beside the slide so the vertical column of
+          slide + toolbar + thumbnails doesn't demand excessive scrolling. */}
+      {(failedSlides.length === 0 || keepGoingAnyway) && (
+      <div className="flex flex-col items-center">
+
+        <div className="flex flex-col lg:flex-row lg:items-stretch lg:justify-center lg:gap-8 w-full">
+        <div className="flex flex-col items-center w-full lg:w-96 lg:flex-shrink-0 animate-fade-up stagger-2">
         {/* Large slide preview */}
         {currentSlide && (
           <div
@@ -1267,6 +1570,8 @@ function ReviewView({
             <SlideCard
               slide={{ ...currentSlide, imageUrl: bustImgSrc(currentSlide.imageUrl) }}
               liveDesign={liveDesign}
+              selection={selection}
+              onSelect={setSelection}
               onSaveText={(patch) => handleSaveText(currentSlide.slideIndex, patch)}
               onRegenerateImage={(opts) => handleRegenerateImage(currentSlide.slideIndex, opts)}
               isRegenerating={regeneratingSlides.has(currentSlide.slideIndex)}
@@ -1274,26 +1579,52 @@ function ReviewView({
           </div>
         )}
 
-        {/* Typography toolbar — sits where the rewrite buttons used to be.
-            Applies to every slide in the carousel (channel-level visual style). */}
-        <div className="w-full max-w-sm mt-4">
-          <CarouselDesignPanel
-            channelId={job.channelId}
-            jobId={job.id}
-            slideCount={job.slides.length}
-            onLiveDesign={setLiveDesign}
-            onRestyleStarted={() => {
-              // Design changes apply instantly via the CSS overlay — nothing
-              // to poll for. Just refresh once to pick up the invalidated
-              // approval state from the server.
-              onRefresh();
-            }}
-          />
         </div>
 
-        {/* Thumbnail filmstrip — wraps on narrow screens so ≤375px viewports
-            don't push thumbs off the edge; scrolls horizontally when wider. */}
-        <div className="flex flex-wrap sm:flex-nowrap justify-center gap-2 mt-6 px-4 sm:overflow-x-auto max-w-full scrollbar-hide">
+        {/* Contextual side panel — swaps between text-style tools and image
+            tools depending on what's selected on the slide. */}
+        <div className="w-full max-w-sm mt-4 lg:mt-0 lg:max-w-none lg:w-[480px] lg:h-[480px] lg:flex-shrink-0 animate-pop-in stagger-3" key={selection === 'image' ? 'image' : 'text'}>
+          {selection === 'image' && currentSlide ? (
+            <ImageEditPanel
+              currentPrompt={currentSlide.imagePromptOverride ?? ''}
+              isRegenerating={regeneratingSlides.has(currentSlide.slideIndex)}
+              defaultWikiQuery={job.topic ?? ''}
+              onRoll={() => handleRegenerateImage(currentSlide.slideIndex, {})}
+              onSavePromptAndRegen={(p) => handleRegenerateImage(currentSlide.slideIndex, { promptOverride: p })}
+              onPickWikipedia={(r) => handleRegenerateImage(currentSlide.slideIndex, {
+                wikipediaImageUrl: r.imageUrl,
+                wikipediaQuery: r.pageTitle,
+              })}
+            />
+          ) : (
+            <CarouselDesignPanel
+              channelId={job.channelId}
+              jobId={job.id}
+              slideCount={job.slides.length}
+              target={selection === 'body' ? 'body' : 'title'}
+              onTargetChange={(t) => setSelection(t)}
+              onLiveDesign={setLiveDesign}
+              onRestyleStarted={() => {
+                onRefresh();
+              }}
+            />
+          )}
+        </div>
+        </div>
+
+        {/* Thumbnail filmstrip — Prev/Next hug the row directly so navigation
+            lives right where the thumbs are. */}
+        <div className="flex items-center justify-center gap-3 mt-6 px-4 animate-fade-up stagger-4">
+          <button
+            onClick={() => switchSlide(selectedSlide - 1)}
+            disabled={selectedSlide === 0}
+            className="flex-shrink-0 w-9 h-9 rounded-full bg-surface border border-border text-foreground hover:bg-surface-hover disabled:opacity-30 disabled:cursor-not-allowed transition-all active:scale-[0.94] flex items-center justify-center"
+            aria-label="Previous slide"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M15 18l-6-6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+          </button>
+
+          <div className="flex flex-wrap sm:flex-nowrap justify-center gap-3 max-w-full py-2 px-1">
           {job.slides.map((slide, i) => {
             const status = getSlideDisplayStatus(slide, false);
             const isActive = i === selectedSlide;
@@ -1301,10 +1632,10 @@ function ReviewView({
             return (
               <button
                 key={slide.id}
-                onClick={() => setSelectedSlide(i)}
-                className={`w-14 h-[70px] rounded-lg overflow-hidden flex-shrink-0 transition-all ${
+                onClick={() => switchSlide(i)}
+                className={`relative w-14 h-[70px] rounded-lg overflow-hidden flex-shrink-0 transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.95] ${
                   isActive
-                    ? 'ring-2 ring-accent ring-offset-2 ring-offset-background'
+                    ? 'shadow-[0_0_0_2px_#dc2743,0_0_0_4px_rgba(220,39,67,0.25),0_6px_18px_-6px_rgba(220,39,67,0.6)] -translate-y-0.5'
                     : isFailed
                       ? 'ring-2 ring-danger/60'
                       : 'ring-1 ring-border hover:ring-border-hover'
@@ -1330,21 +1661,20 @@ function ReviewView({
               </button>
             );
           })}
+          </div>
+
+          <button
+            onClick={() => switchSlide(selectedSlide + 1)}
+            disabled={selectedSlide === job.slides.length - 1}
+            className="flex-shrink-0 w-10 h-10 rounded-full bg-surface border border-border text-foreground hover:bg-surface-hover disabled:opacity-30 disabled:cursor-not-allowed transition-all active:scale-[0.94] flex items-center justify-center"
+            aria-label="Next slide"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+          </button>
         </div>
       </div>
+      )}
 
-      {/* Sticky decision bar */}
-      <DecisionBar
-        readyCount={readyCount}
-        failedCount={failedSlides.length}
-        total={job.slides.length}
-        approved={job.approved}
-        needsReapproval={needsReapproval}
-        isProcessing={isProcessing}
-        onApprove={handleApprove}
-        onPreview={handlePreview}
-        onJumpToIssue={handleJumpToIssue}
-      />
     </div>
   );
 }
@@ -1360,10 +1690,60 @@ function PreviewView({
 }) {
   const [isExporting, setIsExporting] = useState(false);
   const [exportMessage, setExportMessage] = useState('');
+  // The stored slide images are raw (no text baked in). Text is rendered as a
+  // CSS overlay in the review view; the Instagram preview needs the same
+  // treatment so approved posts actually show the headline/body. Fetch the
+  // channel's visual style so the preview matches what the user designed.
+  const [previewDesign, setPreviewDesign] = useState<LiveDesign>(DEFAULT_LIVE_DESIGN);
+  useEffect(() => {
+    if (!job.channelId) return;
+    fetch(`/api/admin/channels/${job.channelId}/visual-style`)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (!data) return;
+        setPreviewDesign(prev => ({
+          ...prev,
+          titleSizePx: data.t1FontSizePx ?? prev.titleSizePx,
+          bodySizePx: data.t2FontSizePx ?? prev.bodySizePx,
+          titleColor: data.headlineColor ?? prev.titleColor,
+          bodyColor: data.bodyColor ?? prev.bodyColor,
+          titleAlign: data.titleAlign ?? prev.titleAlign,
+          bodyAlign: data.bodyAlign ?? prev.bodyAlign,
+          titleWeight: typeof data.titleWeight === 'number' ? data.titleWeight : prev.titleWeight,
+          bodyWeight: typeof data.bodyWeight === 'number' ? data.bodyWeight : prev.bodyWeight,
+        }));
+      })
+      .catch(() => {});
+  }, [job.channelId]);
 
-  const slideImages = job.slides
-    .filter(s => s.imageUrl)
-    .map(s => s.imageUrl as string);
+  const renderableSlides = job.slides.filter(s => s.imageUrl);
+  const slideImages = renderableSlides.map(s => s.imageUrl as string);
+  const slideOverlays = renderableSlides.map(s => {
+    if (s.hasEmbeddedText) return null;
+    const isOpener = s.role === 'OPENER';
+    const hasSecondary = s.role === 'FACT' || s.role === 'IMPLICATION' || isOpener;
+    const titleText = s.displayTitle || s.headline || '';
+    const bodyText = hasSecondary ? (s.displaySupport || s.body || '') : '';
+    return (
+      <>
+        <div
+          aria-hidden="true"
+          className="absolute inset-x-0 pointer-events-none"
+          style={{
+            top: '35%',
+            bottom: 0,
+            background: 'linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,0.25) 28%, rgba(0,0,0,0.65) 48%, rgba(0,0,0,0.90) 62%, rgba(0,0,0,1) 75%, rgba(0,0,0,1) 100%)',
+          }}
+        />
+        <LiveTextOverlay
+          design={previewDesign}
+          title={titleText}
+          body={bodyText}
+          isOpener={isOpener}
+        />
+      </>
+    );
+  });
 
   const caption = job.caption || `${job.topic}\n\nSwipe to learn more.`;
   const hashtags = job.hashtags?.length > 0
@@ -1399,7 +1779,7 @@ function PreviewView({
   }, [job.id]);
 
   return (
-    <div className="animate-fade-up pb-24">
+    <div className="animate-fade-up">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
@@ -1408,41 +1788,18 @@ function PreviewView({
             Review your carousel as it will appear on Instagram
           </p>
         </div>
-        <button
-          onClick={onBack}
-          className="py-2 px-4 text-sm bg-surface border border-border rounded-lg hover:bg-surface-hover transition-colors"
-        >
-          &larr; Back to slides
-        </button>
-      </div>
-
-      {/* Instagram Mockup */}
-      <div className="flex justify-center">
-        <InstagramPreview
-          username="Your Profile"
-          slides={slideImages}
-          caption={caption}
-          hashtags={hashtags}
-          likesCount="0"
-          timestamp="Just now"
-        />
-      </div>
-
-      {/* Export bar */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-sm border-t border-border">
-        <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between gap-4">
-          <div className="text-sm">
-            <span className="text-success font-medium">Carousel approved</span>
-            {exportMessage && (
-              <p className={`text-xs mt-1 ${exportMessage.startsWith('Error') ? 'text-danger' : 'text-success'}`}>
-                {exportMessage}
-              </p>
-            )}
-          </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={onBack}
+            className="h-10 px-4 text-sm font-medium bg-surface border border-border rounded-full hover:bg-surface-hover transition-all active:scale-[0.98]"
+          >
+            &larr; Back to slides
+          </button>
           <button
             onClick={handleDownload}
             disabled={isExporting}
-            className="py-2.5 px-6 font-semibold rounded-lg text-sm transition-colors whitespace-nowrap bg-accent text-background hover:bg-accent-hover disabled:opacity-40"
+            style={{ background: 'linear-gradient(135deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888)' }}
+            className="h-10 px-5 font-semibold rounded-full text-sm text-white hover:opacity-90 disabled:opacity-40 transition-all active:scale-[0.98] whitespace-nowrap inline-flex items-center"
           >
             {isExporting ? (
               <>
@@ -1450,13 +1807,39 @@ function PreviewView({
                   <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" className="opacity-25" />
                   <path d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
                 </svg>
-                Downloading...
+                Downloading…
               </>
             ) : (
-              'Download ZIP'
+              <>
+                <svg className="-ml-0.5 mr-1.5 h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M12 4v12m0 0l-4-4m4 4l4-4M4 20h16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                Download ZIP
+              </>
             )}
           </button>
         </div>
+      </div>
+
+      {exportMessage && (
+        <div className={`mb-4 px-4 py-2 rounded-lg text-sm ${
+          exportMessage.startsWith('Error') ? 'bg-danger-dim text-danger' : 'bg-success-dim text-success'
+        }`}>
+          {exportMessage}
+        </div>
+      )}
+
+      {/* Instagram Mockup */}
+      <div className="flex justify-center">
+        <InstagramPreview
+          username="Your Profile"
+          slides={slideImages}
+          slideOverlays={slideOverlays}
+          caption={caption}
+          hashtags={hashtags}
+          likesCount="0"
+          timestamp="Just now"
+        />
       </div>
     </div>
   );
@@ -1484,20 +1867,40 @@ export default function CarouselJobPage() {
       const data: CarouselJob = await res.json();
       setJob(data);
 
-      if (data.status === 'COMPLETE' || data.status === 'FAILED') {
-        // If already approved with caption, go straight to preview
-        if (data.approved && data.caption) {
-          setPhase('preview');
-        } else {
-          setPhase('review');
-        }
-        // Stop slide polling when complete
-        if (slidesPollRef.current) {
-          clearInterval(slidesPollRef.current);
-          slidesPollRef.current = null;
-        }
-        if (data.status === 'FAILED') {
-          setError(data.errorMessage || 'Generation failed');
+      // Treat any job with an errorMessage as failed — the pipeline may not
+      // have flipped status to 'FAILED' in every code path, and without this
+      // a legacy failed carousel dumps the user onto ProgressView forever.
+      const isFailed = data.status === 'FAILED' || !!data.errorMessage;
+
+      if (data.status === 'COMPLETE' || isFailed) {
+        // Guard: after copy-only generation the job is marked COMPLETE with
+        // empty slides while render-images is still starting in the
+        // background. Keep showing ProgressView until at least one slide has
+        // resolved (image saved OR explicitly FAILED_IMAGE) so we don't
+        // flash the editor with empty thumbnails and trigger a premature
+        // "retry" flow.
+        const anyResolved = data.slides?.some(s => !!s.imageUrl || s.status === 'FAILED_IMAGE') ?? false;
+        const readyToReview = isFailed || anyResolved;
+
+        if (readyToReview) {
+          if (data.approved && data.caption) {
+            setPhase('preview');
+          } else {
+            setPhase('review');
+          }
+          // Stop slide polling when complete
+          if (slidesPollRef.current) {
+            clearInterval(slidesPollRef.current);
+            slidesPollRef.current = null;
+          }
+          if (isFailed) {
+            setError(data.errorMessage || 'Generation failed');
+          }
+        } else if (!slidesPollRef.current) {
+          // Status flipped to COMPLETE before any slide resolved — we're
+          // waiting on background render. Keep polling until at least one
+          // slide lands or fails.
+          slidesPollRef.current = setInterval(() => { fetchJob(); }, 2000);
         }
       }
 
@@ -1615,8 +2018,16 @@ export default function CarouselJobPage() {
     setPhase('preview');
   }, [job, fetchJob]);
 
-  // Show progress screen until complete
-  if (phase === 'progress' && (!job || job.status === 'PENDING' || job.status === 'GENERATING' || job.status === 'RENDERING')) {
+  // Show progress screen until complete. Also covers the "copy done, images
+  // still rendering in the background" window — the job may briefly report
+  // COMPLETE while the render-images call is in-flight and no slides have
+  // images yet. Treat that as progress, not as failure.
+  const renderingInBackground =
+    phase === 'progress' &&
+    job?.status === 'COMPLETE' &&
+    job.slides.length > 0 &&
+    job.slides.every(s => !s.imageUrl && s.status !== 'FAILED_IMAGE');
+  if (phase === 'progress' && (!job || job.status === 'PENDING' || job.status === 'GENERATING' || job.status === 'RENDERING' || renderingInBackground)) {
     return <ProgressView progress={progress} error={error} slides={partialSlides} />;
   }
 
@@ -1628,7 +2039,7 @@ export default function CarouselJobPage() {
           <h2 className="text-lg font-bold text-danger mb-2">Generation failed</h2>
           <p className="text-sm text-danger/70">Something went wrong while creating your carousel.</p>
           <a
-            href="/carousel"
+            href="/admin"
             className="inline-block mt-4 py-2 px-4 bg-surface border border-border rounded-lg text-sm text-foreground hover:bg-surface-hover"
           >
             Try again

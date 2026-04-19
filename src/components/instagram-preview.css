@@ -60,6 +60,7 @@
   align-items: center;
   justify-content: center;
   background: #000;
+  position: relative;
 }
 
 .ig-slide-img {
