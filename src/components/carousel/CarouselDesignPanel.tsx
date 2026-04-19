@@ -204,6 +204,11 @@ export function CarouselDesignPanel({ channelId, jobId, slideCount, onRestyleSta
   const onRestyleStartedRef = useRef(onRestyleStarted)
   useEffect(() => { onRestyleStartedRef.current = onRestyleStarted }, [onRestyleStarted])
 
+  // Always-current snapshot of style values so the debounced timer reads the
+  // latest state at fire time (not the stale closure from when queueSave was created).
+  const styleRef = useRef({ titleFontId, bodyFontId, titleColor, bodyColor, titleSizePx, bodySizePx, titleAlign, titleWeight, bodyAlign, bodyWeight })
+  styleRef.current = { titleFontId, bodyFontId, titleColor, bodyColor, titleSizePx, bodySizePx, titleAlign, titleWeight, bodyAlign, bodyWeight }
+
   const queueSave = useCallback(() => {
     if (!channelId || !loaded) return
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
@@ -212,6 +217,7 @@ export function CarouselDesignPanel({ channelId, jobId, slideCount, onRestyleSta
       const ctrl = new AbortController()
       inflightRef.current = ctrl
       const myVersion = ++versionRef.current
+      const style = styleRef.current
 
       setSaveState('saving')
       try {
@@ -219,10 +225,11 @@ export function CarouselDesignPanel({ channelId, jobId, slideCount, onRestyleSta
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            titleFontId, bodyFontId,
-            headlineColor: titleColor, bodyColor,
-            t1FontSizePx: titleSizePx, t2FontSizePx: bodySizePx,
-            titleAlign, titleWeight, bodyAlign, bodyWeight,
+            titleFontId: style.titleFontId, bodyFontId: style.bodyFontId,
+            headlineColor: style.titleColor, bodyColor: style.bodyColor,
+            t1FontSizePx: style.titleSizePx, t2FontSizePx: style.bodySizePx,
+            titleAlign: style.titleAlign, titleWeight: style.titleWeight,
+            bodyAlign: style.bodyAlign, bodyWeight: style.bodyWeight,
           }),
           signal: ctrl.signal,
         })
@@ -243,12 +250,7 @@ export function CarouselDesignPanel({ channelId, jobId, slideCount, onRestyleSta
         setSaveState('error')
       }
     }, 400)
-  }, [
-    channelId, jobId, loaded,
-    titleFontId, bodyFontId, titleColor, bodyColor,
-    titleSizePx, bodySizePx,
-    titleAlign, titleWeight, bodyAlign, bodyWeight,
-  ])
+  }, [channelId, jobId, loaded])
 
   useEffect(() => {
     if (!loaded) return

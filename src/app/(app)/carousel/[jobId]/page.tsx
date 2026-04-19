@@ -1579,7 +1579,6 @@ function ReviewView({
           </div>
         )}
 
-        </div>
 
         {/* Contextual side panel — swaps between text-style tools and image
             tools depending on what's selected on the slide. */}
@@ -1605,7 +1604,9 @@ function ReviewView({
               onTargetChange={(t) => setSelection(t)}
               onLiveDesign={setLiveDesign}
               onRestyleStarted={() => {
-                onRefresh();
+                // Design applies instantly via CSS overlay; no need to refresh
+                // the full job. Mark needing re-approval locally if it was approved.
+                if (job.approved) setNeedsReapproval(true);
               }}
             />
           )}
