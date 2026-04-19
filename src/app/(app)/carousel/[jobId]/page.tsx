@@ -1579,6 +1579,7 @@ function ReviewView({
           </div>
         )}
 
+        </div>
 
         {/* Contextual side panel — swaps between text-style tools and image
             tools depending on what's selected on the slide. */}
