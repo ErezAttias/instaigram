@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { prisma } from '@/lib/db/prisma';
 import { generateChannelPostsBatch, type ChannelPostStreamEvent } from '@/lib/services/channel-carousel-bridge';
 import { handleApiError, buildDebugMeta } from '@/lib/utils/api-helpers';
 
@@ -29,6 +30,24 @@ export async function POST(
     }
   } catch {
     // use default
+  }
+
+  // Dedupe: reject if an in-progress carousel job already exists for this
+  // channel, started within the last 30s. Prevents double-click from firing
+  // a second 5-min batch generation on top of one that's already running.
+  const inFlight = await prisma.carouselJob.findFirst({
+    where: {
+      channelId: id,
+      createdAt: { gt: new Date(Date.now() - 30_000) },
+      status: { in: ['PENDING', 'GENERATING', 'RENDERING'] },
+    },
+    select: { id: true },
+  });
+  if (inFlight) {
+    return NextResponse.json(
+      { error: 'BATCH_IN_PROGRESS', message: 'A batch generation is already running for this channel.' },
+      { status: 409 }
+    );
   }
 
   if (accept.includes('text/event-stream')) {

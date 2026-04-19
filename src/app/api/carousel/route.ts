@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { waitUntil } from '@vercel/functions';
+import { prisma } from '@/lib/db/prisma';
 import { createCarouselJob, runCarouselGeneration } from '@/lib/services/standalone-carousel-service';
 
 // On Vercel, functions are torn down when the response returns unless we
@@ -25,6 +26,25 @@ export async function POST(request: NextRequest) {
     const channelId = body.channelId?.trim() || undefined;
     const skipImages = body.skipImages === true;
     const layout = 'BOLD' as const;
+
+    // Dedupe: if the same channel+topic was just submitted in the last 10s
+    // and is still in-progress, return the existing job instead of starting
+    // a duplicate 5-min generation.
+    if (channelId) {
+      const recent = await prisma.carouselJob.findFirst({
+        where: {
+          channelId,
+          topic,
+          createdAt: { gt: new Date(Date.now() - 10_000) },
+          status: { in: ['PENDING', 'GENERATING', 'RENDERING'] },
+        },
+        orderBy: { createdAt: 'desc' },
+        select: { id: true, status: true },
+      });
+      if (recent) {
+        return NextResponse.json({ jobId: recent.id, status: recent.status, deduped: true }, { status: 200 });
+      }
+    }
 
     // Pass topic as exactSubject to skip the concept selection LLM call
     const exactSubject = skipImages ? topic : undefined;

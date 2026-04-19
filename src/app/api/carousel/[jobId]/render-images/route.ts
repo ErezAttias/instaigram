@@ -38,6 +38,20 @@ export async function POST(
   const { jobId } = await params;
 
   try {
+    // Dedupe: if this job is already rendering and was updated recently,
+    // skip the re-kick so a double-click doesn't start a 2nd 5-min render.
+    const existing = await prisma.carouselJob.findUnique({
+      where: { id: jobId },
+      select: { status: true, updatedAt: true },
+    });
+    if (!existing) {
+      return NextResponse.json({ error: 'JOB_NOT_FOUND' }, { status: 404 });
+    }
+    const stillFresh = Date.now() - existing.updatedAt.getTime() < 5 * 60 * 1000;
+    if (existing.status === 'RENDERING' && stillFresh) {
+      return NextResponse.json({ jobId, status: 'RENDERING', deduped: true }, { status: 202 });
+    }
+
     // Body is optional — allow POST with no body (legacy behaviour).
     let overrides: SlideOverride[] = [];
     try {
