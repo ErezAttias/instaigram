@@ -253,33 +253,46 @@ const PLACEHOLDER_EXAMPLES = [
   'sustainable living',
 ]
 
+type Phase = 'idle' | 'generating' | 'ready'
+
+type Channel = { id: string; name?: string; niche?: string }
+
 export default function HomeKhromaSplit() {
   const router = useRouter()
   const { theme, toggle } = useTheme()
   const isLight = theme === 'light'
   const [topic, setTopic] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [loadingSource, setLoadingSource] = useState<'direct' | 'discover' | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [placeholderIdx, setPlaceholderIdx] = useState(0)
   const [themeIdx, setThemeIdx] = useState(0)
   const [nonce, setNonce] = useState(0)
+
+  // Phase state machine — drives left panel content and right-side behavior
+  // without unmounting the shell.
+  const [phase, setPhase] = useState<Phase>('idle')
+  const [submittedTopic, setSubmittedTopic] = useState('')
+  const [channel, setChannel] = useState<Channel | null>(null)
 
   useEffect(() => {
     const t = setInterval(() => setPlaceholderIdx(i => (i + 1) % PLACEHOLDER_EXAMPLES.length), 3200)
     return () => clearInterval(t)
   }, [])
 
+  // Only cycle right-side preview themes while idle. After submit, the
+  // preview locks in so the transition feels intentional.
   useEffect(() => {
+    if (phase !== 'idle') return
     const t = setInterval(() => {
       setThemeIdx(i => (i + 1) % THEMES.length)
       setNonce(n => n + 1)
     }, 5000)
     return () => clearInterval(t)
-  }, [])
+  }, [phase])
 
-  async function createChannel(body: Record<string, string>) {
-    setLoading(true); setError(null)
+  async function createChannel(body: Record<string, string>, topicForDisplay: string) {
+    setSubmittedTopic(topicForDisplay)
+    setPhase('generating')
+    setError(null)
     try {
       const res = await fetch('/api/channels', {
         method: 'POST',
@@ -290,11 +303,12 @@ export default function HomeKhromaSplit() {
         const data = await res.json().catch(() => ({}))
         throw new Error(data.error || 'Failed to create channel')
       }
-      const channel = await res.json()
-      router.push(`/channels/${channel.id}`)
+      const c = await res.json()
+      setChannel(c)
+      setPhase('ready')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
-      setLoading(false); setLoadingSource(null)
+      setPhase('idle')
     }
   }
 
@@ -304,13 +318,18 @@ export default function HomeKhromaSplit() {
     if (!t) return
     const words = t.split(/\s+/)
     const nicheMode = words.length <= 2 ? 'EXPLORE' : 'DIRECT'
-    setLoadingSource('direct')
-    createChannel(nicheMode === 'EXPLORE' ? { nicheMode, exploreTopic: t } : { nicheMode, directTopic: t })
+    createChannel(nicheMode === 'EXPLORE' ? { nicheMode, exploreTopic: t } : { nicheMode, directTopic: t }, t)
   }
 
   function handleDiscover() {
-    setLoadingSource('discover')
-    createChannel({ nicheMode: 'DISCOVER' })
+    createChannel({ nicheMode: 'DISCOVER' }, 'your niche')
+  }
+
+  function resetToIdle() {
+    setPhase('idle')
+    setSubmittedTopic('')
+    setChannel(null)
+    setError(null)
   }
 
   const pageBg = isLight ? '#f4f1ec' : '#000000'
@@ -322,96 +341,176 @@ export default function HomeKhromaSplit() {
     <div className="relative min-w-0 flex-1 grid grid-cols-1 lg:grid-cols-2 overflow-hidden min-h-screen" style={{ background: pageBg }}>
       {/* ─── Left column ─────────────────────────────────────────────── */}
       <section className="relative z-10 flex flex-col justify-center px-8 sm:px-14 lg:px-20 py-16">
-        <div className="max-w-[36rem]">
+        <div className="max-w-[36rem] w-full">
           <div
             className="mb-10 bg-clip-text text-transparent w-fit text-2xl font-semibold tracking-tight font-[family-name:var(--font-bricolage)]"
             style={{ backgroundImage: IG_GRADIENT }}
           >
             InstAIgram
           </div>
-          <h1
-            className="mb-8"
-            style={{
-              fontFamily: SERIF,
-              fontWeight: 400,
-              color: textMain,
-              fontSize: 'clamp(3.75rem, 7vw, 6.75rem)',
-              lineHeight: 0.98,
-              letterSpacing: '-0.015em',
-            }}
-          >
-            Design carousels
-            <br />
-            <span style={{ fontStyle: 'italic' }}>you love</span> to post.
-          </h1>
 
-          <p
-            className="mb-10 max-w-[28rem]"
-            style={{
-              color: textMuted,
-              fontFamily: SANS,
-              fontSize: '16px',
-              lineHeight: 1.6,
-            }}
-          >
-            InstAIgram uses AI to learn your niche and creates limitless carousels
-            for you to discover, tweak, and save.
-          </p>
+          <div key={phase} className="phase-panel">
+            {phase === 'idle' && (
+              <>
+                <h1
+                  className="mb-8"
+                  style={{
+                    fontFamily: SERIF,
+                    fontWeight: 400,
+                    color: textMain,
+                    fontSize: 'clamp(3.75rem, 7vw, 6.75rem)',
+                    lineHeight: 0.98,
+                    letterSpacing: '-0.015em',
+                  }}
+                >
+                  Design carousels
+                  <br />
+                  <span style={{ fontStyle: 'italic' }}>you love</span> to post.
+                </h1>
 
-          <form onSubmit={handleSubmit} className="flex flex-col gap-4 items-start">
-            <input
-              type="text"
-              value={topic}
-              onChange={e => setTopic(e.target.value)}
-              placeholder={PLACEHOLDER_EXAMPLES[placeholderIdx]}
-              autoComplete="off"
-              className="w-full max-w-[28rem] px-4 py-3 text-base focus:outline-none rounded-md transition-colors"
-              style={{
-                fontFamily: SANS,
-                background: isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.06)',
-                color: textMain,
-                border: `1px solid ${isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)'}`,
-              }}
-            />
+                <p
+                  className="mb-10 max-w-[28rem]"
+                  style={{ color: textMuted, fontFamily: SANS, fontSize: '16px', lineHeight: 1.6 }}
+                >
+                  InstAIgram uses AI to learn your niche and creates limitless carousels
+                  for you to discover, tweak, and save.
+                </p>
 
-            <div className="flex items-center gap-5 flex-wrap">
-              <button
-                type="submit"
-                disabled={loading || !topic.trim()}
-                className="h-12 px-8 text-white font-medium rounded-md text-[15px] disabled:opacity-40 disabled:cursor-not-allowed transition-all hover:brightness-110 active:scale-[0.98]"
-                style={{
-                  background: '#2563eb',
-                  fontFamily: SANS,
-                  boxShadow: '0 4px 14px rgba(37,99,235,0.35)',
-                }}
-              >
-                {loading && loadingSource === 'direct' ? (
-                  <span className="flex items-center gap-2">
-                    <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    Generating…
-                  </span>
-                ) : (
-                  'Generate'
-                )}
-              </button>
+                <form onSubmit={handleSubmit} className="flex flex-col gap-4 items-start">
+                  <input
+                    type="text"
+                    value={topic}
+                    onChange={e => setTopic(e.target.value)}
+                    placeholder={PLACEHOLDER_EXAMPLES[placeholderIdx]}
+                    autoComplete="off"
+                    className="w-full max-w-[28rem] px-4 py-3 text-base focus:outline-none rounded-md transition-colors"
+                    style={{
+                      fontFamily: SANS,
+                      background: isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.06)',
+                      color: textMain,
+                      border: `1px solid ${isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)'}`,
+                    }}
+                  />
 
-              <button
-                type="button"
-                onClick={handleDiscover}
-                disabled={loading}
-                className="text-sm font-medium underline-offset-4 hover:underline disabled:opacity-40 disabled:cursor-not-allowed"
-                style={{ color: textMuted, fontFamily: SANS }}
-              >
-                {loading && loadingSource === 'discover' ? 'Finding your niche…' : 'Not sure? Find my niche →'}
-              </button>
-            </div>
+                  <div className="flex items-center gap-5 flex-wrap">
+                    <button
+                      type="submit"
+                      disabled={!topic.trim()}
+                      className="h-12 px-8 text-white font-medium rounded-md text-[15px] disabled:opacity-40 disabled:cursor-not-allowed transition-all hover:brightness-110 active:scale-[0.98]"
+                      style={{ background: '#2563eb', fontFamily: SANS, boxShadow: '0 4px 14px rgba(37,99,235,0.35)' }}
+                    >
+                      Generate
+                    </button>
 
-            {error && (
-              <div className="px-4 py-2.5 bg-danger/15 border border-danger/30 rounded-md">
-                <p className="text-sm text-danger">{error}</p>
-              </div>
+                    <button
+                      type="button"
+                      onClick={handleDiscover}
+                      className="text-sm font-medium underline-offset-4 hover:underline"
+                      style={{ color: textMuted, fontFamily: SANS }}
+                    >
+                      Not sure? Find my niche →
+                    </button>
+                  </div>
+
+                  {error && (
+                    <div className="px-4 py-2.5 bg-danger/15 border border-danger/30 rounded-md">
+                      <p className="text-sm text-danger">{error}</p>
+                    </div>
+                  )}
+                </form>
+              </>
             )}
-          </form>
+
+            {phase === 'generating' && (
+              <>
+                <p
+                  className="mb-6 uppercase tracking-[0.22em] text-[11px]"
+                  style={{ color: textMuted, fontFamily: SANS, fontWeight: 600 }}
+                >
+                  Step 01 — Understanding your niche
+                </p>
+                <h1
+                  className="mb-8"
+                  style={{
+                    fontFamily: SERIF,
+                    fontWeight: 400,
+                    color: textMain,
+                    fontSize: 'clamp(3rem, 5.4vw, 4.75rem)',
+                    lineHeight: 1,
+                    letterSpacing: '-0.015em',
+                  }}
+                >
+                  Tuning the aesthetic for{' '}
+                  <span style={{ fontStyle: 'italic' }}>{submittedTopic || 'your niche'}</span>
+                  <span className="dots">…</span>
+                </h1>
+                <p
+                  className="mb-10 max-w-[28rem]"
+                  style={{ color: textMuted, fontFamily: SANS, fontSize: '16px', lineHeight: 1.6 }}
+                >
+                  Watching colour, typography, and imagery settle into a voice that fits the topic.
+                </p>
+                <div className="flex items-center gap-3" style={{ color: textMuted, fontFamily: SANS }}>
+                  <span className="w-3.5 h-3.5 border-2 border-current/30 border-t-current rounded-full animate-spin" />
+                  <span className="text-sm">Creating your channel…</span>
+                </div>
+              </>
+            )}
+
+            {phase === 'ready' && channel && (
+              <>
+                <p
+                  className="mb-6 uppercase tracking-[0.22em] text-[11px]"
+                  style={{ color: textMuted, fontFamily: SANS, fontWeight: 600 }}
+                >
+                  Channel ready
+                </p>
+                <h1
+                  className="mb-8"
+                  style={{
+                    fontFamily: SERIF,
+                    fontWeight: 400,
+                    color: textMain,
+                    fontSize: 'clamp(3rem, 5.4vw, 4.75rem)',
+                    lineHeight: 1,
+                    letterSpacing: '-0.015em',
+                  }}
+                >
+                  Meet{' '}
+                  <span style={{ fontStyle: 'italic' }}>
+                    {channel.name || submittedTopic || 'your channel'}
+                  </span>
+                  .
+                </h1>
+                <p
+                  className="mb-10 max-w-[28rem]"
+                  style={{ color: textMuted, fontFamily: SANS, fontSize: '16px', lineHeight: 1.6 }}
+                >
+                  Your next thirty carousels are queued up. Jump into the editor to refine
+                  the voice, or start a new channel.
+                </p>
+
+                <div className="flex items-center gap-5 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={() => router.push(`/channels/${channel.id}`)}
+                    className="h-12 px-8 text-white font-medium rounded-md text-[15px] transition-all hover:brightness-110 active:scale-[0.98]"
+                    style={{ background: '#2563eb', fontFamily: SANS, boxShadow: '0 4px 14px rgba(37,99,235,0.35)' }}
+                  >
+                    Open channel →
+                  </button>
+                  <button
+                    type="button"
+                    onClick={resetToIdle}
+                    className="text-sm font-medium underline-offset-4 hover:underline"
+                    style={{ color: textMuted, fontFamily: SANS }}
+                  >
+                    Start another
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </section>
 
@@ -443,6 +542,26 @@ export default function HomeKhromaSplit() {
       </button>
 
       <style jsx global>{`
+        .phase-panel {
+          animation: phase-in 550ms cubic-bezier(0.22, 1, 0.36, 1) both;
+        }
+        @keyframes phase-in {
+          0%   { opacity: 0; transform: translateY(8px); filter: blur(3px); }
+          100% { opacity: 1; transform: translateY(0);   filter: blur(0); }
+        }
+        .dots::after {
+          content: '';
+          display: inline-block;
+          animation: dots 1.4s steps(4, end) infinite;
+        }
+        @keyframes dots {
+          0%   { content: ''; }
+          25%  { content: '.'; }
+          50%  { content: '..'; }
+          75%  { content: '...'; }
+          100% { content: ''; }
+        }
+
         .carousel-float {
           animation: float 7s ease-in-out infinite;
           will-change: transform;
