@@ -58,17 +58,7 @@ export default function HomeKhromaSplit({ initialJobId }: { initialJobId?: strin
   const [activeSlide, setActiveSlideRaw] = useState(0)
   const [slideDir, setSlideDir] = useState<'next' | 'prev'>('next')
   const [editTarget, setEditTarget] = useState<'overview' | 'headline' | 'support' | 'image'>('overview')
-  const [themeOverrides, setThemeOverrides] = useState<{
-    headlineFont?: string
-    headlineWeight?: number
-    italic?: boolean
-    fg?: string
-    accent?: string
-    supportFont?: string
-    supportWeight?: number
-    supportItalic?: boolean
-    supportColor?: string
-  }>({})
+  const [themeOverrides, setThemeOverrides] = useState<ThemeOverrides>({})
   const setActiveSlide = (next: number | ((prev: number) => number)) => {
     setActiveSlideRaw(prev => {
       const n = typeof next === 'function' ? (next as (p: number) => number)(prev) : next
@@ -980,11 +970,13 @@ function AutoTextarea({
 type ThemeOverrides = {
   headlineFont?: string
   headlineWeight?: number
+  headlineSizePx?: number
   italic?: boolean
   fg?: string
   accent?: string
   supportFont?: string
   supportWeight?: number
+  supportSizePx?: number
   supportItalic?: boolean
   supportColor?: string
 }
@@ -1125,6 +1117,7 @@ function SlideEditor({
             title="Headline — design"
             fontKey="headlineFont"
             weightKey="headlineWeight"
+            sizeKey="headlineSizePx"
             italicKey="italic"
             colorKey="fg"
             overrides={themeOverrides}
@@ -1141,6 +1134,7 @@ function SlideEditor({
             title={current.role === 'OPENER' || current.role === 'CTA' ? 'Call to action — design' : 'Paragraph — design'}
             fontKey="supportFont"
             weightKey="supportWeight"
+            sizeKey="supportSizePx"
             italicKey="supportItalic"
             colorKey="supportColor"
             overrides={themeOverrides}
@@ -1183,10 +1177,20 @@ const HEADLINE_FONTS = [
 const HEADLINE_WEIGHTS = [400, 500, 700, 800]
 const TEXT_COLOR_SWATCHES = ['#FFFFFF', '#F5F1EA', '#0A0A0A', '#F09433', '#DC2743', '#2563EB']
 
+const SIZE_DEFAULTS: Record<'headlineSizePx' | 'supportSizePx', number> = {
+  headlineSizePx: 28,
+  supportSizePx: 13,
+}
+const SIZE_RANGES: Record<'headlineSizePx' | 'supportSizePx', { min: number; max: number; step: number }> = {
+  headlineSizePx: { min: 16, max: 48, step: 1 },
+  supportSizePx:  { min: 10, max: 22, step: 1 },
+}
+
 function TextDesignPanel({
   title,
   fontKey,
   weightKey,
+  sizeKey,
   italicKey,
   colorKey,
   overrides,
@@ -1199,6 +1203,7 @@ function TextDesignPanel({
   title: string
   fontKey: 'headlineFont' | 'supportFont'
   weightKey: 'headlineWeight' | 'supportWeight'
+  sizeKey: 'headlineSizePx' | 'supportSizePx'
   italicKey: 'italic' | 'supportItalic'
   colorKey: 'fg' | 'supportColor'
   overrides: ThemeOverrides
@@ -1210,8 +1215,10 @@ function TextDesignPanel({
 }) {
   const currentFont = overrides[fontKey]
   const currentWeight = overrides[weightKey]
+  const currentSize = overrides[sizeKey] ?? SIZE_DEFAULTS[sizeKey]
   const currentItalic = overrides[italicKey]
   const currentColor = overrides[colorKey] ?? ''
+  const sizeRange = SIZE_RANGES[sizeKey]
   const pillStyle = (active: boolean): React.CSSProperties => ({
     padding: '6px 10px',
     borderRadius: 8,
@@ -1270,6 +1277,50 @@ function TextDesignPanel({
       </div>
 
       <div className="mb-5">
+        <div className="flex items-center justify-between mb-2">
+          <span className="block text-[11px] uppercase tracking-[0.14em] opacity-60" style={{ color: textMuted, fontFamily: SANS }}>
+            Size
+          </span>
+          <span className="text-[11px] opacity-60 tabular-nums" style={{ color: textMuted, fontFamily: SANS }}>
+            {currentSize}px
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setOverrides(o => ({ ...o, [sizeKey]: Math.max(sizeRange.min, (o[sizeKey] ?? SIZE_DEFAULTS[sizeKey]) - sizeRange.step) }))}
+            disabled={currentSize <= sizeRange.min}
+            style={{
+              width: 32, height: 32, borderRadius: 8, border: `1px solid ${isLight ? 'rgba(0,0,0,0.12)' : 'rgba(255,255,255,0.12)'}`,
+              background: 'transparent', color: textMain, fontFamily: SANS, fontSize: 18,
+              cursor: currentSize <= sizeRange.min ? 'not-allowed' : 'pointer', opacity: currentSize <= sizeRange.min ? 0.3 : 1,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+            }}
+          >−</button>
+          <input
+            type="range"
+            min={sizeRange.min}
+            max={sizeRange.max}
+            step={sizeRange.step}
+            value={currentSize}
+            onChange={e => setOverrides(o => ({ ...o, [sizeKey]: Number(e.target.value) }))}
+            style={{ flex: 1, accentColor: isLight ? '#0a0a0a' : '#ffffff' }}
+          />
+          <button
+            type="button"
+            onClick={() => setOverrides(o => ({ ...o, [sizeKey]: Math.min(sizeRange.max, (o[sizeKey] ?? SIZE_DEFAULTS[sizeKey]) + sizeRange.step) }))}
+            disabled={currentSize >= sizeRange.max}
+            style={{
+              width: 32, height: 32, borderRadius: 8, border: `1px solid ${isLight ? 'rgba(0,0,0,0.12)' : 'rgba(255,255,255,0.12)'}`,
+              background: 'transparent', color: textMain, fontFamily: SANS, fontSize: 18,
+              cursor: currentSize >= sizeRange.max ? 'not-allowed' : 'pointer', opacity: currentSize >= sizeRange.max ? 0.3 : 1,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+            }}
+          >+</button>
+        </div>
+      </div>
+
+      <div className="mb-5">
         <span className="block text-[11px] uppercase tracking-[0.14em] mb-2 opacity-60" style={{ color: textMuted, fontFamily: SANS }}>
           Style
         </span>
@@ -1309,6 +1360,7 @@ function TextDesignPanel({
               const next = { ...o }
               delete next[fontKey]
               delete next[weightKey]
+              delete next[sizeKey]
               delete next[italicKey]
               delete next[colorKey]
               return next

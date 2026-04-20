@@ -86,6 +86,10 @@ export interface LayoutCompositeResult {
  * Drops: COMPOSITION (frame-filling is handled by aspect ratio),
  *        verbose negative instructions, redundant directives.
  */
+// Core structural negatives always appended — these must reach the model.
+const CORE_NEGATIVE =
+  'No frames, no borders, no white bars, no white background panels, no split-screen, no diptych, no triptych, no side-by-side panels, no collage, no text, no captions, no watermarks, no logos.';
+
 export function simplifyPromptForGemini(prompt: string): string {
   const layers = prompt.split(/(?=CORE SCENE:|COMPOSITION:|VISUAL PRIORITY:|STYLE:|NEGATIVE PROMPT:)/);
 
@@ -104,7 +108,8 @@ export function simplifyPromptForGemini(prompt: string): string {
     } else if (trimmed.startsWith('STYLE:')) {
       style = trimmed.replace(/^STYLE:\s*/, '').trim();
     }
-    // COMPOSITION and NEGATIVE PROMPT are intentionally dropped
+    // COMPOSITION is dropped — frame-filling is handled by aspect ratio.
+    // NEGATIVE PROMPT is replaced by the authoritative CORE_NEGATIVE constant above.
   }
 
   // If the prompt doesn't use 5-layer format, return it cleaned up
@@ -117,7 +122,7 @@ export function simplifyPromptForGemini(prompt: string): string {
   }
 
   const parts = [scene, emphasis, style].filter(Boolean);
-  parts.push('No text, no watermarks, no labels.');
+  parts.push(CORE_NEGATIVE);
 
   return parts.join(' ');
 }

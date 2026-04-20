@@ -69,7 +69,7 @@ export function KhromaShell({ children, preview, paused = false, rightContent, b
     >
       {/* Left column */}
       <section className="relative z-10 flex flex-col justify-center px-8 sm:px-14 lg:px-20 py-16">
-        <div className="max-w-[36rem] w-full">
+        <div className="max-w-[36rem] w-full mx-auto">
           <div
             className="mb-10 bg-clip-text text-transparent w-fit text-2xl font-semibold tracking-tight font-[family-name:var(--font-bricolage)]"
             style={{ backgroundImage: IG_GRADIENT }}

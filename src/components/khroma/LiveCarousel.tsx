@@ -160,7 +160,7 @@ export function LiveCarousel({
                     fontFamily: theme.headlineFont ?? SERIF,
                     fontWeight: theme.headlineWeight ?? 400,
                     fontStyle: theme.italic ? 'italic' : 'normal',
-                    fontSize: '28px',
+                    fontSize: theme.headlineSizePx ? `${theme.headlineSizePx}px` : '28px',
                   }}
                 >
                   {current?.displayTitle || current?.headline || '—'}
@@ -176,12 +176,13 @@ export function LiveCarousel({
               {current?.displaySupport && (
                 <div className="relative mt-2 group/support">
                   <p
-                    className="opacity-80 text-[13px] leading-snug"
+                    className="opacity-80 leading-snug"
                     style={{
                       color: theme.supportColor ?? theme.fg,
                       fontFamily: theme.supportFont ?? "'Inter', system-ui, sans-serif",
                       fontWeight: theme.supportWeight ?? 400,
                       fontStyle: theme.supportItalic ? 'italic' : 'normal',
+                      fontSize: theme.supportSizePx ? `${theme.supportSizePx}px` : '13px',
                     }}
                   >
                     {current.displaySupport}

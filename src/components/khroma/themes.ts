@@ -13,9 +13,11 @@ export type CarouselTheme = {
   activeIndex: number
   headlineFont?: string
   headlineWeight?: number
+  headlineSizePx?: number
   italic?: boolean
   supportFont?: string
   supportWeight?: number
+  supportSizePx?: number
   supportItalic?: boolean
   supportColor?: string
 }
