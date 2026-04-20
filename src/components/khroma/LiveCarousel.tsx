@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { isColorLight, withAlpha } from './utils'
 import type { CarouselTheme } from './themes'
 
@@ -152,7 +152,11 @@ export function LiveCarousel({
               }}
             />
             <div className="absolute bottom-0 inset-x-0 px-5 pb-10 pt-16 z-10">
-              <div className="relative group/headline">
+              <TrackingEditZone
+                label="Edit headline"
+                enabled={!!onEditElement}
+                onClick={() => onEditElement?.('headline')}
+              >
                 <h3
                   className="whitespace-pre-line leading-[1.05] tracking-tight"
                   style={{
@@ -165,16 +169,14 @@ export function LiveCarousel({
                 >
                   {current?.displayTitle || current?.headline || '—'}
                 </h3>
-                {onEditElement && (
-                  <EditChip
-                    label="Edit headline"
-                    className="absolute -top-2 right-0 edit-chip edit-chip-from-side group-hover/headline:edit-chip-in"
-                    onClick={() => onEditElement('headline')}
-                  />
-                )}
-              </div>
+              </TrackingEditZone>
               {current?.displaySupport && (
-                <div className="relative mt-2 group/support">
+                <TrackingEditZone
+                  label={current.role === 'OPENER' || current.role === 'CTA' ? 'Edit Call to Action' : 'Edit paragraph'}
+                  enabled={!!onEditElement}
+                  onClick={() => onEditElement?.('support')}
+                  className="mt-2"
+                >
                   <p
                     className="opacity-80 leading-snug"
                     style={{
@@ -187,14 +189,7 @@ export function LiveCarousel({
                   >
                     {current.displaySupport}
                   </p>
-                  {onEditElement && (
-                    <EditChip
-                      label={current.role === 'OPENER' || current.role === 'CTA' ? 'Edit Call to Action' : 'Edit paragraph'}
-                      className="absolute -top-2 right-0 edit-chip edit-chip-from-side group-hover/support:edit-chip-in"
-                      onClick={() => onEditElement('support')}
-                    />
-                  )}
-                </div>
+                </TrackingEditZone>
               )}
             </div>
           </div>
@@ -253,6 +248,68 @@ export function LiveCarousel({
         >
           <span className="w-3 h-3 border-[1.5px] border-white/30 border-t-white rounded-full animate-spin" />
           Re-rolling image…
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── Cursor-tracking edit zone ───────────────────────────────────
+
+function TrackingEditZone({
+  label,
+  enabled,
+  onClick,
+  children,
+  className = '',
+}: {
+  label: string
+  enabled: boolean
+  onClick: () => void
+  children: React.ReactNode
+  className?: string
+}) {
+  const [pos, setPos] = useState<{ x: number; y: number } | null>(null)
+  const [hovered, setHovered] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  if (!enabled) return <div className={className}>{children}</div>
+
+  return (
+    <div
+      ref={ref}
+      className={`relative ${className}`}
+      style={{ cursor: 'pointer' }}
+      onClick={onClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => { setHovered(false); setPos(null) }}
+      onMouseMove={e => {
+        const rect = ref.current?.getBoundingClientRect()
+        if (!rect) return
+        setPos({ x: e.clientX - rect.left, y: e.clientY - rect.top })
+      }}
+    >
+      {children}
+      {hovered && pos && (
+        <div
+          className="pointer-events-none absolute z-30"
+          style={{ left: pos.x, top: pos.y, transform: 'translate(12px, -50%)' }}
+        >
+          <div
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium whitespace-nowrap"
+            style={{
+              background: 'rgba(0,0,0,0.55)',
+              border: '1px solid rgba(255,255,255,0.18)',
+              color: 'rgba(255,255,255,0.95)',
+              fontFamily: "'Inter', system-ui, sans-serif",
+              backdropFilter: 'blur(8px)',
+            }}
+          >
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
+            </svg>
+            {label}
+          </div>
         </div>
       )}
     </div>
