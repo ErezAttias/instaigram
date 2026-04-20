@@ -36,7 +36,7 @@ type Slide = {
   status?: string
 }
 
-export default function HomeKhromaSplit() {
+export default function HomeKhromaSplit({ initialJobId }: { initialJobId?: string } = {}) {
   const router = useRouter()
   const { theme } = useTheme()
   const isLight = theme === 'light'
@@ -47,16 +47,48 @@ export default function HomeKhromaSplit() {
   const [placeholderIdx, setPlaceholderIdx] = useState(0)
   const [error, setError] = useState<string | null>(null)
 
-  const [phase, setPhase] = useState<Phase>('idle')
+  const [phase, setPhase] = useState<Phase>(initialJobId ? 'generating-copy' : 'idle')
   const [submittedTopic, setSubmittedTopic] = useState('')
   const [sampleFacts, setSampleFacts] = useState<string[]>([])
-  const [jobId, setJobId] = useState<string | null>(null)
+  const [jobId, setJobId] = useState<string | null>(initialJobId ?? null)
   const [slides, setSlides] = useState<Slide[]>([])
 
   useEffect(() => {
     const t = setInterval(() => setPlaceholderIdx(i => (i + 1) % PLACEHOLDER_EXAMPLES.length), 3200)
     return () => clearInterval(t)
   }, [])
+
+  // Bootstrap from an existing job (e.g. when landing at /c/[jobId] directly).
+  // Decide the phase based on whether copy is complete and whether every
+  // slide already has an image.
+  useEffect(() => {
+    if (!initialJobId) return
+    let cancelled = false
+    ;(async () => {
+      try {
+        const res = await fetch(`/api/carousel/${initialJobId}`)
+        const text = await res.text()
+        const data = JSON.parse(text.replace(/[\x00-\x1f]/g, ' '))
+        if (cancelled) return
+        if (Array.isArray(data.slides)) setSlides(data.slides)
+        if (data.topic) setSubmittedTopic(data.topic)
+        const copyDone = data.status === 'COMPLETE'
+        const hasSlides = Array.isArray(data.slides) && data.slides.length > 0
+        const allResolved = hasSlides && data.slides.every((s: Slide) => !!s.imageUrl || s.status === 'FAILED_IMAGE')
+        const anyImage = hasSlides && data.slides.some((s: Slide) => !!s.imageUrl)
+        if (copyDone && allResolved) setPhase('done')
+        else if (copyDone && anyImage) setPhase('rendering')
+        else if (copyDone) setPhase('copy-review')
+        else setPhase('generating-copy')
+      } catch {
+        setError('Failed to load carousel')
+        setPhase('idle')
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [initialJobId])
 
   // Poll the job through both copy generation and image rendering. The same
   // endpoint returns slides with imageUrl filled in as each render completes.
@@ -147,6 +179,8 @@ export default function HomeKhromaSplit() {
       setJobId(data.jobId)
       setSlides([])
       setPhase('generating-copy')
+      // Keep the shell mounted but make the URL shareable / refresh-safe.
+      router.replace(`/c/${data.jobId}`)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to start carousel')
       setPhase('sample-facts')
@@ -171,6 +205,7 @@ export default function HomeKhromaSplit() {
       setJobId(data.jobId)
       setSlides([])
       setPhase('generating-copy')
+      router.replace(`/c/${data.jobId}`)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to regenerate')
       setPhase('copy-review')
@@ -212,6 +247,7 @@ export default function HomeKhromaSplit() {
     setSlides([])
     setError(null)
     if (pollRef.current) clearInterval(pollRef.current)
+    router.replace('/')
   }
 
   function goBackToSampleFacts() {
