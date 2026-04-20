@@ -54,6 +54,7 @@ export default function HomeKhromaSplit({ initialJobId }: { initialJobId?: strin
   const [slides, setSlides] = useState<Slide[]>([])
   const [caption, setCaption] = useState<string>('')
   const [hashtags, setHashtags] = useState<string[]>([])
+  const [regeneratingSet, setRegeneratingSet] = useState<Set<number>>(new Set())
 
   useEffect(() => {
     const t = setInterval(() => setPlaceholderIdx(i => (i + 1) % PLACEHOLDER_EXAMPLES.length), 3200)
@@ -193,6 +194,76 @@ export default function HomeKhromaSplit({ initialJobId }: { initialJobId?: strin
     }
   }
 
+  // Per-slide image re-roll — kicks off a regenerate on a single slide and
+  // polls for a new imageUrl. Independent of the main phase poll so the user
+  // can keep re-rolling from the 'done' state without leaving the shell.
+  const regenPollRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const regenPrevUrlsRef = useRef<Map<number, string | null>>(new Map())
+  async function regenerateSlideImage(slideIndex: number) {
+    if (!jobId) return
+    // Stash the current imageUrl so we can tell when it swaps.
+    const prev = slides.find(s => s.slideIndex === slideIndex)?.imageUrl ?? null
+    regenPrevUrlsRef.current.set(slideIndex, prev)
+    setRegeneratingSet(prev => {
+      const next = new Set(prev)
+      next.add(slideIndex)
+      return next
+    })
+    try {
+      await fetch(`/api/carousel/${jobId}/regenerate-slide`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slideIndex, mode: 'image' }),
+      })
+    } catch {
+      // Treat failure as "done" so the user isn't stuck — they can retry.
+      setRegeneratingSet(prev => {
+        const next = new Set(prev)
+        next.delete(slideIndex)
+        return next
+      })
+      return
+    }
+    // Make sure a regen poller is running.
+    if (!regenPollRef.current) {
+      regenPollRef.current = setInterval(async () => {
+        if (!jobId) return
+        try {
+          const res = await fetch(`/api/carousel/${jobId}`)
+          const text = await res.text()
+          const data = JSON.parse(text.replace(/[\x00-\x1f]/g, ' '))
+          if (Array.isArray(data.slides)) setSlides(data.slides)
+          // Clear indices whose imageUrl has changed.
+          setRegeneratingSet(prev => {
+            const next = new Set(prev)
+            for (const idx of prev) {
+              const s = (data.slides as Slide[] | undefined)?.find(x => x.slideIndex === idx)
+              const prevUrl = regenPrevUrlsRef.current.get(idx) ?? null
+              if (s && (s.imageUrl ?? null) !== prevUrl && s.imageUrl) {
+                next.delete(idx)
+                regenPrevUrlsRef.current.delete(idx)
+              } else if (s && s.status === 'FAILED_IMAGE') {
+                next.delete(idx)
+                regenPrevUrlsRef.current.delete(idx)
+              }
+            }
+            if (next.size === 0 && regenPollRef.current) {
+              clearInterval(regenPollRef.current)
+              regenPollRef.current = null
+            }
+            return next
+          })
+        } catch {
+          // transient
+        }
+      }, 2500)
+    }
+  }
+
+  useEffect(() => () => {
+    if (regenPollRef.current) clearInterval(regenPollRef.current)
+  }, [])
+
   async function regenerateCopy() {
     if (!jobId) return
     setPhase('creating-job')
@@ -278,6 +349,8 @@ export default function HomeKhromaSplit({ initialJobId }: { initialJobId?: strin
       theme={livePreviewTheme}
       username={submittedTopic.toLowerCase().replace(/\s+/g, '.').slice(0, 20) || livePreviewTheme.username}
       autoCycle={phase === 'rendering'}
+      onRegenerateSlide={phase === 'done' ? regenerateSlideImage : undefined}
+      regeneratingSet={regeneratingSet}
     />
   ) : undefined
 

@@ -29,6 +29,14 @@ type Props = {
   autoCycle?: boolean
   activeIndex?: number
   onActiveChange?: (index: number) => void
+  /**
+   * When provided, a "Re-roll image" button appears above the card. The
+   * calling page is responsible for actually firing the API request and
+   * swapping the slide's imageUrl once it lands.
+   */
+  onRegenerateSlide?: (slideIndex: number) => void
+  /** Slide indices currently being regenerated (render as skeleton). */
+  regeneratingSet?: Set<number>
 }
 
 export function LiveCarousel({
@@ -38,6 +46,8 @@ export function LiveCarousel({
   autoCycle = true,
   activeIndex: controlledIndex,
   onActiveChange,
+  onRegenerateSlide,
+  regeneratingSet,
 }: Props) {
   const [internalIndex, setInternalIndex] = useState(0)
   const activeIndex = controlledIndex ?? internalIndex
@@ -57,15 +67,18 @@ export function LiveCarousel({
 
   const textIsDark = isColorLight(theme.bg)
   const current = slides[activeIndex]
+  const currentIsRegenerating = current ? !!regeneratingSet?.has(current.slideIndex) : false
+  const currentImageUrl = currentIsRegenerating ? null : current?.imageUrl
 
   return (
     <div
-      className="relative select-none carousel-float"
-      style={{ width: 'min(380px, 80%)', aspectRatio: '9 / 14' }}
+      className="relative select-none carousel-float flex flex-col items-center gap-3"
+      style={{ width: 'min(380px, 80%)' }}
     >
       <div
-        className="relative flex flex-col rounded-[22px] overflow-hidden w-full h-full"
+        className="relative flex flex-col rounded-[22px] overflow-hidden w-full"
         style={{
+          aspectRatio: '9 / 14',
           background: theme.bg,
           boxShadow: '0 50px 100px rgba(0,0,0,0.55), 0 10px 30px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.06)',
         }}
@@ -97,10 +110,10 @@ export function LiveCarousel({
         {/* Photo / headline slot */}
         <div className="relative flex-1 overflow-hidden" style={{ background: theme.bg }}>
           {/* Animated fade-in for image once it lands */}
-          {current?.imageUrl ? (
+          {currentImageUrl ? (
             <img
-              key={current.imageUrl}
-              src={current.imageUrl}
+              key={currentImageUrl}
+              src={currentImageUrl}
               alt=""
               className="w-full h-full object-cover carousel-image"
               style={{ filter: 'saturate(1.15) contrast(1.05)' }}
@@ -181,6 +194,39 @@ export function LiveCarousel({
           </p>
         </div>
       </div>
+
+      {/* Re-roll image — only while interactive */}
+      {onRegenerateSlide && current && (
+        <button
+          type="button"
+          onClick={() => onRegenerateSlide(current.slideIndex)}
+          disabled={currentIsRegenerating}
+          aria-label="Re-roll this slide's image"
+          className="flex items-center gap-2 px-3 py-1.5 rounded-full text-[12px] font-medium transition-all hover:brightness-110 disabled:opacity-60 disabled:cursor-not-allowed pointer-events-auto"
+          style={{
+            background: 'rgba(255,255,255,0.08)',
+            border: '1px solid rgba(255,255,255,0.15)',
+            color: 'rgba(255,255,255,0.85)',
+            fontFamily: "'Inter', system-ui, sans-serif",
+            backdropFilter: 'blur(8px)',
+          }}
+        >
+          {currentIsRegenerating ? (
+            <>
+              <span className="w-3 h-3 border-[1.5px] border-white/30 border-t-white rounded-full animate-spin" />
+              Re-rolling image…
+            </>
+          ) : (
+            <>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="23 4 23 10 17 10" />
+                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+              </svg>
+              Re-roll this image
+            </>
+          )}
+        </button>
+      )}
     </div>
   )
 }
