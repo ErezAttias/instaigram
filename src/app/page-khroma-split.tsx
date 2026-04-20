@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useTheme } from '@/components/ThemeProvider'
 import { KhromaShell, SERIF, SANS } from '@/components/khroma/KhromaShell'
 import { pickThemeForTopic } from '@/components/khroma/themes'
+import { LiveCarousel } from '@/components/khroma/LiveCarousel'
 
 const PLACEHOLDER_EXAMPLES = [
   'fitness for busy parents',
@@ -31,6 +32,8 @@ type Slide = {
   headline: string | null
   displayTitle: string | null
   displaySupport: string | null
+  imageUrl?: string | null
+  status?: string
 }
 
 export default function HomeKhromaSplit() {
@@ -55,10 +58,12 @@ export default function HomeKhromaSplit() {
     return () => clearInterval(t)
   }, [])
 
-  // Poll the job until slides are available (COMPLETE/FAILED).
+  // Poll the job through both copy generation and image rendering. The same
+  // endpoint returns slides with imageUrl filled in as each render completes.
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
   useEffect(() => {
-    if (phase !== 'generating-copy' || !jobId) return
+    if (!jobId) return
+    if (phase !== 'generating-copy' && phase !== 'rendering') return
     let cancelled = false
     const poll = async () => {
       try {
@@ -69,20 +74,31 @@ export default function HomeKhromaSplit() {
         if (Array.isArray(data.slides) && data.slides.length > 0) {
           setSlides(data.slides)
         }
-        if (data.status === 'COMPLETE') {
-          if (pollRef.current) clearInterval(pollRef.current)
-          setPhase('copy-review')
-        } else if (data.status === 'FAILED') {
-          if (pollRef.current) clearInterval(pollRef.current)
-          setError('Generation failed. Try a different topic.')
-          setPhase('sample-facts')
+        // Copy-generation phase moves to review as soon as the copy is final.
+        if (phase === 'generating-copy') {
+          if (data.status === 'COMPLETE') {
+            if (pollRef.current) clearInterval(pollRef.current)
+            setPhase('copy-review')
+          } else if (data.status === 'FAILED') {
+            if (pollRef.current) clearInterval(pollRef.current)
+            setError('Generation failed. Try a different topic.')
+            setPhase('sample-facts')
+          }
+        }
+        // Rendering phase ends when every slide has an imageUrl (or failed).
+        if (phase === 'rendering' && Array.isArray(data.slides) && data.slides.length > 0) {
+          const allResolved = data.slides.every((s: Slide) => !!s.imageUrl || s.status === 'FAILED_IMAGE')
+          if (allResolved) {
+            if (pollRef.current) clearInterval(pollRef.current)
+            setPhase('done')
+          }
         }
       } catch {
         // transient — next tick will retry
       }
     }
     poll()
-    pollRef.current = setInterval(poll, 3000)
+    pollRef.current = setInterval(poll, 2500)
     return () => {
       cancelled = true
       if (pollRef.current) clearInterval(pollRef.current)
@@ -209,8 +225,25 @@ export default function HomeKhromaSplit() {
   const previewSeed = submittedTopic || 'seed'
   const preview = phase === 'idle' ? undefined : pickThemeForTopic(previewSeed)
 
+  // Once we have real slides, show them in the right column instead of the
+  // demo-theme floating carousel.
+  const showLiveCarousel =
+    (phase === 'copy-review' || phase === 'rendering' || phase === 'done') && slides.length > 0
+  const livePreviewTheme = preview ?? pickThemeForTopic(previewSeed)
+  const rightContent = showLiveCarousel ? (
+    <LiveCarousel
+      slides={slides}
+      theme={livePreviewTheme}
+      username={submittedTopic.toLowerCase().replace(/\s+/g, '.').slice(0, 20) || livePreviewTheme.username}
+      autoCycle={phase === 'rendering'}
+    />
+  ) : undefined
+
+  const renderedCount = slides.filter(s => !!s.imageUrl).length
+  const totalCount = slides.length
+
   return (
-    <KhromaShell preview={preview}>
+    <KhromaShell preview={preview} rightContent={rightContent}>
       <div key={phase} className="phase-panel">
         {phase === 'idle' && (
           <>
@@ -525,12 +558,41 @@ export default function HomeKhromaSplit() {
               Painting <span style={{ fontStyle: 'italic' }}>the visuals</span>
               <span className="dots">…</span>
             </h1>
-            <p className="mb-10 max-w-[28rem]" style={{ color: textMuted, fontFamily: SANS, fontSize: '16px', lineHeight: 1.6 }}>
-              Kicking off the image pipeline. You can watch the slides fill in from the editor.
+            <p className="mb-8 max-w-[28rem]" style={{ color: textMuted, fontFamily: SANS, fontSize: '16px', lineHeight: 1.6 }}>
+              Each slide&rsquo;s imagery is being generated. Watch the card on the right fill in as they land.
             </p>
-            <div className="flex items-center gap-3" style={{ color: textMuted, fontFamily: SANS }}>
-              <span className="w-3.5 h-3.5 border-2 border-current/30 border-t-current rounded-full animate-spin" />
-              <span className="text-sm">Rendering images…</span>
+
+            <div
+              className="max-w-[30rem] rounded-xl p-4"
+              style={{
+                background: isLight ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.04)',
+                border: `1px solid ${isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.08)'}`,
+              }}
+            >
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-[11px] uppercase tracking-[0.18em] opacity-70" style={{ color: textMuted, fontFamily: SANS }}>
+                  Progress
+                </span>
+                <span className="text-[12px] font-mono tabular-nums" style={{ color: textMuted, fontFamily: SANS }}>
+                  {renderedCount} / {totalCount}
+                </span>
+              </div>
+              <div
+                className="h-1 rounded-full overflow-hidden"
+                style={{ background: isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.08)' }}
+              >
+                <div
+                  className="h-full rounded-full transition-all duration-500 ease-out"
+                  style={{
+                    width: totalCount ? `${(renderedCount / totalCount) * 100}%` : '0%',
+                    background: 'linear-gradient(90deg, #f09433, #dc2743)',
+                  }}
+                />
+              </div>
+              <div className="mt-3 flex items-center gap-2 text-[13px]" style={{ color: textMuted, fontFamily: SANS }}>
+                <span className="w-3 h-3 border-2 border-current/30 border-t-current rounded-full animate-spin" />
+                <span>Rendering slide {Math.min(renderedCount + 1, totalCount || 1)}…</span>
+              </div>
             </div>
           </>
         )}

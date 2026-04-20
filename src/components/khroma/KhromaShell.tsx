@@ -29,9 +29,18 @@ type Props = {
    * committed and we want the moment to feel held.
    */
   paused?: boolean
+  /**
+   * Optional override for the entire right-column contents. When provided,
+   * the default aurora + floating carousel is replaced — use this once the
+   * preview reflects a live carousel job with real slides and images.
+   * The aurora backdrop is kept underneath unless `bareRight` is set.
+   */
+  rightContent?: ReactNode
+  /** Hide the aurora backdrop when using `rightContent`. */
+  bareRight?: boolean
 }
 
-export function KhromaShell({ children, preview, paused = false }: Props) {
+export function KhromaShell({ children, preview, paused = false, rightContent, bareRight = false }: Props) {
   const { theme, toggle } = useTheme()
   const isLight = theme === 'light'
   const [themeIdx, setThemeIdx] = useState(0)
@@ -73,9 +82,9 @@ export function KhromaShell({ children, preview, paused = false }: Props) {
 
       {/* Right column */}
       <div className="relative overflow-hidden min-h-[60vh] lg:min-h-0">
-        <AuroraBackdrop theme={current} />
+        {!bareRight && <AuroraBackdrop theme={current} />}
         <div className="absolute inset-0 flex items-center justify-center p-8">
-          <FloatingCarousel theme={current} nonce={previewKey} />
+          {rightContent ?? <FloatingCarousel theme={current} nonce={previewKey} />}
         </div>
       </div>
 
