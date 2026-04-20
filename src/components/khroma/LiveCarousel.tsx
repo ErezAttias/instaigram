@@ -47,7 +47,7 @@ type Props = {
    * a floating "Edit" button. Clicking it calls this with the element id
    * so the parent can swap its design panel to the relevant tool.
    */
-  onEditElement?: (which: 'image' | 'headline' | 'support') => void
+  onEditElement?: (which: 'image' | 'headline' | 'support' | 'textbg') => void
 }
 
 export function LiveCarousel({
