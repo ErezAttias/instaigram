@@ -14,6 +14,10 @@ export type CarouselTheme = {
   headlineFont?: string
   headlineWeight?: number
   italic?: boolean
+  supportFont?: string
+  supportWeight?: number
+  supportItalic?: boolean
+  supportColor?: string
 }
 
 const SERIF = "'Instrument Serif', 'Times New Roman', serif"

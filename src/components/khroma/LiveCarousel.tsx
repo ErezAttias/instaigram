@@ -30,6 +30,11 @@ type Props = {
   activeIndex?: number
   onActiveChange?: (index: number) => void
   /**
+   * Direction of the most recent slide change. 'next' slides the new card
+   * in from the right, 'prev' from the left. Ignored if omitted.
+   */
+  slideDirection?: 'next' | 'prev'
+  /**
    * When provided, a "Re-roll image" button appears above the card. The
    * calling page is responsible for actually firing the API request and
    * swapping the slide's imageUrl once it lands.
@@ -37,6 +42,12 @@ type Props = {
   onRegenerateSlide?: (slideIndex: number) => void
   /** Slide indices currently being regenerated (render as skeleton). */
   regeneratingSet?: Set<number>
+  /**
+   * When provided, hovering the image / headline / supporting-text reveals
+   * a floating "Edit" button. Clicking it calls this with the element id
+   * so the parent can swap its design panel to the relevant tool.
+   */
+  onEditElement?: (which: 'image' | 'headline' | 'support') => void
 }
 
 export function LiveCarousel({
@@ -46,8 +57,10 @@ export function LiveCarousel({
   autoCycle = true,
   activeIndex: controlledIndex,
   onActiveChange,
+  slideDirection = 'next',
   onRegenerateSlide,
   regeneratingSet,
+  onEditElement,
 }: Props) {
   const [internalIndex, setInternalIndex] = useState(0)
   const activeIndex = controlledIndex ?? internalIndex
@@ -78,7 +91,6 @@ export function LiveCarousel({
       <div
         className="relative flex flex-col rounded-[22px] overflow-hidden w-full"
         style={{
-          aspectRatio: '9 / 14',
           background: theme.bg,
           boxShadow: '0 50px 100px rgba(0,0,0,0.55), 0 10px 30px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.06)',
         }}
@@ -107,48 +119,83 @@ export function LiveCarousel({
           </div>
         </div>
 
-        {/* Photo / headline slot */}
-        <div className="relative flex-1 overflow-hidden" style={{ background: theme.bg }}>
-          {/* Animated fade-in for image once it lands */}
-          {currentImageUrl ? (
-            <img
-              key={currentImageUrl}
-              src={currentImageUrl}
-              alt=""
-              className="w-full h-full object-cover carousel-image"
-              style={{ filter: 'saturate(1.15) contrast(1.05)' }}
-            />
-          ) : (
-            <ImageSkeleton accent={theme.accent} />
-          )}
+        {/* Photo / headline slot — matches the exported 4:5 (1080×1350) slide dimensions. */}
+        <div className="relative overflow-hidden w-full" style={{ background: theme.bg, aspectRatio: '4 / 5' }}>
           <div
-            className="absolute inset-0 pointer-events-none"
-            style={{
-              background: `linear-gradient(to bottom, transparent 25%, ${withAlpha(theme.bg, 0.35)} 55%, ${withAlpha(theme.bg, 0.95)} 95%)`,
-            }}
-          />
-          <div className="absolute bottom-0 inset-x-0 px-5 pb-10 pt-16 z-10">
-            <h3
-              key={`h-${current?.slideIndex}`}
-              className="whitespace-pre-line leading-[1.05] tracking-tight"
+            key={`slide-${current?.slideIndex}`}
+            className={`absolute inset-0 ${slideDirection === 'prev' ? 'slide-swap-prev' : 'slide-swap-next'}`}
+          >
+            {/* Image layer with hover-edit */}
+            <div className="absolute inset-0 group/image">
+              {currentImageUrl ? (
+                <img
+                  src={currentImageUrl}
+                  alt=""
+                  className="w-full h-full object-cover"
+                  style={{ filter: 'saturate(1.15) contrast(1.05)' }}
+                />
+              ) : (
+                <ImageSkeleton accent={theme.accent} />
+              )}
+              {onEditElement && (
+                <EditChip
+                  label="Edit image"
+                  className="absolute top-3 right-3 edit-chip edit-chip-from-top group-hover/image:edit-chip-in"
+                  onClick={() => onEditElement('image')}
+                />
+              )}
+            </div>
+            <div
+              className="absolute inset-0 pointer-events-none"
               style={{
-                color: theme.fg,
-                fontFamily: theme.headlineFont ?? SERIF,
-                fontWeight: theme.headlineWeight ?? 400,
-                fontStyle: theme.italic ? 'italic' : 'normal',
-                fontSize: '28px',
+                background: `linear-gradient(to bottom, transparent 25%, ${withAlpha(theme.bg, 0.35)} 55%, ${withAlpha(theme.bg, 0.95)} 95%)`,
               }}
-            >
-              {current?.displayTitle || current?.headline || '—'}
-            </h3>
-            {current?.displaySupport && (
-              <p
-                className="mt-2 opacity-80 text-[13px] leading-snug"
-                style={{ color: theme.fg, fontFamily: "'Inter', system-ui, sans-serif" }}
-              >
-                {current.displaySupport}
-              </p>
-            )}
+            />
+            <div className="absolute bottom-0 inset-x-0 px-5 pb-10 pt-16 z-10">
+              <div className="relative group/headline">
+                <h3
+                  className="whitespace-pre-line leading-[1.05] tracking-tight"
+                  style={{
+                    color: theme.fg,
+                    fontFamily: theme.headlineFont ?? SERIF,
+                    fontWeight: theme.headlineWeight ?? 400,
+                    fontStyle: theme.italic ? 'italic' : 'normal',
+                    fontSize: '28px',
+                  }}
+                >
+                  {current?.displayTitle || current?.headline || '—'}
+                </h3>
+                {onEditElement && (
+                  <EditChip
+                    label="Edit headline"
+                    className="absolute -top-2 right-0 edit-chip edit-chip-from-side group-hover/headline:edit-chip-in"
+                    onClick={() => onEditElement('headline')}
+                  />
+                )}
+              </div>
+              {current?.displaySupport && (
+                <div className="relative mt-2 group/support">
+                  <p
+                    className="opacity-80 text-[13px] leading-snug"
+                    style={{
+                      color: theme.supportColor ?? theme.fg,
+                      fontFamily: theme.supportFont ?? "'Inter', system-ui, sans-serif",
+                      fontWeight: theme.supportWeight ?? 400,
+                      fontStyle: theme.supportItalic ? 'italic' : 'normal',
+                    }}
+                  >
+                    {current.displaySupport}
+                  </p>
+                  {onEditElement && (
+                    <EditChip
+                      label={current.role === 'OPENER' || current.role === 'CTA' ? 'Edit Call to Action' : 'Edit paragraph'}
+                      className="absolute -top-2 right-0 edit-chip edit-chip-from-side group-hover/support:edit-chip-in"
+                      onClick={() => onEditElement('support')}
+                    />
+                  )}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Slide dots — clickable */}
@@ -176,33 +223,25 @@ export function LiveCarousel({
 
         {/* Footer */}
         <div
-          className="px-3 pt-2 pb-3 shrink-0"
+          className="px-3 py-3 shrink-0 flex items-center gap-3 opacity-85"
           style={{
             background: textIsDark ? 'rgba(255,255,255,0.88)' : 'rgba(0,0,0,0.4)',
             color: textIsDark ? '#111' : '#fff',
           }}
         >
-          <div className="flex items-center gap-3 mb-1.5 opacity-85">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /></svg>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" /></svg>
-            <div className="flex-1" />
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" /></svg>
-          </div>
-          <p className="text-[11px] opacity-75 truncate">
-            {current?.role ? `${current.role.toLowerCase()} · ${activeIndex + 1} / ${slides.length}` : ''}
-          </p>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /></svg>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" /></svg>
+          <div className="flex-1" />
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" /></svg>
         </div>
       </div>
 
-      {/* Re-roll image — only while interactive */}
-      {onRegenerateSlide && current && (
-        <button
-          type="button"
-          onClick={() => onRegenerateSlide(current.slideIndex)}
-          disabled={currentIsRegenerating}
-          aria-label="Re-roll this slide's image"
-          className="flex items-center gap-2 px-3 py-1.5 rounded-full text-[12px] font-medium transition-all hover:brightness-110 disabled:opacity-60 disabled:cursor-not-allowed pointer-events-auto"
+      {/* In-progress indicator for image re-roll (non-interactive; the
+          action itself lives in the left-column image panel). */}
+      {currentIsRegenerating && (
+        <div
+          className="flex items-center gap-2 px-3 py-1.5 rounded-full text-[12px] font-medium pointer-events-none"
           style={{
             background: 'rgba(255,255,255,0.08)',
             border: '1px solid rgba(255,255,255,0.15)',
@@ -211,23 +250,42 @@ export function LiveCarousel({
             backdropFilter: 'blur(8px)',
           }}
         >
-          {currentIsRegenerating ? (
-            <>
-              <span className="w-3 h-3 border-[1.5px] border-white/30 border-t-white rounded-full animate-spin" />
-              Re-rolling image…
-            </>
-          ) : (
-            <>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="23 4 23 10 17 10" />
-                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
-              </svg>
-              Re-roll this image
-            </>
-          )}
-        </button>
+          <span className="w-3 h-3 border-[1.5px] border-white/30 border-t-white rounded-full animate-spin" />
+          Re-rolling image…
+        </div>
       )}
     </div>
+  )
+}
+
+function EditChip({
+  label,
+  onClick,
+  className,
+}: {
+  label: string
+  onClick: () => void
+  className?: string
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium hover:brightness-110 pointer-events-auto z-30 ${className ?? ''}`}
+      style={{
+        background: 'rgba(0,0,0,0.55)',
+        border: '1px solid rgba(255,255,255,0.18)',
+        color: 'rgba(255,255,255,0.95)',
+        fontFamily: "'Inter', system-ui, sans-serif",
+        backdropFilter: 'blur(8px)',
+      }}
+    >
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
+      </svg>
+      {label}
+    </button>
   )
 }
 

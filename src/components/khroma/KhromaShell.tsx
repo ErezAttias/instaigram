@@ -142,6 +142,53 @@ export function KhromaShell({ children, preview, paused = false, rightContent, b
         .carousel-image {
           animation: image-in 1000ms cubic-bezier(0.22, 1, 0.36, 1) both;
         }
+        .slide-swap-next, .slide-swap-prev {
+          will-change: transform, opacity;
+        }
+        .slide-swap-next { animation: slide-swap-next 480ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+        .slide-swap-prev { animation: slide-swap-prev 480ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+        @keyframes slide-swap-next {
+          0%   { opacity: 0; transform: translateX(70px); }
+          100% { opacity: 1; transform: translateX(0);    }
+        }
+        @keyframes slide-swap-prev {
+          0%   { opacity: 0; transform: translateX(-70px); }
+          100% { opacity: 1; transform: translateX(0);     }
+        }
+        .crossfade {
+          animation: crossfade 400ms cubic-bezier(0.22, 1, 0.36, 1) both;
+          will-change: opacity, transform, filter;
+        }
+        .edit-chip {
+          opacity: 0;
+          pointer-events: none;
+          transform: translateY(-6px) scale(0.92);
+          filter: blur(2px);
+          transition:
+            opacity 240ms cubic-bezier(0.22, 1, 0.36, 1),
+            transform 320ms cubic-bezier(0.34, 1.56, 0.64, 1),
+            filter 240ms cubic-bezier(0.22, 1, 0.36, 1);
+          will-change: transform, opacity, filter;
+        }
+        .edit-chip-from-top {
+          transform: translateY(-8px) scale(0.9);
+        }
+        .edit-chip-from-side {
+          transform: translate(12px, -4px) scale(0.9);
+        }
+        .group\/image:hover > .edit-chip,
+        .group\/headline:hover > .edit-chip,
+        .group\/support:hover > .edit-chip {
+          opacity: 1;
+          pointer-events: auto;
+          transform: translate(0, 0) scale(1);
+          filter: blur(0);
+        }
+        @keyframes crossfade {
+          0%   { opacity: 0; transform: translateY(4px); filter: blur(3px); }
+          60%  { filter: blur(0); }
+          100% { opacity: 1; transform: translateY(0);   filter: blur(0); }
+        }
         @keyframes morph-in {
           0%   { transform: translateY(10px) scale(0.97); filter: blur(4px); }
           60%  { filter: blur(0); }
@@ -191,6 +238,7 @@ export function KhromaShell({ children, preview, paused = false, rightContent, b
 
         @media (prefers-reduced-motion: reduce) {
           .carousel-float, .carousel-morph, .carousel-image,
+          .slide-swap-next, .slide-swap-prev, .crossfade, .edit-chip,
           .aurora-blob, .aurora-prism, .phase-panel {
             animation: none !important;
           }

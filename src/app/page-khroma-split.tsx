@@ -55,7 +55,32 @@ export default function HomeKhromaSplit({ initialJobId }: { initialJobId?: strin
   const [caption, setCaption] = useState<string>('')
   const [hashtags, setHashtags] = useState<string[]>([])
   const [regeneratingSet, setRegeneratingSet] = useState<Set<number>>(new Set())
-  const [activeSlide, setActiveSlide] = useState(0)
+  const [activeSlide, setActiveSlideRaw] = useState(0)
+  const [slideDir, setSlideDir] = useState<'next' | 'prev'>('next')
+  const [editTarget, setEditTarget] = useState<'overview' | 'headline' | 'support' | 'image'>('overview')
+  const [themeOverrides, setThemeOverrides] = useState<{
+    headlineFont?: string
+    headlineWeight?: number
+    italic?: boolean
+    fg?: string
+    accent?: string
+    supportFont?: string
+    supportWeight?: number
+    supportItalic?: boolean
+    supportColor?: string
+  }>({})
+  const setActiveSlide = (next: number | ((prev: number) => number)) => {
+    setActiveSlideRaw(prev => {
+      const n = typeof next === 'function' ? (next as (p: number) => number)(prev) : next
+      if (n === prev) return prev
+      const total = slides.length || 1
+      // Pick the visually natural direction, accounting for wrap-around.
+      const forward = (n - prev + total) % total
+      const backward = (prev - n + total) % total
+      setSlideDir(forward <= backward ? 'next' : 'prev')
+      return n
+    })
+  }
   const [savingText, setSavingText] = useState(false)
 
   useEffect(() => {
@@ -412,7 +437,8 @@ export default function HomeKhromaSplit({ initialJobId }: { initialJobId?: strin
   // demo-theme floating carousel.
   const showLiveCarousel =
     (phase === 'copy-review' || phase === 'rendering' || phase === 'done') && slides.length > 0
-  const livePreviewTheme = preview ?? pickThemeForTopic(previewSeed)
+  const baseLiveTheme = preview ?? pickThemeForTopic(previewSeed)
+  const livePreviewTheme = { ...baseLiveTheme, ...themeOverrides }
   const rightContent = showLiveCarousel ? (
     <LiveCarousel
       slides={slides}
@@ -421,7 +447,9 @@ export default function HomeKhromaSplit({ initialJobId }: { initialJobId?: strin
       autoCycle={phase === 'rendering'}
       activeIndex={phase === 'done' ? activeSlide : undefined}
       onActiveChange={phase === 'done' ? setActiveSlide : undefined}
+      slideDirection={phase === 'done' ? slideDir : undefined}
       onRegenerateSlide={phase === 'done' ? regenerateSlideImage : undefined}
+      onEditElement={phase === 'done' ? (which) => setEditTarget(which) : undefined}
       regeneratingSet={regeneratingSet}
     />
   ) : undefined
@@ -804,11 +832,18 @@ export default function HomeKhromaSplit({ initialJobId }: { initialJobId?: strin
             </h1>
 
             <SlideEditor
+              jobId={jobId}
               slides={slides}
               activeSlide={activeSlide}
               setActiveSlide={setActiveSlide}
               onSave={saveSlideText}
               saving={savingText}
+              editTarget={editTarget}
+              setEditTarget={setEditTarget}
+              onRegenerateSlide={regenerateSlideImage}
+              regeneratingSet={regeneratingSet}
+              themeOverrides={themeOverrides}
+              setThemeOverrides={setThemeOverrides}
               isLight={isLight}
               textMain={textMain}
               textMuted={textMuted}
@@ -899,21 +934,90 @@ export default function HomeKhromaSplit({ initialJobId }: { initialJobId?: strin
   )
 }
 
+function BackButton({ onClick, textMuted }: { onClick: () => void; textMuted: string }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="text-[11px] font-medium underline-offset-4 hover:underline opacity-70 hover:opacity-100 transition-opacity"
+      style={{ color: textMuted, fontFamily: SANS }}
+    >
+      ← Back
+    </button>
+  )
+}
+
+function AutoTextarea({
+  value,
+  onChange,
+  onBlur,
+  style,
+}: {
+  value: string
+  onChange: (v: string) => void
+  onBlur: () => void
+  style: React.CSSProperties
+}) {
+  const ref = useRef<HTMLTextAreaElement | null>(null)
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    el.style.height = 'auto'
+    el.style.height = `${el.scrollHeight}px`
+  }, [value])
+  return (
+    <textarea
+      ref={ref}
+      rows={1}
+      value={value}
+      onChange={e => onChange(e.target.value)}
+      onBlur={onBlur}
+      style={style}
+    />
+  )
+}
+
+type ThemeOverrides = {
+  headlineFont?: string
+  headlineWeight?: number
+  italic?: boolean
+  fg?: string
+  accent?: string
+  supportFont?: string
+  supportWeight?: number
+  supportItalic?: boolean
+  supportColor?: string
+}
+
 function SlideEditor({
+  jobId,
   slides,
   activeSlide,
   setActiveSlide,
   onSave,
   saving,
+  editTarget,
+  setEditTarget,
+  onRegenerateSlide,
+  regeneratingSet,
+  themeOverrides,
+  setThemeOverrides,
   isLight,
   textMain,
   textMuted,
 }: {
+  jobId: string
   slides: Slide[]
   activeSlide: number
   setActiveSlide: (i: number) => void
   onSave: (slideIndex: number, patch: { displayTitle?: string; displaySupport?: string }) => void
   saving: boolean
+  editTarget: 'overview' | 'headline' | 'support' | 'image'
+  setEditTarget: (t: 'overview' | 'headline' | 'support' | 'image') => void
+  onRegenerateSlide: (slideIndex: number) => void
+  regeneratingSet: Set<number>
+  themeOverrides: ThemeOverrides
+  setThemeOverrides: React.Dispatch<React.SetStateAction<ThemeOverrides>>
   isLight: boolean
   textMain: string
   textMuted: string
@@ -957,78 +1061,494 @@ function SlideEditor({
     padding: '10px 12px',
     width: '100%',
     outline: 'none',
-    resize: 'vertical',
+    resize: 'none',
+    overflow: 'hidden',
   }
 
   return (
     <div className="mb-6 max-w-[34rem]">
-      <div className="flex items-center justify-between mb-3">
-        <span className="text-[11px] uppercase tracking-[0.18em] opacity-70" style={{ color: textMuted, fontFamily: SANS }}>
-          Slide
+      <div className="flex items-center gap-3 mb-5">
+        <button
+          type="button"
+          onClick={() => setActiveSlide((clamped - 1 + slides.length) % slides.length)}
+          aria-label="Previous slide"
+          className="w-8 h-8 rounded-full inline-flex items-center justify-center text-[15px] transition-colors"
+          style={{
+            background: isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.06)',
+            color: textMain,
+            fontFamily: SANS,
+          }}
+        >
+          ←
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveSlide((clamped + 1) % slides.length)}
+          aria-label="Next slide"
+          className="w-8 h-8 rounded-full inline-flex items-center justify-center text-[15px] transition-colors"
+          style={{
+            background: isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.06)',
+            color: textMain,
+            fontFamily: SANS,
+          }}
+        >
+          →
+        </button>
+        <span className="text-[12px] uppercase tracking-[0.18em] opacity-70" style={{ color: textMuted, fontFamily: SANS }}>
+          Slide {clamped + 1} of {slides.length}
         </span>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setActiveSlide((clamped - 1 + slides.length) % slides.length)}
-            aria-label="Previous slide"
-            className="w-7 h-7 rounded-full inline-flex items-center justify-center text-[14px] transition-colors"
-            style={{
-              background: isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.06)',
-              color: textMain,
-              fontFamily: SANS,
-            }}
-          >
-            ←
-          </button>
-          <span className="text-[12px] font-mono tabular-nums opacity-80" style={{ color: textMuted, fontFamily: SANS }}>
-            {clamped + 1} / {slides.length}
-          </span>
-          <button
-            type="button"
-            onClick={() => setActiveSlide((clamped + 1) % slides.length)}
-            aria-label="Next slide"
-            className="w-7 h-7 rounded-full inline-flex items-center justify-center text-[14px] transition-colors"
-            style={{
-              background: isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.06)',
-              color: textMain,
-              fontFamily: SANS,
-            }}
-          >
-            →
-          </button>
-        </div>
       </div>
 
-      <label className="block mb-3">
-        <span className="block text-[11px] uppercase tracking-[0.16em] mb-1.5 opacity-70" style={{ color: textMuted, fontFamily: SANS }}>
-          Headline
-        </span>
-        <textarea
-          rows={2}
-          value={title}
-          onChange={e => setTitle(e.target.value)}
-          onBlur={commit}
-          style={fieldStyle}
-        />
-      </label>
+      <div key={`panel-${editTarget}-${current.slideIndex}`} className="crossfade">
+        {editTarget === 'overview' && (
+          <>
+            <label className="block mb-4">
+              <span className="block text-[11px] uppercase tracking-[0.16em] mb-1.5 opacity-70" style={{ color: textMuted, fontFamily: SANS }}>
+                Headline
+              </span>
+              <AutoTextarea value={title} onChange={setTitle} onBlur={commit} style={fieldStyle} />
+            </label>
 
-      {current.role !== 'OPENER' && current.role !== 'CTA' && (
-        <label className="block">
-          <span className="block text-[11px] uppercase tracking-[0.16em] mb-1.5 opacity-70" style={{ color: textMuted, fontFamily: SANS }}>
-            Supporting text
-          </span>
-          <textarea
-            rows={3}
-            value={support}
-            onChange={e => setSupport(e.target.value)}
-            onBlur={commit}
-            style={fieldStyle}
+            {current.role !== 'OPENER' && current.role !== 'CTA' && (
+              <label className="block">
+                <span className="block text-[11px] uppercase tracking-[0.16em] mb-1.5 opacity-70" style={{ color: textMuted, fontFamily: SANS }}>
+                  Supporting text
+                </span>
+                <AutoTextarea value={support} onChange={setSupport} onBlur={commit} style={fieldStyle} />
+              </label>
+            )}
+          </>
+        )}
+
+        {editTarget === 'headline' && (
+          <TextDesignPanel
+            title="Headline — design"
+            fontKey="headlineFont"
+            weightKey="headlineWeight"
+            italicKey="italic"
+            colorKey="fg"
+            overrides={themeOverrides}
+            setOverrides={setThemeOverrides}
+            onBack={() => setEditTarget('overview')}
+            isLight={isLight}
+            textMain={textMain}
+            textMuted={textMuted}
           />
-        </label>
-      )}
+        )}
+
+        {editTarget === 'support' && (
+          <TextDesignPanel
+            title={current.role === 'OPENER' || current.role === 'CTA' ? 'Call to action — design' : 'Paragraph — design'}
+            fontKey="supportFont"
+            weightKey="supportWeight"
+            italicKey="supportItalic"
+            colorKey="supportColor"
+            overrides={themeOverrides}
+            setOverrides={setThemeOverrides}
+            onBack={() => setEditTarget('overview')}
+            isLight={isLight}
+            textMain={textMain}
+            textMuted={textMuted}
+          />
+        )}
+
+        {editTarget === 'image' && (
+          <ImageDesignPanel
+            jobId={jobId}
+            slide={current}
+            regenerating={regeneratingSet.has(current.slideIndex)}
+            onRegenerateSlide={onRegenerateSlide}
+            onBack={() => setEditTarget('overview')}
+            isLight={isLight}
+            textMain={textMain}
+            textMuted={textMuted}
+          />
+        )}
+      </div>
 
       <div className="mt-2 text-[11px] h-4 transition-opacity duration-300" style={{ color: textMuted, fontFamily: SANS, opacity: saving || justSaved ? 1 : 0 }}>
         {saving ? 'Saving…' : justSaved ? 'Changes saved' : ''}
+      </div>
+    </div>
+  )
+}
+
+const HEADLINE_FONTS = [
+  { label: 'Instrument Serif', value: "'Instrument Serif', 'Times New Roman', serif" },
+  { label: 'Playfair Display', value: "'Playfair Display', Georgia, serif" },
+  { label: 'Roboto Slab', value: "'Roboto Slab', Georgia, serif" },
+  { label: 'Montserrat', value: "'Montserrat', system-ui, sans-serif" },
+  { label: 'Inter', value: "'Inter', system-ui, sans-serif" },
+]
+const HEADLINE_WEIGHTS = [400, 500, 700, 800]
+const TEXT_COLOR_SWATCHES = ['#FFFFFF', '#F5F1EA', '#0A0A0A', '#F09433', '#DC2743', '#2563EB']
+
+function TextDesignPanel({
+  title,
+  fontKey,
+  weightKey,
+  italicKey,
+  colorKey,
+  overrides,
+  setOverrides,
+  onBack,
+  isLight,
+  textMain,
+  textMuted,
+}: {
+  title: string
+  fontKey: 'headlineFont' | 'supportFont'
+  weightKey: 'headlineWeight' | 'supportWeight'
+  italicKey: 'italic' | 'supportItalic'
+  colorKey: 'fg' | 'supportColor'
+  overrides: ThemeOverrides
+  setOverrides: React.Dispatch<React.SetStateAction<ThemeOverrides>>
+  onBack: () => void
+  isLight: boolean
+  textMain: string
+  textMuted: string
+}) {
+  const currentFont = overrides[fontKey]
+  const currentWeight = overrides[weightKey]
+  const currentItalic = overrides[italicKey]
+  const currentColor = overrides[colorKey] ?? ''
+  const pillStyle = (active: boolean): React.CSSProperties => ({
+    padding: '6px 10px',
+    borderRadius: 8,
+    fontFamily: SANS,
+    fontSize: 12,
+    border: `1px solid ${active ? (isLight ? '#0a0a0a' : '#ffffff') : (isLight ? 'rgba(0,0,0,0.12)' : 'rgba(255,255,255,0.12)')}`,
+    background: active ? (isLight ? '#0a0a0a' : '#ffffff') : 'transparent',
+    color: active ? (isLight ? '#ffffff' : '#0a0a0a') : textMain,
+    cursor: 'pointer',
+    transition: 'all 180ms',
+  })
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-4">
+        <span className="text-[11px] uppercase tracking-[0.16em] opacity-70" style={{ color: textMuted, fontFamily: SANS }}>
+          {title}
+        </span>
+        <BackButton onClick={onBack} textMuted={textMuted} />
+      </div>
+
+      <div className="mb-5">
+        <span className="block text-[11px] uppercase tracking-[0.14em] mb-2 opacity-60" style={{ color: textMuted, fontFamily: SANS }}>
+          Font
+        </span>
+        <div className="flex flex-wrap gap-2">
+          {HEADLINE_FONTS.map(f => (
+            <button
+              key={f.value}
+              type="button"
+              onClick={() => setOverrides(o => ({ ...o, [fontKey]: f.value }))}
+              style={{ ...pillStyle(currentFont === f.value), fontFamily: f.value }}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="mb-5">
+        <span className="block text-[11px] uppercase tracking-[0.14em] mb-2 opacity-60" style={{ color: textMuted, fontFamily: SANS }}>
+          Weight
+        </span>
+        <div className="flex flex-wrap gap-2">
+          {HEADLINE_WEIGHTS.map(w => (
+            <button
+              key={w}
+              type="button"
+              onClick={() => setOverrides(o => ({ ...o, [weightKey]: w }))}
+              style={{ ...pillStyle(currentWeight === w), fontWeight: w }}
+            >
+              {w}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="mb-5">
+        <span className="block text-[11px] uppercase tracking-[0.14em] mb-2 opacity-60" style={{ color: textMuted, fontFamily: SANS }}>
+          Style
+        </span>
+        <button
+          type="button"
+          onClick={() => setOverrides(o => ({ ...o, [italicKey]: !o[italicKey] }))}
+          style={{ ...pillStyle(!!currentItalic), fontStyle: 'italic' }}
+        >
+          Italic
+        </button>
+      </div>
+
+      <div className="mb-2">
+        <span className="block text-[11px] uppercase tracking-[0.14em] mb-2 opacity-60" style={{ color: textMuted, fontFamily: SANS }}>
+          Color
+        </span>
+        <div className="flex items-center gap-2 flex-wrap">
+          {TEXT_COLOR_SWATCHES.map(c => {
+            const active = currentColor.toLowerCase() === c.toLowerCase()
+            return (
+              <button
+                key={c}
+                type="button"
+                onClick={() => setOverrides(o => ({ ...o, [colorKey]: c }))}
+                aria-label={`Color ${c}`}
+                className="w-7 h-7 rounded-full transition-transform hover:scale-110"
+                style={{
+                  background: c,
+                  border: `2px solid ${active ? (isLight ? '#0a0a0a' : '#ffffff') : 'rgba(127,127,127,0.25)'}`,
+                }}
+              />
+            )
+          })}
+          <button
+            type="button"
+            onClick={() => setOverrides(o => {
+              const next = { ...o }
+              delete next[fontKey]
+              delete next[weightKey]
+              delete next[italicKey]
+              delete next[colorKey]
+              return next
+            })}
+            className="ml-2 text-[11px] underline-offset-4 hover:underline opacity-70"
+            style={{ color: textMuted, fontFamily: SANS }}
+          >
+            Reset
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+type WikiResult = { imageUrl: string; title?: string; pageUrl?: string }
+
+function ImageDesignPanel({
+  jobId,
+  slide,
+  regenerating,
+  onRegenerateSlide,
+  onBack,
+  isLight,
+  textMain,
+  textMuted,
+}: {
+  jobId: string
+  slide: Slide
+  regenerating: boolean
+  onRegenerateSlide: (slideIndex: number) => void
+  onBack: () => void
+  isLight: boolean
+  textMain: string
+  textMuted: string
+}) {
+  const [prompt, setPrompt] = useState('')
+  const [wikiQuery, setWikiQuery] = useState('')
+  const [wikiResult, setWikiResult] = useState<WikiResult | null>(null)
+  const [wikiError, setWikiError] = useState<string | null>(null)
+  const [wikiLoading, setWikiLoading] = useState(false)
+  const [busy, setBusy] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      try {
+        const res = await fetch(`/api/carousel/${jobId}/preview-prompts`)
+        const data = await res.json().catch(() => ({}))
+        if (cancelled) return
+        const hit = (data?.previews ?? []).find((p: { slideIndex: number }) => p.slideIndex === slide.slideIndex)
+        if (hit) {
+          setPrompt(hit.imagePrompt ?? '')
+          setWikiQuery(hit.wikipediaQuery ?? '')
+        }
+      } catch {
+        // no-op
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [jobId, slide.slideIndex])
+
+  async function reRollWithPrompt() {
+    setBusy(true)
+    try {
+      await fetch(`/api/carousel/${jobId}/regenerate-slide`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slideIndex: slide.slideIndex, mode: 'image', promptOverride: prompt }),
+      })
+      onRegenerateSlide(slide.slideIndex)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function searchWiki() {
+    const q = wikiQuery.trim()
+    if (!q) return
+    setWikiLoading(true)
+    setWikiError(null)
+    setWikiResult(null)
+    try {
+      const res = await fetch(`/api/wikipedia-search?q=${encodeURIComponent(q)}`)
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setWikiError(data?.error ?? 'Search failed')
+      } else {
+        setWikiResult({ imageUrl: data.imageUrl, title: data.title, pageUrl: data.pageUrl })
+      }
+    } catch (err) {
+      setWikiError(err instanceof Error ? err.message : 'Search failed')
+    } finally {
+      setWikiLoading(false)
+    }
+  }
+
+  async function useWikiImage() {
+    if (!wikiResult) return
+    setBusy(true)
+    try {
+      await fetch(`/api/carousel/${jobId}/regenerate-slide`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          slideIndex: slide.slideIndex,
+          mode: 'image',
+          imageSource: 'wikipedia',
+          wikipediaImageUrl: wikiResult.imageUrl,
+          wikipediaQuery: wikiQuery.trim(),
+        }),
+      })
+      onRegenerateSlide(slide.slideIndex)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const fieldStyle: React.CSSProperties = {
+    background: isLight ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.04)',
+    border: `1px solid ${isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)'}`,
+    color: textMain,
+    fontFamily: SANS,
+    borderRadius: 10,
+    padding: '10px 12px',
+    width: '100%',
+    outline: 'none',
+    fontSize: 13,
+    lineHeight: 1.45,
+    resize: 'none',
+    overflow: 'hidden',
+  }
+
+  const buttonStyle: React.CSSProperties = {
+    background: isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.06)',
+    border: `1px solid ${isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)'}`,
+    color: textMain,
+    fontFamily: SANS,
+  }
+
+  const disabled = busy || regenerating
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-4">
+        <span className="text-[11px] uppercase tracking-[0.16em] opacity-70" style={{ color: textMuted, fontFamily: SANS }}>
+          Image — design
+        </span>
+        <BackButton onClick={onBack} textMuted={textMuted} />
+      </div>
+
+      <div className="mb-6">
+        <span className="block text-[11px] uppercase tracking-[0.14em] mb-2 opacity-60" style={{ color: textMuted, fontFamily: SANS }}>
+          Prompt
+        </span>
+        <AutoTextarea value={prompt} onChange={setPrompt} onBlur={() => { /* commit on action */ }} style={fieldStyle} />
+        <button
+          type="button"
+          onClick={reRollWithPrompt}
+          disabled={disabled || prompt.trim().length === 0}
+          className="mt-3 inline-flex items-center gap-2 h-10 px-4 rounded-md text-[13px] font-medium transition-all hover:brightness-110 disabled:opacity-60 disabled:cursor-not-allowed"
+          style={buttonStyle}
+        >
+          {disabled ? (
+            <>
+              <span className="w-3.5 h-3.5 border-[1.5px] border-current/30 border-t-current rounded-full animate-spin" />
+              Re-rolling…
+            </>
+          ) : (
+            <>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="23 4 23 10 17 10" />
+                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+              </svg>
+              Re-roll with this prompt
+            </>
+          )}
+        </button>
+      </div>
+
+      <div>
+        <span className="block text-[11px] uppercase tracking-[0.14em] mb-2 opacity-60" style={{ color: textMuted, fontFamily: SANS }}>
+          Wikipedia image
+        </span>
+        <div className="flex items-center gap-2">
+          <input
+            type="text"
+            value={wikiQuery}
+            onChange={e => setWikiQuery(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); searchWiki() } }}
+            placeholder="Search Wikipedia…"
+            style={{ ...fieldStyle, padding: '8px 12px' }}
+          />
+          <button
+            type="button"
+            onClick={searchWiki}
+            disabled={wikiLoading || wikiQuery.trim().length === 0}
+            className="h-10 px-4 rounded-md text-[13px] font-medium transition-all hover:brightness-110 disabled:opacity-60 disabled:cursor-not-allowed"
+            style={buttonStyle}
+          >
+            {wikiLoading ? '…' : 'Search'}
+          </button>
+        </div>
+
+        {wikiError && (
+          <p className="mt-2 text-[12px]" style={{ color: '#f87171', fontFamily: SANS }}>{wikiError}</p>
+        )}
+
+        {wikiResult && (
+          <div
+            className="mt-3 rounded-xl overflow-hidden flex items-stretch gap-3 p-3"
+            style={{
+              background: isLight ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.04)',
+              border: `1px solid ${isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.08)'}`,
+            }}
+          >
+            <img src={wikiResult.imageUrl} alt={wikiResult.title ?? ''} className="w-20 h-20 object-cover rounded-md shrink-0" />
+            <div className="flex flex-col justify-between min-w-0 flex-1">
+              <div className="min-w-0">
+                <p className="text-[12px] truncate" style={{ color: textMain, fontFamily: SANS }}>{wikiResult.title ?? 'Result'}</p>
+                {wikiResult.pageUrl && (
+                  <a href={wikiResult.pageUrl} target="_blank" rel="noreferrer" className="text-[11px] opacity-70 underline-offset-2 hover:underline truncate block" style={{ color: textMuted, fontFamily: SANS }}>
+                    View on Wikipedia ↗
+                  </a>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={useWikiImage}
+                disabled={disabled}
+                className="self-start mt-2 inline-flex items-center gap-2 h-8 px-3 rounded-md text-[12px] font-medium transition-all hover:brightness-110 disabled:opacity-60 disabled:cursor-not-allowed"
+                style={buttonStyle}
+              >
+                Use this image
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
