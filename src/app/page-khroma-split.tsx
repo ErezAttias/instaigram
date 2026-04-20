@@ -52,6 +52,8 @@ export default function HomeKhromaSplit({ initialJobId }: { initialJobId?: strin
   const [sampleFacts, setSampleFacts] = useState<string[]>([])
   const [jobId, setJobId] = useState<string | null>(initialJobId ?? null)
   const [slides, setSlides] = useState<Slide[]>([])
+  const [caption, setCaption] = useState<string>('')
+  const [hashtags, setHashtags] = useState<string[]>([])
 
   useEffect(() => {
     const t = setInterval(() => setPlaceholderIdx(i => (i + 1) % PLACEHOLDER_EXAMPLES.length), 3200)
@@ -72,6 +74,8 @@ export default function HomeKhromaSplit({ initialJobId }: { initialJobId?: strin
         if (cancelled) return
         if (Array.isArray(data.slides)) setSlides(data.slides)
         if (data.topic) setSubmittedTopic(data.topic)
+        if (typeof data.caption === 'string' && data.caption) setCaption(data.caption)
+        if (Array.isArray(data.hashtags)) setHashtags(data.hashtags)
         const copyDone = data.status === 'COMPLETE'
         const hasSlides = Array.isArray(data.slides) && data.slides.length > 0
         const allResolved = hasSlides && data.slides.every((s: Slide) => !!s.imageUrl || s.status === 'FAILED_IMAGE')
@@ -106,6 +110,8 @@ export default function HomeKhromaSplit({ initialJobId }: { initialJobId?: strin
         if (Array.isArray(data.slides) && data.slides.length > 0) {
           setSlides(data.slides)
         }
+        if (typeof data.caption === 'string' && data.caption) setCaption(data.caption)
+        if (Array.isArray(data.hashtags)) setHashtags(data.hashtags)
         // Copy-generation phase moves to review as soon as the copy is final.
         if (phase === 'generating-copy') {
           if (data.status === 'COMPLETE') {
@@ -635,26 +641,70 @@ export default function HomeKhromaSplit({ initialJobId }: { initialJobId?: strin
 
         {phase === 'done' && jobId && (
           <>
-            <p className="mb-6 uppercase tracking-[0.22em] text-[11px]" style={{ color: textMuted, fontFamily: SANS, fontWeight: 600 }}>
+            <p className="mb-5 uppercase tracking-[0.22em] text-[11px]" style={{ color: textMuted, fontFamily: SANS, fontWeight: 600 }}>
               Carousel ready
             </p>
             <h1
-              className="mb-8"
+              className="mb-6"
               style={{
                 fontFamily: SERIF,
                 fontWeight: 400,
                 color: textMain,
-                fontSize: 'clamp(3rem, 5.4vw, 4.75rem)',
-                lineHeight: 1,
+                fontSize: 'clamp(2.25rem, 3.6vw, 3.25rem)',
+                lineHeight: 1.05,
                 letterSpacing: '-0.015em',
               }}
             >
               Your <span style={{ fontStyle: 'italic' }}>{submittedTopic}</span> carousel.
             </h1>
-            <p className="mb-10 max-w-[28rem]" style={{ color: textMuted, fontFamily: SANS, fontSize: '16px', lineHeight: 1.6 }}>
-              Open the editor to review the images as they come in, swap any you don&rsquo;t like,
-              and export when you&rsquo;re happy.
-            </p>
+
+            {caption && (
+              <div
+                className="mb-6 rounded-xl p-4 max-w-[34rem]"
+                style={{
+                  background: isLight ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.04)',
+                  border: `1px solid ${isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.08)'}`,
+                }}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[11px] uppercase tracking-[0.18em] opacity-70" style={{ color: textMuted, fontFamily: SANS }}>
+                    Caption
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => navigator.clipboard?.writeText(`${caption}\n\n${hashtags.map(h => `#${h}`).join(' ')}`.trim())}
+                    className="text-[11px] opacity-70 hover:opacity-100 underline-offset-2 hover:underline"
+                    style={{ color: textMuted, fontFamily: SANS }}
+                  >
+                    Copy
+                  </button>
+                </div>
+                <p
+                  className="text-[14px] leading-relaxed whitespace-pre-wrap"
+                  style={{ color: textMain, fontFamily: SANS }}
+                >
+                  {caption}
+                </p>
+                {hashtags.length > 0 && (
+                  <div className="mt-3 flex flex-wrap gap-1.5">
+                    {hashtags.map((h, i) => (
+                      <span
+                        key={i}
+                        className="text-[11px] px-2 py-0.5 rounded-full"
+                        style={{
+                          color: textMuted,
+                          background: isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.06)',
+                          fontFamily: SANS,
+                        }}
+                      >
+                        #{h}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="flex items-center gap-5 flex-wrap">
               <button
                 type="button"
@@ -662,7 +712,7 @@ export default function HomeKhromaSplit({ initialJobId }: { initialJobId?: strin
                 className="h-12 px-8 text-white font-medium rounded-md text-[15px] transition-all hover:brightness-110 active:scale-[0.98]"
                 style={{ background: '#2563eb', fontFamily: SANS, boxShadow: '0 4px 14px rgba(37,99,235,0.35)' }}
               >
-                Open editor →
+                Open in editor →
               </button>
               <button
                 type="button"
