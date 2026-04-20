@@ -115,6 +115,20 @@ export function KhromaShell({ children, preview, paused = false, rightContent, b
           0%   { opacity: 0; transform: translateY(8px); filter: blur(3px); }
           100% { opacity: 1; transform: translateY(0);   filter: blur(0); }
         }
+        /* dots-anchor reserves a fixed-width slot so the animated dots
+           never reflow the surrounding headline text. */
+        .dots-anchor {
+          display: inline-block;
+          position: relative;
+          width: 1.4em;   /* enough for "..." at any font size */
+          vertical-align: baseline;
+        }
+        .dots-anchor .dots {
+          position: absolute;
+          left: 0;
+          top: 0;
+          white-space: nowrap;
+        }
         .dots::after {
           content: '';
           display: inline-block;

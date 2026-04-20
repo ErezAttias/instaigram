@@ -20,6 +20,12 @@ export type CarouselTheme = {
   supportSizePx?: number
   supportItalic?: boolean
   supportColor?: string
+  /** Solid color at the bottom of the text-scrim gradient. Defaults to theme.bg. */
+  textBgColor?: string
+  /** 0 = harsh (late fade), 100 = very soft (fade starts near top). Default 50. */
+  textBgSpread?: number
+  /** 0 = short (solid band at very bottom), 100 = tall (solid reaches high into image). Default 50. */
+  textBgHeight?: number
 }
 
 const SERIF = "'Instrument Serif', 'Times New Roman', serif"

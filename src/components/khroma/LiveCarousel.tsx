@@ -145,52 +145,79 @@ export function LiveCarousel({
                 />
               )}
             </div>
-            <div
-              className="absolute inset-0 pointer-events-none"
-              style={{
-                background: `linear-gradient(to bottom, transparent 25%, ${withAlpha(theme.bg, 0.35)} 55%, ${withAlpha(theme.bg, 0.95)} 95%)`,
-              }}
-            />
-            <div className="absolute bottom-0 inset-x-0 px-5 pb-10 pt-16 z-10">
-              <TrackingEditZone
-                label="Edit headline"
-                enabled={!!onEditElement}
-                onClick={() => onEditElement?.('headline')}
-              >
-                <h3
-                  className="whitespace-pre-line leading-[1.05] tracking-tight"
+            {/* Text-scrim gradient — blends image into the text area.
+                spread 0 = harsh (starts at 65%), spread 100 = soft (starts at 0%).
+                Default spread 50 → starts at ~20%. */}
+            {(() => {
+              const spread     = theme.textBgSpread ?? 50            // 0–100
+              const height     = theme.textBgHeight ?? 50            // 0–100
+              const solidPct   = Math.round(98 - height * 0.38)     // 98% (short) → 60% (tall)
+              const startPct   = Math.min(Math.round(65 - spread * 0.65), solidPct - 10) // can't exceed solidPct
+              const midPct     = Math.round(startPct + (solidPct - startPct) * 0.55)
+              const scrimColor = theme.textBgColor ?? theme.bg
+              return (
+                <div
+                  className="absolute inset-0 pointer-events-none"
                   style={{
-                    color: theme.fg,
-                    fontFamily: theme.headlineFont ?? SERIF,
-                    fontWeight: theme.headlineWeight ?? 400,
-                    fontStyle: theme.italic ? 'italic' : 'normal',
-                    fontSize: theme.headlineSizePx ? `${theme.headlineSizePx}px` : '28px',
+                    background: `linear-gradient(to bottom, transparent ${startPct}%, ${withAlpha(scrimColor, 0.4)} ${midPct}%, ${withAlpha(scrimColor, 0.97)} ${solidPct}%)`,
                   }}
-                >
-                  {current?.displayTitle || current?.headline || '—'}
-                </h3>
-              </TrackingEditZone>
-              {current?.displaySupport && (
+                />
+              )
+            })()}
+
+            {/* Bottom zone: text + hoverable scrim-color chip */}
+            <div className="absolute bottom-0 inset-x-0 z-10">
+              {/* Scrim color edit — hover the gradient area to reveal chip */}
+              <TrackingEditZone
+                label="Change gradient color"
+                enabled={!!onEditElement}
+                onClick={() => onEditElement?.('textbg')}
+                chipOffset={{ x: 0, y: -8 }}
+                className="absolute inset-x-0 bottom-0 h-[55%] pointer-events-auto"
+              />
+
+              {/* Headline + support text */}
+              <div className="px-5 pb-10 pt-16">
                 <TrackingEditZone
-                  label={current.role === 'OPENER' || current.role === 'CTA' ? 'Edit Call to Action' : 'Edit paragraph'}
+                  label="Edit headline"
                   enabled={!!onEditElement}
-                  onClick={() => onEditElement?.('support')}
-                  className="mt-2"
+                  onClick={() => onEditElement?.('headline')}
                 >
-                  <p
-                    className="opacity-80 leading-snug"
+                  <h3
+                    className="whitespace-pre-line leading-[1.05] tracking-tight"
                     style={{
-                      color: theme.supportColor ?? theme.fg,
-                      fontFamily: theme.supportFont ?? "'Inter', system-ui, sans-serif",
-                      fontWeight: theme.supportWeight ?? 400,
-                      fontStyle: theme.supportItalic ? 'italic' : 'normal',
-                      fontSize: theme.supportSizePx ? `${theme.supportSizePx}px` : '13px',
+                      color: theme.fg,
+                      fontFamily: theme.headlineFont ?? SERIF,
+                      fontWeight: theme.headlineWeight ?? 400,
+                      fontStyle: theme.italic ? 'italic' : 'normal',
+                      fontSize: theme.headlineSizePx ? `${theme.headlineSizePx}px` : '28px',
                     }}
                   >
-                    {current.displaySupport}
-                  </p>
+                    {current?.displayTitle || current?.headline || '—'}
+                  </h3>
                 </TrackingEditZone>
-              )}
+                {current?.displaySupport && (
+                  <TrackingEditZone
+                    label={current.role === 'OPENER' || current.role === 'CTA' ? 'Edit Call to Action' : 'Edit paragraph'}
+                    enabled={!!onEditElement}
+                    onClick={() => onEditElement?.('support')}
+                    className="mt-2"
+                  >
+                    <p
+                      className="opacity-80 leading-snug"
+                      style={{
+                        color: theme.supportColor ?? theme.fg,
+                        fontFamily: theme.supportFont ?? "'Inter', system-ui, sans-serif",
+                        fontWeight: theme.supportWeight ?? 400,
+                        fontStyle: theme.supportItalic ? 'italic' : 'normal',
+                        fontSize: theme.supportSizePx ? `${theme.supportSizePx}px` : '13px',
+                      }}
+                    >
+                      {current.displaySupport}
+                    </p>
+                  </TrackingEditZone>
+                )}
+              </div>
             </div>
           </div>
 
@@ -262,16 +289,21 @@ function TrackingEditZone({
   onClick,
   children,
   className = '',
+  chipOffset,
 }: {
   label: string
   enabled: boolean
   onClick: () => void
-  children: React.ReactNode
+  children?: React.ReactNode
   className?: string
+  /** Nudge the chip relative to the cursor. Default: {x:12, y:0} */
+  chipOffset?: { x: number; y: number }
 }) {
   const [pos, setPos] = useState<{ x: number; y: number } | null>(null)
   const [hovered, setHovered] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
+  const ox = chipOffset?.x ?? 12
+  const oy = chipOffset?.y ?? 0
 
   if (!enabled) return <div className={className}>{children}</div>
 
@@ -293,7 +325,7 @@ function TrackingEditZone({
       {hovered && pos && (
         <div
           className="pointer-events-none absolute z-30"
-          style={{ left: pos.x, top: pos.y, transform: 'translate(12px, -50%)' }}
+          style={{ left: pos.x + ox, top: pos.y + oy, transform: 'translate(0, -50%)' }}
         >
           <div
             className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium whitespace-nowrap"

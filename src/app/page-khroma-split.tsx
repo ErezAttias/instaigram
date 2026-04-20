@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTheme } from '@/components/ThemeProvider'
 import { KhromaShell, SERIF, SANS } from '@/components/khroma/KhromaShell'
-import { pickThemeForTopic } from '@/components/khroma/themes'
+import { pickThemeForTopic, type CarouselTheme } from '@/components/khroma/themes'
 import { LiveCarousel } from '@/components/khroma/LiveCarousel'
 
 const PLACEHOLDER_EXAMPLES = [
@@ -57,7 +57,7 @@ export default function HomeKhromaSplit({ initialJobId }: { initialJobId?: strin
   const [regeneratingSet, setRegeneratingSet] = useState<Set<number>>(new Set())
   const [activeSlide, setActiveSlideRaw] = useState(0)
   const [slideDir, setSlideDir] = useState<'next' | 'prev'>('next')
-  const [editTarget, setEditTarget] = useState<'overview' | 'headline' | 'support' | 'image'>('overview')
+  const [editTarget, setEditTarget] = useState<'overview' | 'headline' | 'support' | 'image' | 'textbg'>('overview')
   const [themeOverrides, setThemeOverrides] = useState<ThemeOverrides>({})
   const setActiveSlide = (next: number | ((prev: number) => number)) => {
     setActiveSlideRaw(prev => {
@@ -525,8 +525,7 @@ export default function HomeKhromaSplit({ initialJobId }: { initialJobId?: strin
                 letterSpacing: '-0.015em',
               }}
             >
-              Pulling facts for <span style={{ fontStyle: 'italic' }}>{submittedTopic}</span>
-              <span className="dots">…</span>
+              Pulling facts for <span style={{ fontStyle: 'italic' }}>{submittedTopic}</span><span className="dots-anchor"><span className="dots">…</span></span>
             </h1>
             <p className="mb-10 max-w-[28rem]" style={{ color: textMuted, fontFamily: SANS, fontSize: '16px', lineHeight: 1.6 }}>
               A quick taste of the kind of facts the full carousel will use. Takes a few seconds.
@@ -624,8 +623,7 @@ export default function HomeKhromaSplit({ initialJobId }: { initialJobId?: strin
                 letterSpacing: '-0.015em',
               }}
             >
-              Drafting slides for <span style={{ fontStyle: 'italic' }}>{submittedTopic}</span>
-              <span className="dots">…</span>
+              Drafting slides for <span style={{ fontStyle: 'italic' }}>{submittedTopic}</span><span className="dots-anchor"><span className="dots">…</span></span>
             </h1>
 
             <ul className="flex flex-col gap-3 mt-6">
@@ -760,8 +758,7 @@ export default function HomeKhromaSplit({ initialJobId }: { initialJobId?: strin
                 letterSpacing: '-0.015em',
               }}
             >
-              Painting <span style={{ fontStyle: 'italic' }}>the visuals</span>
-              <span className="dots">…</span>
+              Painting <span style={{ fontStyle: 'italic' }}>the visuals</span><span className="dots-anchor"><span className="dots">…</span></span>
             </h1>
             <p className="mb-8 max-w-[28rem]" style={{ color: textMuted, fontFamily: SANS, fontSize: '16px', lineHeight: 1.6 }}>
               Each slide&rsquo;s imagery is being generated. Watch the card on the right fill in as they land.
@@ -834,6 +831,7 @@ export default function HomeKhromaSplit({ initialJobId }: { initialJobId?: strin
               regeneratingSet={regeneratingSet}
               themeOverrides={themeOverrides}
               setThemeOverrides={setThemeOverrides}
+              themeBase={baseLiveTheme}
               isLight={isLight}
               textMain={textMain}
               textMuted={textMuted}
@@ -979,6 +977,11 @@ type ThemeOverrides = {
   supportSizePx?: number
   supportItalic?: boolean
   supportColor?: string
+  textBgColor?: string
+  /** 0 = harsh (late fade), 100 = very soft (fade starts near top). Default 50. */
+  textBgSpread?: number
+  /** 0 = short (solid band at very bottom), 100 = tall (solid reaches high into image). Default 50. */
+  textBgHeight?: number
 }
 
 function SlideEditor({
@@ -994,6 +997,7 @@ function SlideEditor({
   regeneratingSet,
   themeOverrides,
   setThemeOverrides,
+  themeBase,
   isLight,
   textMain,
   textMuted,
@@ -1004,12 +1008,13 @@ function SlideEditor({
   setActiveSlide: (i: number) => void
   onSave: (slideIndex: number, patch: { displayTitle?: string; displaySupport?: string }) => void
   saving: boolean
-  editTarget: 'overview' | 'headline' | 'support' | 'image'
-  setEditTarget: (t: 'overview' | 'headline' | 'support' | 'image') => void
+  editTarget: 'overview' | 'headline' | 'support' | 'image' | 'textbg'
+  setEditTarget: (t: 'overview' | 'headline' | 'support' | 'image' | 'textbg') => void
   onRegenerateSlide: (slideIndex: number) => void
   regeneratingSet: Set<number>
   themeOverrides: ThemeOverrides
   setThemeOverrides: React.Dispatch<React.SetStateAction<ThemeOverrides>>
+  themeBase: CarouselTheme
   isLight: boolean
   textMain: string
   textMuted: string
@@ -1102,13 +1107,36 @@ function SlideEditor({
             </label>
 
             {current.role !== 'OPENER' && current.role !== 'CTA' && (
-              <label className="block">
+              <label className="block mb-4">
                 <span className="block text-[11px] uppercase tracking-[0.16em] mb-1.5 opacity-70" style={{ color: textMuted, fontFamily: SANS }}>
                   Supporting text
                 </span>
                 <AutoTextarea value={support} onChange={setSupport} onBlur={commit} style={fieldStyle} />
               </label>
             )}
+
+            {/* Quick-access design shortcuts */}
+            <div className="flex flex-wrap gap-2 mt-1">
+              <button
+                type="button"
+                onClick={() => setEditTarget('textbg')}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium transition-all hover:opacity-100 opacity-70"
+                style={{
+                  border: `1px solid ${isLight ? 'rgba(0,0,0,0.15)' : 'rgba(255,255,255,0.15)'}`,
+                  background: 'transparent',
+                  color: textMain,
+                  fontFamily: SANS,
+                }}
+              >
+                {/* Gradient swatch icon */}
+                <span style={{
+                  display: 'inline-block', width: 14, height: 14, borderRadius: 3, flexShrink: 0,
+                  background: `linear-gradient(to bottom right, transparent, ${themeOverrides.textBgColor ?? themeBase.bg})`,
+                  border: `1px solid ${isLight ? 'rgba(0,0,0,0.15)' : 'rgba(255,255,255,0.2)'}`,
+                }} />
+                Gradient color
+              </button>
+            </div>
           </>
         )}
 
@@ -1122,6 +1150,7 @@ function SlideEditor({
             colorKey="fg"
             overrides={themeOverrides}
             setOverrides={setThemeOverrides}
+            themeBase={themeBase}
             onBack={() => setEditTarget('overview')}
             isLight={isLight}
             textMain={textMain}
@@ -1139,6 +1168,7 @@ function SlideEditor({
             colorKey="supportColor"
             overrides={themeOverrides}
             setOverrides={setThemeOverrides}
+            themeBase={themeBase}
             onBack={() => setEditTarget('overview')}
             isLight={isLight}
             textMain={textMain}
@@ -1152,6 +1182,18 @@ function SlideEditor({
             slide={current}
             regenerating={regeneratingSet.has(current.slideIndex)}
             onRegenerateSlide={onRegenerateSlide}
+            onBack={() => setEditTarget('overview')}
+            isLight={isLight}
+            textMain={textMain}
+            textMuted={textMuted}
+          />
+        )}
+
+        {editTarget === 'textbg' && (
+          <TextBgColorPanel
+            overrides={themeOverrides}
+            setOverrides={setThemeOverrides}
+            themeBase={themeBase}
             onBack={() => setEditTarget('overview')}
             isLight={isLight}
             textMain={textMain}
@@ -1177,6 +1219,177 @@ const HEADLINE_FONTS = [
 const HEADLINE_WEIGHTS = [400, 500, 700, 800]
 const TEXT_COLOR_SWATCHES = ['#FFFFFF', '#F5F1EA', '#0A0A0A', '#F09433', '#DC2743', '#2563EB']
 
+const GRADIENT_COLOR_SWATCHES = [
+  { label: 'Black',       hex: '#000000' },
+  { label: 'Charcoal',    hex: '#1A1A1A' },
+  { label: 'Deep Navy',   hex: '#0B0F1E' },
+  { label: 'Dark Brown',  hex: '#2B1A0F' },
+  { label: 'Forest',      hex: '#0E2A1A' },
+  { label: 'Burgundy',    hex: '#2A0A12' },
+  { label: 'Slate',       hex: '#1A1F2E' },
+  { label: 'White',       hex: '#FFFFFF' },
+]
+
+function TextBgColorPanel({
+  overrides,
+  setOverrides,
+  themeBase,
+  onBack,
+  isLight,
+  textMain,
+  textMuted,
+}: {
+  overrides: ThemeOverrides
+  setOverrides: React.Dispatch<React.SetStateAction<ThemeOverrides>>
+  themeBase: CarouselTheme
+  onBack: () => void
+  isLight: boolean
+  textMain: string
+  textMuted: string
+}) {
+  const current = overrides.textBgColor ?? themeBase.bg
+  const currentSpread = overrides.textBgSpread ?? 50
+  const currentHeight = overrides.textBgHeight ?? 50
+  const pillStyle = (active: boolean): React.CSSProperties => ({
+    padding: '6px 10px',
+    borderRadius: 8,
+    fontFamily: SANS,
+    fontSize: 12,
+    border: `1px solid ${active ? (isLight ? '#0a0a0a' : '#ffffff') : (isLight ? 'rgba(0,0,0,0.12)' : 'rgba(255,255,255,0.12)')}`,
+    background: active ? (isLight ? '#0a0a0a' : '#ffffff') : 'transparent',
+    color: active ? (isLight ? '#ffffff' : '#0a0a0a') : textMain,
+    cursor: 'pointer',
+    transition: 'all 180ms',
+  })
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-4">
+        <span className="text-[11px] uppercase tracking-[0.16em] opacity-70" style={{ color: textMuted, fontFamily: SANS }}>
+          Gradient color
+        </span>
+        <BackButton onClick={onBack} textMuted={textMuted} />
+      </div>
+
+      <p className="text-[12px] mb-4 opacity-60 leading-relaxed" style={{ color: textMuted, fontFamily: SANS }}>
+        Sets the solid end of the gradient that blends the image into your text.
+      </p>
+
+      {/* Swatch grid */}
+      <div className="flex flex-wrap gap-2 mb-5">
+        {GRADIENT_COLOR_SWATCHES.map(s => {
+          const active = current.toLowerCase() === s.hex.toLowerCase()
+          return (
+            <button
+              key={s.hex}
+              type="button"
+              onClick={() => setOverrides(o => ({ ...o, textBgColor: s.hex }))}
+              title={s.label}
+              style={{
+                width: 36, height: 36, borderRadius: 10,
+                background: s.hex,
+                border: `2px solid ${active ? (isLight ? '#0a0a0a' : '#ffffff') : 'rgba(127,127,127,0.25)'}`,
+                boxShadow: active ? '0 0 0 2px rgba(255,255,255,0.15)' : 'none',
+                cursor: 'pointer',
+                transition: 'all 180ms',
+                transform: active ? 'scale(1.12)' : 'scale(1)',
+              }}
+            />
+          )
+        })}
+      </div>
+
+      {/* Custom hex input */}
+      <div className="mb-5">
+        <span className="block text-[11px] uppercase tracking-[0.14em] mb-2 opacity-60" style={{ color: textMuted, fontFamily: SANS }}>
+          Custom
+        </span>
+        <div className="flex items-center gap-2">
+          <input
+            type="color"
+            value={current}
+            onChange={e => setOverrides(o => ({ ...o, textBgColor: e.target.value }))}
+            className="w-9 h-9 rounded-lg cursor-pointer border-0 p-0.5"
+            style={{ background: 'transparent' }}
+          />
+          <input
+            type="text"
+            value={current}
+            onChange={e => {
+              const v = e.target.value.trim()
+              if (/^#[0-9a-fA-F]{6}$/.test(v)) setOverrides(o => ({ ...o, textBgColor: v }))
+            }}
+            className="flex-1 rounded-lg px-3 py-1.5 text-[12px] font-mono outline-none"
+            style={{
+              background: isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.06)',
+              border: `1px solid ${isLight ? 'rgba(0,0,0,0.12)' : 'rgba(255,255,255,0.12)'}`,
+              color: textMain,
+            }}
+          />
+        </div>
+      </div>
+
+      {/* Height slider */}
+      <div className="mb-4">
+        <div className="flex items-center justify-between mb-2">
+          <span className="block text-[11px] uppercase tracking-[0.14em] opacity-60" style={{ color: textMuted, fontFamily: SANS }}>
+            Height
+          </span>
+          <span className="text-[11px] opacity-50 tabular-nums" style={{ color: textMuted, fontFamily: SANS }}>
+            {currentHeight < 20 ? 'Minimal' : currentHeight < 45 ? 'Short' : currentHeight < 70 ? 'Medium' : 'Tall'}
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] opacity-40" style={{ color: textMuted, fontFamily: SANS }}>Short</span>
+          <input
+            type="range"
+            min={0}
+            max={100}
+            step={5}
+            value={currentHeight}
+            onChange={e => setOverrides(o => ({ ...o, textBgHeight: Number(e.target.value) }))}
+            style={{ flex: 1, accentColor: isLight ? '#0a0a0a' : '#ffffff' }}
+          />
+          <span className="text-[10px] opacity-40" style={{ color: textMuted, fontFamily: SANS }}>Tall</span>
+        </div>
+      </div>
+
+      {/* Softness slider */}
+      <div className="mb-5">
+        <div className="flex items-center justify-between mb-2">
+          <span className="block text-[11px] uppercase tracking-[0.14em] opacity-60" style={{ color: textMuted, fontFamily: SANS }}>
+            Softness
+          </span>
+          <span className="text-[11px] opacity-50 tabular-nums" style={{ color: textMuted, fontFamily: SANS }}>
+            {currentSpread < 20 ? 'Harsh' : currentSpread < 45 ? 'Sharp' : currentSpread < 70 ? 'Natural' : 'Soft'}
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] opacity-40" style={{ color: textMuted, fontFamily: SANS }}>Harsh</span>
+          <input
+            type="range"
+            min={0}
+            max={100}
+            step={5}
+            value={currentSpread}
+            onChange={e => setOverrides(o => ({ ...o, textBgSpread: Number(e.target.value) }))}
+            style={{ flex: 1, accentColor: isLight ? '#0a0a0a' : '#ffffff' }}
+          />
+          <span className="text-[10px] opacity-40" style={{ color: textMuted, fontFamily: SANS }}>Soft</span>
+        </div>
+      </div>
+
+      <button
+        type="button"
+        onClick={() => setOverrides(o => { const next = { ...o }; delete next.textBgColor; delete next.textBgSpread; delete next.textBgHeight; return next })}
+        style={{ ...pillStyle(false), opacity: 0.7 }}
+      >
+        Reset to theme default
+      </button>
+    </div>
+  )
+}
+
 const SIZE_DEFAULTS: Record<'headlineSizePx' | 'supportSizePx', number> = {
   headlineSizePx: 28,
   supportSizePx: 13,
@@ -1195,6 +1408,7 @@ function TextDesignPanel({
   colorKey,
   overrides,
   setOverrides,
+  themeBase,
   onBack,
   isLight,
   textMain,
@@ -1208,16 +1422,19 @@ function TextDesignPanel({
   colorKey: 'fg' | 'supportColor'
   overrides: ThemeOverrides
   setOverrides: React.Dispatch<React.SetStateAction<ThemeOverrides>>
+  themeBase: CarouselTheme
   onBack: () => void
   isLight: boolean
   textMain: string
   textMuted: string
 }) {
-  const currentFont = overrides[fontKey]
-  const currentWeight = overrides[weightKey]
-  const currentSize = overrides[sizeKey] ?? SIZE_DEFAULTS[sizeKey]
-  const currentItalic = overrides[italicKey]
-  const currentColor = overrides[colorKey] ?? ''
+  // Resolved = override if set, otherwise the base theme's value (what the
+  // carousel is actually rendering). This drives which pill shows as "on".
+  const currentFont    = overrides[fontKey]    ?? themeBase[fontKey]
+  const currentWeight  = overrides[weightKey]  ?? themeBase[weightKey]
+  const currentSize    = overrides[sizeKey]    ?? themeBase[sizeKey]    ?? SIZE_DEFAULTS[sizeKey]
+  const currentItalic  = overrides[italicKey]  ?? themeBase[italicKey]  ?? false
+  const currentColor   = overrides[colorKey]   ?? themeBase[colorKey]   ?? ''
   const sizeRange = SIZE_RANGES[sizeKey]
   const pillStyle = (active: boolean): React.CSSProperties => ({
     padding: '6px 10px',
