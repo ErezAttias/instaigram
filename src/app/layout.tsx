@@ -1,7 +1,5 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Bricolage_Grotesque } from "next/font/google";
-import NavBar from "@/components/NavBar";
-import Footer from "@/components/Footer";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import "./globals.css";
 
@@ -39,17 +37,15 @@ export default function RootLayout({
         {/* Demo carousel fonts */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&family=Playfair+Display:wght@700;900&family=Roboto+Slab:wght@700;900&display=swap" rel="stylesheet" />
+        <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Montserrat:wght@700;800&family=Playfair+Display:wght@700;900&family=Roboto+Slab:wght@700;900&display=swap" rel="stylesheet" />
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${bricolageGrotesque.variable} antialiased bg-background text-foreground min-h-dvh lg:flex lg:flex-col`}
+        className={`${geistSans.variable} ${geistMono.variable} ${bricolageGrotesque.variable} antialiased bg-background text-foreground min-h-dvh flex flex-col`}
       >
         <ThemeProvider>
-          <NavBar />
-          <div className="lg:flex-1 lg:flex lg:flex-col">
+          <div className="flex-1 flex flex-col">
             {children}
           </div>
-          <Footer />
         </ThemeProvider>
       </body>
     </html>

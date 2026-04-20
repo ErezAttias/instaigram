@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useTheme } from '@/components/ThemeProvider'
 
 const IG_GRADIENT = 'linear-gradient(135deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888)'
-const SERIF = "'Playfair Display', 'Times New Roman', serif"
+const SERIF = "'Instrument Serif', 'Times New Roman', serif"
 const SANS = "'Inter', system-ui, -apple-system, sans-serif"
 
 // ─── Rotating carousel themes ───────────────────────────────────────────────
@@ -255,7 +255,7 @@ const PLACEHOLDER_EXAMPLES = [
 
 export default function HomeKhromaSplit() {
   const router = useRouter()
-  const { theme } = useTheme()
+  const { theme, toggle } = useTheme()
   const isLight = theme === 'light'
   const [topic, setTopic] = useState('')
   const [loading, setLoading] = useState(false)
@@ -319,24 +319,30 @@ export default function HomeKhromaSplit() {
   const current = THEMES[themeIdx]
 
   return (
-    <div className="relative min-w-0 flex-1 grid grid-cols-1 lg:grid-cols-2 overflow-hidden" style={{ background: pageBg }}>
+    <div className="relative min-w-0 flex-1 grid grid-cols-1 lg:grid-cols-2 overflow-hidden min-h-screen" style={{ background: pageBg }}>
       {/* ─── Left column ─────────────────────────────────────────────── */}
       <section className="relative z-10 flex flex-col justify-center px-8 sm:px-14 lg:px-20 py-16">
         <div className="max-w-[36rem]">
+          <div
+            className="mb-10 bg-clip-text text-transparent w-fit text-2xl font-semibold tracking-tight font-[family-name:var(--font-bricolage)]"
+            style={{ backgroundImage: IG_GRADIENT }}
+          >
+            InstAIgram
+          </div>
           <h1
             className="mb-8"
             style={{
               fontFamily: SERIF,
               fontWeight: 400,
               color: textMain,
-              fontSize: 'clamp(3rem, 5.4vw, 5rem)',
+              fontSize: 'clamp(3.75rem, 7vw, 6.75rem)',
               lineHeight: 0.98,
-              letterSpacing: '-0.01em',
+              letterSpacing: '-0.015em',
             }}
           >
             Design carousels
             <br />
-            <span style={{ fontStyle: 'italic' }}>you love to post.</span>
+            <span style={{ fontStyle: 'italic' }}>you love</span> to post.
           </h1>
 
           <p
@@ -416,6 +422,25 @@ export default function HomeKhromaSplit() {
           <FloatingCarousel theme={current} nonce={nonce} />
         </div>
       </div>
+
+      {/* Theme toggle, bottom-left */}
+      <button
+        type="button"
+        onClick={toggle}
+        aria-label={isLight ? 'Switch to dark mode' : 'Switch to light mode'}
+        className="fixed bottom-6 left-6 z-30 h-9 w-9 rounded-full flex items-center justify-center transition-colors"
+        style={{
+          background: isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)',
+          border: `1px solid ${isLight ? 'rgba(0,0,0,0.12)' : 'rgba(255,255,255,0.12)'}`,
+          color: textMain,
+        }}
+      >
+        {isLight ? (
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" /></svg>
+        ) : (
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" /></svg>
+        )}
+      </button>
 
       <style jsx global>{`
         .carousel-float {
