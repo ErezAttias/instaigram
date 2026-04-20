@@ -38,9 +38,12 @@ type Props = {
   rightContent?: ReactNode
   /** Hide the aurora backdrop when using `rightContent`. */
   bareRight?: boolean
+  /** Hide the right column on mobile (below lg). Use when the left column is
+   *  already showing the preview so the stacked duplicate is unnecessary. */
+  hideRightOnMobile?: boolean
 }
 
-export function KhromaShell({ children, preview, paused = false, rightContent, bareRight = false }: Props) {
+export function KhromaShell({ children, preview, paused = false, rightContent, bareRight = false, hideRightOnMobile = false }: Props) {
   const { theme, toggle } = useTheme()
   const isLight = theme === 'light'
   const [themeIdx, setThemeIdx] = useState(0)
@@ -81,7 +84,7 @@ export function KhromaShell({ children, preview, paused = false, rightContent, b
       </section>
 
       {/* Right column */}
-      <div className="relative overflow-hidden min-h-[60vh] lg:min-h-0">
+      <div className={`relative overflow-hidden min-h-[60vh] lg:min-h-0${hideRightOnMobile ? ' hidden lg:block' : ''}`}>
         {!bareRight && <AuroraBackdrop theme={current} />}
         <div className="absolute inset-0 flex items-center justify-center p-8">
           {rightContent ?? <FloatingCarousel theme={current} nonce={previewKey} />}

@@ -455,7 +455,11 @@ export default function HomeKhromaSplit({ initialJobId }: { initialJobId?: strin
   const totalCount = slides.length
 
   return (
-    <KhromaShell preview={preview} rightContent={rightContent}>
+    <KhromaShell
+      preview={preview}
+      rightContent={rightContent}
+      hideRightOnMobile={phase === 'done' && mobileTab === 'preview'}
+    >
       <div key={phase} className="phase-panel">
         {phase === 'idle' && (
           <>
@@ -837,7 +841,7 @@ export default function HomeKhromaSplit({ initialJobId }: { initialJobId?: strin
 
             {/* ── Mobile preview panel ────────────────────────────────────── */}
             {mobileTab === 'preview' && (
-              <div className="lg:hidden">
+              <div className="lg:hidden -mx-8 sm:-mx-14 flex justify-center">
                 <LiveCarousel
                   slides={slides}
                   theme={livePreviewTheme}
