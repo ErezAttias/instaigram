@@ -1,1 +1,1 @@
-export { default } from './page-aurora'
+export { default } from './page-khroma-split'
