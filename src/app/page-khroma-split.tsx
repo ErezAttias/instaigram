@@ -373,6 +373,13 @@ export default function HomeKhromaSplit({ initialJobId }: { initialJobId?: strin
     }
   }
 
+  const [mobileTab, setMobileTab] = useState<'edit' | 'preview'>('edit')
+
+  // Reset mobile tab whenever the user leaves the done phase.
+  useEffect(() => {
+    if (phase !== 'done') setMobileTab('edit')
+  }, [phase])
+
   const [downloading, setDownloading] = useState(false)
   async function downloadCarousel() {
     if (!jobId) return
@@ -801,120 +808,168 @@ export default function HomeKhromaSplit({ initialJobId }: { initialJobId?: strin
 
         {phase === 'done' && jobId && (
           <>
-            <p className="mb-4 uppercase tracking-[0.22em] text-[11px]" style={{ color: textMuted, fontFamily: SANS, fontWeight: 600 }}>
-              Carousel ready — edit freely
-            </p>
-            <h1
-              className="mb-6"
+            {/* ── Mobile tab bar (hidden on lg+) ─────────────────────────── */}
+            <div
+              className="flex items-center gap-1 mb-5 p-1 rounded-xl lg:hidden"
               style={{
-                fontFamily: SERIF,
-                fontWeight: 400,
-                color: textMain,
-                fontSize: 'clamp(2rem, 3vw, 2.75rem)',
-                lineHeight: 1.05,
-                letterSpacing: '-0.015em',
+                background: isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.06)',
               }}
             >
-              Your <span style={{ fontStyle: 'italic' }}>{submittedTopic}</span> carousel.
-            </h1>
+              {(['edit', 'preview'] as const).map(tab => (
+                <button
+                  key={tab}
+                  type="button"
+                  onClick={() => setMobileTab(tab)}
+                  className="flex-1 py-2 rounded-lg text-[13px] font-medium capitalize transition-all"
+                  style={{
+                    background: mobileTab === tab
+                      ? (isLight ? '#ffffff' : 'rgba(255,255,255,0.12)')
+                      : 'transparent',
+                    color: mobileTab === tab ? textMain : textMuted,
+                    fontFamily: SANS,
+                    boxShadow: mobileTab === tab ? '0 1px 3px rgba(0,0,0,0.12)' : 'none',
+                  }}
+                >
+                  {tab === 'edit' ? 'Edit' : 'Preview'}
+                </button>
+              ))}
+            </div>
 
-            <SlideEditor
-              jobId={jobId}
-              slides={slides}
-              activeSlide={activeSlide}
-              setActiveSlide={setActiveSlide}
-              onSave={saveSlideText}
-              saving={savingText}
-              editTarget={editTarget}
-              setEditTarget={setEditTarget}
-              onRegenerateSlide={regenerateSlideImage}
-              regeneratingSet={regeneratingSet}
-              themeOverrides={themeOverrides}
-              setThemeOverrides={setThemeOverrides}
-              themeBase={baseLiveTheme}
-              isLight={isLight}
-              textMain={textMain}
-              textMuted={textMuted}
-            />
+            {/* ── Mobile preview panel ────────────────────────────────────── */}
+            {mobileTab === 'preview' && (
+              <div className="lg:hidden">
+                <LiveCarousel
+                  slides={slides}
+                  theme={livePreviewTheme}
+                  username={submittedTopic.toLowerCase().replace(/\s+/g, '.').slice(0, 20) || livePreviewTheme.username}
+                  autoCycle={false}
+                  activeIndex={activeSlide}
+                  onActiveChange={setActiveSlide}
+                  slideDirection={slideDir}
+                  onRegenerateSlide={regenerateSlideImage}
+                  onEditElement={(which) => { setEditTarget(which); setMobileTab('edit') }}
+                  regeneratingSet={regeneratingSet}
+                />
+              </div>
+            )}
 
-            {caption && (
-              <div
-                className="mb-6 rounded-xl p-4 max-w-[34rem]"
+            {/* ── Edit panel — always visible on desktop, gated by tab on mobile ── */}
+            <div className={mobileTab === 'preview' ? 'hidden lg:block' : ''}>
+              <p className="mb-4 uppercase tracking-[0.22em] text-[11px]" style={{ color: textMuted, fontFamily: SANS, fontWeight: 600 }}>
+                Carousel ready — edit freely
+              </p>
+              <h1
+                className="mb-6"
                 style={{
-                  background: isLight ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.04)',
-                  border: `1px solid ${isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.08)'}`,
+                  fontFamily: SERIF,
+                  fontWeight: 400,
+                  color: textMain,
+                  fontSize: 'clamp(2rem, 3vw, 2.75rem)',
+                  lineHeight: 1.05,
+                  letterSpacing: '-0.015em',
                 }}
               >
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-[11px] uppercase tracking-[0.18em] opacity-70" style={{ color: textMuted, fontFamily: SANS }}>
-                    Caption
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => navigator.clipboard?.writeText(`${caption}\n\n${hashtags.map(h => `#${h}`).join(' ')}`.trim())}
-                    className="text-[11px] opacity-70 hover:opacity-100 underline-offset-2 hover:underline"
-                    style={{ color: textMuted, fontFamily: SANS }}
-                  >
-                    Copy
-                  </button>
-                </div>
-                <p
-                  className="text-[14px] leading-relaxed whitespace-pre-wrap"
-                  style={{ color: textMain, fontFamily: SANS }}
-                >
-                  {caption}
-                </p>
-                {hashtags.length > 0 && (
-                  <div className="mt-3 flex flex-wrap gap-1.5">
-                    {hashtags.map((h, i) => (
-                      <span
-                        key={i}
-                        className="text-[11px] px-2 py-0.5 rounded-full"
-                        style={{
-                          color: textMuted,
-                          background: isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.06)',
-                          fontFamily: SANS,
-                        }}
-                      >
-                        #{h}
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
+                Your <span style={{ fontStyle: 'italic' }}>{submittedTopic}</span> carousel.
+              </h1>
 
-            <div className="flex items-center gap-5 flex-wrap">
-              <button
-                type="button"
-                onClick={downloadCarousel}
-                disabled={downloading}
-                className="h-12 px-8 text-white font-medium rounded-md text-[15px] transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed inline-flex items-center gap-2"
-                style={{ background: '#2563eb', fontFamily: SANS, boxShadow: '0 4px 14px rgba(37,99,235,0.35)' }}
-              >
-                {downloading ? (
-                  <>
-                    <span className="w-3.5 h-3.5 border-[1.5px] border-white/40 border-t-white rounded-full animate-spin" />
-                    Preparing…
-                  </>
-                ) : (
-                  <>Download carousel ↓</>
-                )}
-              </button>
-              <button
-                type="button"
-                onClick={resetToIdle}
-                className="text-sm font-medium underline-offset-4 hover:underline"
-                style={{ color: textMuted, fontFamily: SANS }}
-              >
-                Start another
-              </button>
-            </div>
-            {error && (
-              <div className="mt-4 px-4 py-2.5 bg-danger/15 border border-danger/30 rounded-md max-w-[34rem]">
-                <p className="text-sm text-danger">{error}</p>
+              <SlideEditor
+                jobId={jobId}
+                slides={slides}
+                activeSlide={activeSlide}
+                setActiveSlide={setActiveSlide}
+                onSave={saveSlideText}
+                saving={savingText}
+                editTarget={editTarget}
+                setEditTarget={setEditTarget}
+                onRegenerateSlide={regenerateSlideImage}
+                regeneratingSet={regeneratingSet}
+                themeOverrides={themeOverrides}
+                setThemeOverrides={setThemeOverrides}
+                themeBase={baseLiveTheme}
+                isLight={isLight}
+                textMain={textMain}
+                textMuted={textMuted}
+              />
+
+              {caption && (
+                <div
+                  className="mb-6 rounded-xl p-4 max-w-[34rem]"
+                  style={{
+                    background: isLight ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.04)',
+                    border: `1px solid ${isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.08)'}`,
+                  }}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[11px] uppercase tracking-[0.18em] opacity-70" style={{ color: textMuted, fontFamily: SANS }}>
+                      Caption
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => navigator.clipboard?.writeText(`${caption}\n\n${hashtags.map(h => `#${h}`).join(' ')}`.trim())}
+                      className="text-[11px] opacity-70 hover:opacity-100 underline-offset-2 hover:underline"
+                      style={{ color: textMuted, fontFamily: SANS }}
+                    >
+                      Copy
+                    </button>
+                  </div>
+                  <p
+                    className="text-[14px] leading-relaxed whitespace-pre-wrap"
+                    style={{ color: textMain, fontFamily: SANS }}
+                  >
+                    {caption}
+                  </p>
+                  {hashtags.length > 0 && (
+                    <div className="mt-3 flex flex-wrap gap-1.5">
+                      {hashtags.map((h, i) => (
+                        <span
+                          key={i}
+                          className="text-[11px] px-2 py-0.5 rounded-full"
+                          style={{
+                            color: textMuted,
+                            background: isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.06)',
+                            fontFamily: SANS,
+                          }}
+                        >
+                          #{h}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div className="flex items-center gap-5 flex-wrap">
+                <button
+                  type="button"
+                  onClick={downloadCarousel}
+                  disabled={downloading}
+                  className="h-12 px-8 text-white font-medium rounded-md text-[15px] transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed inline-flex items-center gap-2"
+                  style={{ background: '#2563eb', fontFamily: SANS, boxShadow: '0 4px 14px rgba(37,99,235,0.35)' }}
+                >
+                  {downloading ? (
+                    <>
+                      <span className="w-3.5 h-3.5 border-[1.5px] border-white/40 border-t-white rounded-full animate-spin" />
+                      Preparing…
+                    </>
+                  ) : (
+                    <>Download carousel ↓</>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={resetToIdle}
+                  className="text-sm font-medium underline-offset-4 hover:underline"
+                  style={{ color: textMuted, fontFamily: SANS }}
+                >
+                  Start another
+                </button>
               </div>
-            )}
+              {error && (
+                <div className="mt-4 px-4 py-2.5 bg-danger/15 border border-danger/30 rounded-md max-w-[34rem]">
+                  <p className="text-sm text-danger">{error}</p>
+                </div>
+              )}
+            </div>
           </>
         )}
       </div>
