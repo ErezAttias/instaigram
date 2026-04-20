@@ -108,8 +108,25 @@ const ModelSlide = z.discriminatedUnion('type', [HookSlide, ContentSlide, CtaSli
 type ModelSlide = z.infer<typeof ModelSlide>;
 
 const ModelResponse = z.object({
-  slides: z.array(ModelSlide).min(6).max(6),
+  slides: z.array(ModelSlide).min(3).max(12),
 });
+
+/** Trim to exactly 6 slides: hook first, cta last, 4 content in between. */
+function normalizeTo6(slides: ModelSlide[]): ModelSlide[] {
+  const hook = slides.find(s => s.type === 'hook');
+  const cta = slides.find(s => s.type === 'cta');
+  const contents = slides.filter(s => s.type === 'content').slice(0, 4);
+  while (contents.length < 4 && contents.length < slides.length) {
+    const extra = slides.find(s => s.type !== 'hook' && s.type !== 'cta' && !contents.includes(s as never));
+    if (!extra) break;
+    contents.push(extra as never);
+  }
+  const result: ModelSlide[] = [];
+  if (hook) result.push(hook);
+  result.push(...contents);
+  if (cta) result.push(cta);
+  return result.slice(0, 6);
+}
 
 // ─── Public API ─────────────────────────────────────────────
 
@@ -142,7 +159,11 @@ export async function generateCarousel(
     throw new Error(`[simple] schema validation failed — ${issues} | raw: ${raw.slice(0, 400)}`);
   }
 
-  return adaptToPipelineResult(result.data.slides, topic, layout);
+  const normalized = normalizeTo6(result.data.slides);
+  if (normalized.length < 3) {
+    throw new Error(`[simple] too few usable slides after normalize (${normalized.length})`);
+  }
+  return adaptToPipelineResult(normalized, topic, layout);
 }
 
 // ─── Prompt ─────────────────────────────────────────────────

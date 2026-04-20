@@ -55,6 +55,8 @@ export default function HomeKhromaSplit({ initialJobId }: { initialJobId?: strin
   const [caption, setCaption] = useState<string>('')
   const [hashtags, setHashtags] = useState<string[]>([])
   const [regeneratingSet, setRegeneratingSet] = useState<Set<number>>(new Set())
+  const [activeSlide, setActiveSlide] = useState(0)
+  const [savingText, setSavingText] = useState(false)
 
   useEffect(() => {
     const t = setInterval(() => setPlaceholderIdx(i => (i + 1) % PLACEHOLDER_EXAMPLES.length), 3200)
@@ -264,6 +266,24 @@ export default function HomeKhromaSplit({ initialJobId }: { initialJobId?: strin
     if (regenPollRef.current) clearInterval(regenPollRef.current)
   }, [])
 
+  // Arrow-key slide navigation in the done phase. Ignore while typing in an
+  // input/textarea so editing the headline doesn't jump slides.
+  useEffect(() => {
+    if (phase !== 'done' || slides.length === 0) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return
+      const tag = (e.target as HTMLElement | null)?.tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || (e.target as HTMLElement | null)?.isContentEditable) return
+      e.preventDefault()
+      setActiveSlide(prev => {
+        const n = slides.length
+        return e.key === 'ArrowRight' ? (prev + 1) % n : (prev - 1 + n) % n
+      })
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [phase, slides.length])
+
   async function regenerateCopy() {
     if (!jobId) return
     setPhase('creating-job')
@@ -309,10 +329,60 @@ export default function HomeKhromaSplit({ initialJobId }: { initialJobId?: strin
           })),
         }),
       })
-      setPhase('done')
+      // Stay in 'rendering' — the main poll flips to 'done' once every
+      // slide has its imageUrl (or FAILED_IMAGE).
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to render images')
       setPhase('copy-review')
+    }
+  }
+
+  async function saveSlideText(slideIndex: number, patch: { displayTitle?: string; displaySupport?: string }) {
+    if (!jobId) return
+    setSavingText(true)
+    try {
+      await fetch(`/api/carousel/${jobId}/slides/${slideIndex}/update-text`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(patch),
+      })
+      setSlides(prev => prev.map(s =>
+        s.slideIndex === slideIndex
+          ? { ...s, displayTitle: patch.displayTitle ?? s.displayTitle, displaySupport: patch.displaySupport ?? s.displaySupport }
+          : s,
+      ))
+    } catch {
+      // keep local edit regardless; user can retry
+    } finally {
+      setSavingText(false)
+    }
+  }
+
+  const [downloading, setDownloading] = useState(false)
+  async function downloadCarousel() {
+    if (!jobId) return
+    setDownloading(true)
+    setError(null)
+    try {
+      await fetch(`/api/carousel/${jobId}/approve`, { method: 'POST' })
+      const res = await fetch(`/api/carousel/${jobId}/export`)
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error || 'Export failed')
+      }
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `carousel_${jobId.slice(0, 8)}.zip`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      URL.revokeObjectURL(url)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Download failed')
+    } finally {
+      setDownloading(false)
     }
   }
 
@@ -349,6 +419,8 @@ export default function HomeKhromaSplit({ initialJobId }: { initialJobId?: strin
       theme={livePreviewTheme}
       username={submittedTopic.toLowerCase().replace(/\s+/g, '.').slice(0, 20) || livePreviewTheme.username}
       autoCycle={phase === 'rendering'}
+      activeIndex={phase === 'done' ? activeSlide : undefined}
+      onActiveChange={phase === 'done' ? setActiveSlide : undefined}
       onRegenerateSlide={phase === 'done' ? regenerateSlideImage : undefined}
       regeneratingSet={regeneratingSet}
     />
@@ -714,8 +786,8 @@ export default function HomeKhromaSplit({ initialJobId }: { initialJobId?: strin
 
         {phase === 'done' && jobId && (
           <>
-            <p className="mb-5 uppercase tracking-[0.22em] text-[11px]" style={{ color: textMuted, fontFamily: SANS, fontWeight: 600 }}>
-              Carousel ready
+            <p className="mb-4 uppercase tracking-[0.22em] text-[11px]" style={{ color: textMuted, fontFamily: SANS, fontWeight: 600 }}>
+              Carousel ready — edit freely
             </p>
             <h1
               className="mb-6"
@@ -723,13 +795,24 @@ export default function HomeKhromaSplit({ initialJobId }: { initialJobId?: strin
                 fontFamily: SERIF,
                 fontWeight: 400,
                 color: textMain,
-                fontSize: 'clamp(2.25rem, 3.6vw, 3.25rem)',
+                fontSize: 'clamp(2rem, 3vw, 2.75rem)',
                 lineHeight: 1.05,
                 letterSpacing: '-0.015em',
               }}
             >
               Your <span style={{ fontStyle: 'italic' }}>{submittedTopic}</span> carousel.
             </h1>
+
+            <SlideEditor
+              slides={slides}
+              activeSlide={activeSlide}
+              setActiveSlide={setActiveSlide}
+              onSave={saveSlideText}
+              saving={savingText}
+              isLight={isLight}
+              textMain={textMain}
+              textMuted={textMuted}
+            />
 
             {caption && (
               <div
@@ -781,11 +864,19 @@ export default function HomeKhromaSplit({ initialJobId }: { initialJobId?: strin
             <div className="flex items-center gap-5 flex-wrap">
               <button
                 type="button"
-                onClick={() => router.push(`/carousel/${jobId}`)}
-                className="h-12 px-8 text-white font-medium rounded-md text-[15px] transition-all hover:brightness-110 active:scale-[0.98]"
+                onClick={downloadCarousel}
+                disabled={downloading}
+                className="h-12 px-8 text-white font-medium rounded-md text-[15px] transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed inline-flex items-center gap-2"
                 style={{ background: '#2563eb', fontFamily: SANS, boxShadow: '0 4px 14px rgba(37,99,235,0.35)' }}
               >
-                Open in editor →
+                {downloading ? (
+                  <>
+                    <span className="w-3.5 h-3.5 border-[1.5px] border-white/40 border-t-white rounded-full animate-spin" />
+                    Preparing…
+                  </>
+                ) : (
+                  <>Download carousel ↓</>
+                )}
               </button>
               <button
                 type="button"
@@ -796,9 +887,149 @@ export default function HomeKhromaSplit({ initialJobId }: { initialJobId?: strin
                 Start another
               </button>
             </div>
+            {error && (
+              <div className="mt-4 px-4 py-2.5 bg-danger/15 border border-danger/30 rounded-md max-w-[34rem]">
+                <p className="text-sm text-danger">{error}</p>
+              </div>
+            )}
           </>
         )}
       </div>
     </KhromaShell>
+  )
+}
+
+function SlideEditor({
+  slides,
+  activeSlide,
+  setActiveSlide,
+  onSave,
+  saving,
+  isLight,
+  textMain,
+  textMuted,
+}: {
+  slides: Slide[]
+  activeSlide: number
+  setActiveSlide: (i: number) => void
+  onSave: (slideIndex: number, patch: { displayTitle?: string; displaySupport?: string }) => void
+  saving: boolean
+  isLight: boolean
+  textMain: string
+  textMuted: string
+}) {
+  const clamped = Math.min(activeSlide, Math.max(0, slides.length - 1))
+  const current = slides[clamped]
+  const [title, setTitle] = useState(current?.displayTitle ?? current?.headline ?? '')
+  const [support, setSupport] = useState(current?.displaySupport ?? '')
+  const [justSaved, setJustSaved] = useState(false)
+  const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    setTitle(current?.displayTitle ?? current?.headline ?? '')
+    setSupport(current?.displaySupport ?? '')
+  }, [current?.slideIndex, current?.displayTitle, current?.displaySupport, current?.headline])
+
+  useEffect(() => () => {
+    if (savedTimerRef.current) clearTimeout(savedTimerRef.current)
+  }, [])
+
+  if (!current) return null
+
+  const commit = () => {
+    const patch: { displayTitle?: string; displaySupport?: string } = {}
+    if (title !== (current.displayTitle ?? current.headline ?? '')) patch.displayTitle = title
+    if (support !== (current.displaySupport ?? '')) patch.displaySupport = support
+    if (patch.displayTitle !== undefined || patch.displaySupport !== undefined) {
+      onSave(current.slideIndex, patch)
+      setJustSaved(true)
+      if (savedTimerRef.current) clearTimeout(savedTimerRef.current)
+      savedTimerRef.current = setTimeout(() => setJustSaved(false), 2000)
+    }
+  }
+
+  const fieldStyle: React.CSSProperties = {
+    background: isLight ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.04)',
+    border: `1px solid ${isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)'}`,
+    color: textMain,
+    fontFamily: SANS,
+    borderRadius: 10,
+    padding: '10px 12px',
+    width: '100%',
+    outline: 'none',
+    resize: 'vertical',
+  }
+
+  return (
+    <div className="mb-6 max-w-[34rem]">
+      <div className="flex items-center justify-between mb-3">
+        <span className="text-[11px] uppercase tracking-[0.18em] opacity-70" style={{ color: textMuted, fontFamily: SANS }}>
+          Slide
+        </span>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setActiveSlide((clamped - 1 + slides.length) % slides.length)}
+            aria-label="Previous slide"
+            className="w-7 h-7 rounded-full inline-flex items-center justify-center text-[14px] transition-colors"
+            style={{
+              background: isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.06)',
+              color: textMain,
+              fontFamily: SANS,
+            }}
+          >
+            ←
+          </button>
+          <span className="text-[12px] font-mono tabular-nums opacity-80" style={{ color: textMuted, fontFamily: SANS }}>
+            {clamped + 1} / {slides.length}
+          </span>
+          <button
+            type="button"
+            onClick={() => setActiveSlide((clamped + 1) % slides.length)}
+            aria-label="Next slide"
+            className="w-7 h-7 rounded-full inline-flex items-center justify-center text-[14px] transition-colors"
+            style={{
+              background: isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.06)',
+              color: textMain,
+              fontFamily: SANS,
+            }}
+          >
+            →
+          </button>
+        </div>
+      </div>
+
+      <label className="block mb-3">
+        <span className="block text-[11px] uppercase tracking-[0.16em] mb-1.5 opacity-70" style={{ color: textMuted, fontFamily: SANS }}>
+          Headline
+        </span>
+        <textarea
+          rows={2}
+          value={title}
+          onChange={e => setTitle(e.target.value)}
+          onBlur={commit}
+          style={fieldStyle}
+        />
+      </label>
+
+      {current.role !== 'OPENER' && current.role !== 'CTA' && (
+        <label className="block">
+          <span className="block text-[11px] uppercase tracking-[0.16em] mb-1.5 opacity-70" style={{ color: textMuted, fontFamily: SANS }}>
+            Supporting text
+          </span>
+          <textarea
+            rows={3}
+            value={support}
+            onChange={e => setSupport(e.target.value)}
+            onBlur={commit}
+            style={fieldStyle}
+          />
+        </label>
+      )}
+
+      <div className="mt-2 text-[11px] h-4 transition-opacity duration-300" style={{ color: textMuted, fontFamily: SANS, opacity: saving || justSaved ? 1 : 0 }}>
+        {saving ? 'Saving…' : justSaved ? 'Changes saved' : ''}
+      </div>
+    </div>
   )
 }
