@@ -85,9 +85,9 @@ export function KhromaShell({ children, preview, paused = false, rightContent, b
 
       {/* Right column */}
       <div className={`relative overflow-hidden min-h-[60vh] lg:min-h-0${hideRightOnMobile ? ' hidden lg:block' : ''}`}>
-        {!bareRight && <AuroraBackdrop theme={current} />}
+        {!bareRight && <AuroraBackdrop theme={current} isLight={isLight} />}
         <div className="absolute inset-0 flex items-center justify-center p-8">
-          {rightContent ?? <FloatingCarousel theme={current} nonce={previewKey} />}
+          {rightContent ?? <FloatingCarousel theme={current} nonce={previewKey} isLight={isLight} />}
         </div>
       </div>
 
@@ -122,14 +122,11 @@ export function KhromaShell({ children, preview, paused = false, rightContent, b
            never reflow the surrounding headline text. */
         .dots-anchor {
           display: inline-block;
-          position: relative;
-          width: 1.4em;   /* enough for "..." at any font size */
-          vertical-align: baseline;
+          width: 0.9em;   /* enough for "..." at any font size */
+          white-space: nowrap;
         }
         .dots-anchor .dots {
-          position: absolute;
-          left: 0;
-          top: 0;
+          display: inline;
           white-space: nowrap;
         }
         .dots::after {
@@ -224,6 +221,12 @@ export function KhromaShell({ children, preview, paused = false, rightContent, b
           will-change: transform;
           mix-blend-mode: screen;
         }
+        .aurora-light .aurora-blob,
+        .aurora-light .aurora-prism {
+          mix-blend-mode: multiply;
+        }
+        .aurora-light .aurora-blob { opacity: 0.55; }
+        .aurora-light .aurora-prism { opacity: 0.45; }
         .blob-a { width: 80%; aspect-ratio: 1; top: -10%; left: 10%; animation: drift-a 22s ease-in-out infinite; opacity: 0.9; }
         .blob-b { width: 70%; aspect-ratio: 1; bottom: -15%; right: -10%; animation: drift-b 28s ease-in-out infinite; opacity: 0.85; }
         .blob-c { width: 60%; aspect-ratio: 1; top: 35%; left: -10%; animation: drift-c 26s ease-in-out infinite; opacity: 0.7; }

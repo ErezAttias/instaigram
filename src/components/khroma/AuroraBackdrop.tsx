@@ -3,9 +3,9 @@
 import { withAlpha } from './utils'
 import type { CarouselTheme } from './themes'
 
-export function AuroraBackdrop({ theme }: { theme: CarouselTheme }) {
+export function AuroraBackdrop({ theme, isLight = false }: { theme: CarouselTheme; isLight?: boolean }) {
   return (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
+    <div className={`absolute inset-0 overflow-hidden pointer-events-none${isLight ? ' aurora-light' : ''}`} aria-hidden="true">
       <div className="aurora-blob blob-a" style={{ background: `radial-gradient(closest-side, ${theme.auroraA}, transparent 70%)` }} />
       <div className="aurora-blob blob-b" style={{ background: `radial-gradient(closest-side, ${theme.auroraB}, transparent 70%)` }} />
       <div className="aurora-blob blob-c" style={{ background: `radial-gradient(closest-side, ${theme.auroraC}, transparent 70%)` }} />

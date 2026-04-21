@@ -48,6 +48,8 @@ type Props = {
    * so the parent can swap its design panel to the relevant tool.
    */
   onEditElement?: (which: 'image' | 'headline' | 'support' | 'textbg') => void
+  /** When true, render Instagram chrome (header, dots row, footer) in light mode. */
+  isLight?: boolean
 }
 
 export function LiveCarousel({
@@ -61,6 +63,7 @@ export function LiveCarousel({
   onRegenerateSlide,
   regeneratingSet,
   onEditElement,
+  isLight = false,
 }: Props) {
   const [internalIndex, setInternalIndex] = useState(0)
   const activeIndex = controlledIndex ?? internalIndex
@@ -78,7 +81,13 @@ export function LiveCarousel({
     return () => clearInterval(t)
   }, [autoCycle, slides.length, activeIndex]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const textIsDark = isColorLight(theme.bg)
+  const textIsDark = isLight ? true : isColorLight(theme.bg)
+  const chromeBg = isLight ? '#ffffff' : (textIsDark ? 'rgba(255,255,255,0.88)' : 'rgba(0,0,0,0.4)')
+  const chromeFg = isLight ? '#111' : (textIsDark ? '#111' : '#fff')
+  const chromeDot = isLight ? '#111' : (textIsDark ? '#111' : '#fff')
+  const avatarBorder = isLight ? '#fff' : (textIsDark ? '#fff' : '#000')
+  const dotActive = isLight ? 'rgba(0,0,0,0.85)' : (textIsDark ? 'rgba(0,0,0,0.85)' : 'rgba(255,255,255,0.95)')
+  const dotIdle = isLight ? 'rgba(0,0,0,0.25)' : (textIsDark ? 'rgba(0,0,0,0.25)' : 'rgba(255,255,255,0.35)')
   const current = slides[activeIndex]
   const currentIsRegenerating = current ? !!regeneratingSet?.has(current.slideIndex) : false
   const currentImageUrl = currentIsRegenerating ? null : current?.imageUrl
@@ -92,21 +101,20 @@ export function LiveCarousel({
         className="relative flex flex-col rounded-[22px] overflow-hidden w-full"
         style={{
           background: theme.bg,
-          boxShadow: '0 50px 100px rgba(0,0,0,0.55), 0 10px 30px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.06)',
+          boxShadow: isLight
+            ? '0 30px 80px rgba(0,0,0,0.18), 0 8px 24px rgba(0,0,0,0.10), 0 0 0 1px rgba(0,0,0,0.06)'
+            : '0 50px 100px rgba(0,0,0,0.55), 0 10px 30px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.06)',
         }}
       >
         {/* Header */}
         <div
           className="flex items-center gap-2 px-3 py-2.5 shrink-0"
-          style={{
-            background: textIsDark ? 'rgba(255,255,255,0.88)' : 'rgba(0,0,0,0.4)',
-            color: textIsDark ? '#111' : '#fff',
-          }}
+          style={{ background: chromeBg, color: chromeFg }}
         >
           <div className="p-[2px] rounded-full shrink-0" style={{ background: IG_GRADIENT }}>
             <div
               className="w-7 h-7 rounded-full border-2"
-              style={{ borderColor: textIsDark ? '#fff' : '#000', background: theme.accent }}
+              style={{ borderColor: avatarBorder, background: theme.accent }}
             />
           </div>
           <span className="text-[12px] font-semibold leading-none flex-1 min-w-0 truncate">
@@ -114,7 +122,7 @@ export function LiveCarousel({
           </span>
           <div className="flex gap-[3px] shrink-0 opacity-70">
             {[0, 1, 2].map(i => (
-              <div key={i} className="w-[3px] h-[3px] rounded-full" style={{ background: textIsDark ? '#111' : '#fff' }} />
+              <div key={i} className="w-[3px] h-[3px] rounded-full" style={{ background: chromeDot }} />
             ))}
           </div>
         </div>
@@ -221,36 +229,36 @@ export function LiveCarousel({
             </div>
           </div>
 
-          {/* Slide dots — clickable */}
-          <div className="absolute bottom-4 inset-x-0 flex justify-center gap-1.5 z-20">
-            {slides.map((s, i) => (
-              <button
-                key={s.slideIndex}
-                type="button"
-                onClick={() => setActive(i)}
-                aria-label={`Show slide ${i + 1}`}
-                className="rounded-full transition-all"
-                style={{
-                  width: i === activeIndex ? 18 : 6,
-                  height: 6,
-                  background: i === activeIndex ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.4)',
-                  border: 'none',
-                  cursor: 'pointer',
-                  padding: 0,
-                  pointerEvents: 'auto',
-                }}
-              />
-            ))}
-          </div>
+        </div>
+
+        {/* Instagram chrome: slide dots (not part of slide design) */}
+        <div
+          className="shrink-0 flex justify-center gap-1.5 py-2"
+          style={{ background: chromeBg }}
+        >
+          {slides.map((s, i) => (
+            <button
+              key={s.slideIndex}
+              type="button"
+              onClick={() => setActive(i)}
+              aria-label={`Show slide ${i + 1}`}
+              className="rounded-full transition-all"
+              style={{
+                width: 6,
+                height: 6,
+                background: i === activeIndex ? dotActive : dotIdle,
+                border: 'none',
+                cursor: 'pointer',
+                padding: 0,
+              }}
+            />
+          ))}
         </div>
 
         {/* Footer */}
         <div
-          className="px-3 py-3 shrink-0 flex items-center gap-3 opacity-85"
-          style={{
-            background: textIsDark ? 'rgba(255,255,255,0.88)' : 'rgba(0,0,0,0.4)',
-            color: textIsDark ? '#111' : '#fff',
-          }}
+          className="px-3 py-3 shrink-0 flex items-center gap-3 [&>svg]:opacity-85"
+          style={{ background: chromeBg, color: chromeFg }}
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /></svg>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>

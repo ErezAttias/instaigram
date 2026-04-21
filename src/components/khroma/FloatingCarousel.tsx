@@ -6,8 +6,12 @@ import type { CarouselTheme } from './themes'
 const IG_GRADIENT = 'linear-gradient(135deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888)'
 const SERIF = "'Instrument Serif', 'Times New Roman', serif"
 
-export function FloatingCarousel({ theme, nonce }: { theme: CarouselTheme; nonce: string | number }) {
-  const textIsDark = isColorLight(theme.bg)
+export function FloatingCarousel({ theme, nonce, isLight = false }: { theme: CarouselTheme; nonce: string | number; isLight?: boolean }) {
+  const textIsDark = isLight ? true : isColorLight(theme.bg)
+  const chromeBg = isLight ? '#ffffff' : (textIsDark ? 'rgba(255,255,255,0.88)' : 'rgba(0,0,0,0.4)')
+  const chromeFg = isLight ? '#111' : (textIsDark ? '#111' : '#fff')
+  const chromeDot = isLight ? '#111' : (textIsDark ? '#111' : '#fff')
+  const avatarBorder = isLight ? '#fff' : (textIsDark ? '#fff' : '#000')
   return (
     <div
       key={nonce}
@@ -18,26 +22,25 @@ export function FloatingCarousel({ theme, nonce }: { theme: CarouselTheme; nonce
         className="relative flex flex-col rounded-[22px] overflow-hidden w-full h-full carousel-morph"
         style={{
           background: theme.bg,
-          boxShadow: '0 50px 100px rgba(0,0,0,0.55), 0 10px 30px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.06)',
+          boxShadow: isLight
+            ? '0 30px 80px rgba(0,0,0,0.18), 0 8px 24px rgba(0,0,0,0.10), 0 0 0 1px rgba(0,0,0,0.06)'
+            : '0 50px 100px rgba(0,0,0,0.55), 0 10px 30px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.06)',
         }}
       >
         <div
           className="flex items-center gap-2 px-3 py-2.5 shrink-0"
-          style={{
-            background: textIsDark ? 'rgba(255,255,255,0.88)' : 'rgba(0,0,0,0.4)',
-            color: textIsDark ? '#111' : '#fff',
-          }}
+          style={{ background: chromeBg, color: chromeFg }}
         >
           <div className="p-[2px] rounded-full shrink-0" style={{ background: IG_GRADIENT }}>
             <div
               className="w-7 h-7 rounded-full border-2"
-              style={{ borderColor: textIsDark ? '#fff' : '#000', background: theme.accent }}
+              style={{ borderColor: avatarBorder, background: theme.accent }}
             />
           </div>
           <span className="text-[12px] font-semibold leading-none flex-1 min-w-0 truncate">@{theme.username}</span>
           <div className="flex gap-[3px] shrink-0 opacity-70">
             {[0, 1, 2].map(i => (
-              <div key={i} className="w-[3px] h-[3px] rounded-full" style={{ background: textIsDark ? '#111' : '#fff' }} />
+              <div key={i} className="w-[3px] h-[3px] rounded-full" style={{ background: chromeDot }} />
             ))}
           </div>
         </div>
@@ -87,10 +90,7 @@ export function FloatingCarousel({ theme, nonce }: { theme: CarouselTheme; nonce
 
         <div
           className="px-3 pt-2 pb-3 shrink-0"
-          style={{
-            background: textIsDark ? 'rgba(255,255,255,0.88)' : 'rgba(0,0,0,0.4)',
-            color: textIsDark ? '#111' : '#fff',
-          }}
+          style={{ background: chromeBg, color: chromeFg }}
         >
           <div className="flex items-center gap-3 mb-1.5 opacity-85">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /></svg>

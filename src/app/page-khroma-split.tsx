@@ -284,7 +284,7 @@ export default function HomeKhromaSplit({ initialJobId }: { initialJobId?: strin
   // Arrow-key slide navigation in the done phase. Ignore while typing in an
   // input/textarea so editing the headline doesn't jump slides.
   useEffect(() => {
-    if (phase !== 'done' || slides.length === 0) return
+    if (slides.length === 0) return
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return
       const tag = (e.target as HTMLElement | null)?.tagName
@@ -297,7 +297,7 @@ export default function HomeKhromaSplit({ initialJobId }: { initialJobId?: strin
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [phase, slides.length])
+  }, [slides.length])
 
   async function regenerateCopy() {
     if (!jobId) return
@@ -442,12 +442,13 @@ export default function HomeKhromaSplit({ initialJobId }: { initialJobId?: strin
       theme={livePreviewTheme}
       username={submittedTopic.toLowerCase().replace(/\s+/g, '.').slice(0, 20) || livePreviewTheme.username}
       autoCycle={phase === 'rendering'}
-      activeIndex={phase === 'done' ? activeSlide : undefined}
-      onActiveChange={phase === 'done' ? setActiveSlide : undefined}
-      slideDirection={phase === 'done' ? slideDir : undefined}
+      activeIndex={activeSlide}
+      onActiveChange={setActiveSlide}
+      slideDirection={slideDir}
       onRegenerateSlide={phase === 'done' ? regenerateSlideImage : undefined}
       onEditElement={phase === 'done' ? (which) => setEditTarget(which) : undefined}
       regeneratingSet={regeneratingSet}
+      isLight={isLight}
     />
   ) : undefined
 
@@ -536,7 +537,7 @@ export default function HomeKhromaSplit({ initialJobId }: { initialJobId?: strin
                 letterSpacing: '-0.015em',
               }}
             >
-              Pulling facts for <span style={{ fontStyle: 'italic' }}>{submittedTopic}</span><span className="dots-anchor"><span className="dots">…</span></span>
+              Pulling facts for <span style={{ fontStyle: 'italic' }}>{submittedTopic}</span><span className="dots-anchor"><span className="dots" /></span>
             </h1>
             <p className="mb-10 max-w-[28rem]" style={{ color: textMuted, fontFamily: SANS, fontSize: '16px', lineHeight: 1.6 }}>
               A quick taste of the kind of facts the full carousel will use. Takes a few seconds.
@@ -634,7 +635,7 @@ export default function HomeKhromaSplit({ initialJobId }: { initialJobId?: strin
                 letterSpacing: '-0.015em',
               }}
             >
-              Drafting slides for <span style={{ fontStyle: 'italic' }}>{submittedTopic}</span><span className="dots-anchor"><span className="dots">…</span></span>
+              Drafting slides for <span style={{ fontStyle: 'italic' }}>{submittedTopic}</span><span className="dots-anchor"><span className="dots" /></span>
             </h1>
 
             <ul className="flex flex-col gap-3 mt-6">
@@ -769,7 +770,7 @@ export default function HomeKhromaSplit({ initialJobId }: { initialJobId?: strin
                 letterSpacing: '-0.015em',
               }}
             >
-              Painting <span style={{ fontStyle: 'italic' }}>the visuals</span><span className="dots-anchor"><span className="dots">…</span></span>
+              Painting <span style={{ fontStyle: 'italic' }}>the visuals</span><span className="dots-anchor"><span className="dots" /></span>
             </h1>
             <p className="mb-8 max-w-[28rem]" style={{ color: textMuted, fontFamily: SANS, fontSize: '16px', lineHeight: 1.6 }}>
               Each slide&rsquo;s imagery is being generated. Watch the card on the right fill in as they land.
@@ -853,6 +854,7 @@ export default function HomeKhromaSplit({ initialJobId }: { initialJobId?: strin
                   onRegenerateSlide={regenerateSlideImage}
                   onEditElement={(which) => { setEditTarget(which); setMobileTab('edit') }}
                   regeneratingSet={regeneratingSet}
+                  isLight={isLight}
                 />
               </div>
             )}
