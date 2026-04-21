@@ -144,7 +144,10 @@ function buildBoldOverlay(
   const bodyAlign = style.bodyAlign ?? 'left';
 
   // Size caps are now 100/56 to match the Design toolbar sliders exactly.
-  const t1Size = Math.min(style?.t1FontSizePx ?? BOLD_FONT.title.size, 100);
+  // Scale down for long titles: full size ≤40 chars, 50% floor at 150+ chars.
+  const titleLen = input.displayTitle.length;
+  const titleScaleRatio = titleLen <= 40 ? 1 : Math.max(0.5, 1 - 0.5 * (titleLen - 40) / 110);
+  const t1Size = Math.min(style?.t1FontSizePx ?? BOLD_FONT.title.size, 100) * titleScaleRatio;
   const PAD = 65;
   const contentWidth = CANVAS.width - PAD * 2;
 

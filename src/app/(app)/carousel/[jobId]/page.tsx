@@ -710,7 +710,10 @@ function LiveTextOverlay({
     else if (e.key === 'Escape') { e.preventDefault(); cancel(which); }
   };
   const TO_CQW = 100 / 1080;
-  const titleCqw = design.titleSizePx * TO_CQW;
+  // Scale title font size down for long titles so they don't crowd out the image.
+  // Full size ≤40 chars, shrinks linearly to 50% of base at 150+ chars.
+  const titleScaleRatio = title.length <= 40 ? 1 : Math.max(0.5, 1 - 0.5 * (title.length - 40) / 110);
+  const titleCqw = design.titleSizePx * titleScaleRatio * TO_CQW;
   const bodyCqw = design.bodySizePx * TO_CQW;
   const ctaCqw = 44 * TO_CQW; // BOLD_FONT.cta.size — matches server
 
