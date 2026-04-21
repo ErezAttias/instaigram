@@ -109,7 +109,7 @@ export function LiveCarousel({
         {/* Header */}
         <div
           className="flex items-center gap-2 px-3 py-2.5 shrink-0"
-          style={{ background: chromeBg, color: chromeFg, borderBottom: '1px solid rgba(128,128,128,0.12)' }}
+          style={{ background: chromeBg, color: chromeFg }}
         >
           <div className="p-[2px] rounded-full shrink-0" style={{ background: IG_GRADIENT }}>
             <div

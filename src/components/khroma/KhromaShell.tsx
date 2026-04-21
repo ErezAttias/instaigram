@@ -84,7 +84,7 @@ export function KhromaShell({ children, preview, paused = false, rightContent, b
       </section>
 
       {/* Right column */}
-      <div className={`relative overflow-hidden min-h-[60vh] lg:min-h-0${hideRightOnMobile ? ' hidden lg:block' : ''}`}>
+      <div className={`relative overflow-hidden min-h-[60vh] lg:min-h-0 mt-8 lg:mt-0${hideRightOnMobile ? ' hidden lg:block' : ''}`}>
         {!bareRight && <AuroraBackdrop theme={current} isLight={isLight} />}
         <div className="absolute inset-0 flex items-center justify-center p-8">
           {rightContent ?? <FloatingCarousel theme={current} nonce={previewKey} isLight={isLight} />}
