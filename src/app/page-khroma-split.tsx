@@ -598,8 +598,8 @@ export default function HomeKhromaSplit({ initialJobId }: { initialJobId?: strin
                 fontFamily: SERIF,
                 fontWeight: 400,
                 color: textMain,
-                fontSize: 'clamp(2.25rem, 3.6vw, 3.25rem)',
-                lineHeight: 1.05,
+                fontSize: 'clamp(3rem, 5.4vw, 4.75rem)',
+                lineHeight: 1,
                 letterSpacing: '-0.015em',
               }}
             >
