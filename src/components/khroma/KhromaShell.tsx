@@ -219,9 +219,11 @@ export function KhromaShell({ children, preview, paused = false, rightContent, b
           100% { opacity: 1; transform: translateY(0);   filter: blur(0); }
         }
         @keyframes morph-in {
-          0%   { transform: translateY(10px) scale(0.97); filter: blur(4px); }
-          60%  { filter: blur(0); }
-          100% { transform: translateY(0)    scale(1);    filter: blur(0); }
+          /* Blur removed: on a rounded card, Gaussian blur bleeds past the
+             corner radius and reads as a 1px rim against the aurora backdrop
+             during the first frames of load. */
+          0%   { transform: translateY(10px) scale(0.97); opacity: 0.6; }
+          100% { transform: translateY(0)    scale(1);    opacity: 1;   }
         }
         @keyframes image-in {
           0%   { transform: scale(1.06); }

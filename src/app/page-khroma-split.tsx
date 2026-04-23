@@ -630,7 +630,7 @@ export default function HomeKhromaSplit({ initialJobId }: { initialJobId?: strin
               ))}
             </ul>
 
-            <div className="mt-6 flex items-center gap-5 flex-wrap">
+            <div className="mt-10 flex items-center gap-5 flex-wrap">
               <button
                 type="button"
                 onClick={startCarousel}

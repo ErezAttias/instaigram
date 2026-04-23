@@ -8,7 +8,11 @@ const SERIF = "'Instrument Serif', 'Times New Roman', serif"
 
 export function FloatingCarousel({ theme, nonce, isLight = false }: { theme: CarouselTheme; nonce: string | number; isLight?: boolean }) {
   const textIsDark = isLight ? true : isColorLight(theme.bg)
-  const chromeBg = isLight ? '#ffffff' : (textIsDark ? 'rgba(255,255,255,0.88)' : 'rgba(0,0,0,0.4)')
+  // Chrome background meets the image area edge-to-edge. In dark mode we use
+  // the theme's solid bg (no alpha) so the image-gradient bottom and chrome
+  // top are the exact same pixel value — avoids a 1px seam where the two
+  // composited layers disagree by a hair.
+  const chromeBg = isLight ? '#ffffff' : (textIsDark ? 'rgba(255,255,255,0.88)' : theme.bg)
   const chromeFg = isLight ? '#111' : (textIsDark ? '#111' : '#fff')
   const chromeDot = isLight ? '#111' : (textIsDark ? '#111' : '#fff')
   const avatarBorder = isLight ? '#fff' : (textIsDark ? '#fff' : '#000')
@@ -22,9 +26,11 @@ export function FloatingCarousel({ theme, nonce, isLight = false }: { theme: Car
         className="relative flex flex-col rounded-[22px] overflow-hidden w-full h-full carousel-morph"
         style={{
           background: theme.bg,
+          // Drop shadow only — no 1px hairline ring, which otherwise reads as
+          // a faint stripe against the aurora backdrop on the card's sides.
           boxShadow: isLight
-            ? '0 30px 80px rgba(0,0,0,0.18), 0 8px 24px rgba(0,0,0,0.10), 0 0 0 1px rgba(0,0,0,0.06)'
-            : '0 50px 100px rgba(0,0,0,0.55), 0 10px 30px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.06)',
+            ? '0 30px 80px rgba(0,0,0,0.18), 0 8px 24px rgba(0,0,0,0.10)'
+            : '0 50px 100px rgba(0,0,0,0.55), 0 10px 30px rgba(0,0,0,0.3)',
         }}
       >
         <div
@@ -50,13 +56,23 @@ export function FloatingCarousel({ theme, nonce, isLight = false }: { theme: Car
           <img
             src={theme.imageUrl}
             alt=""
-            className="w-full h-full object-cover carousel-image"
-            style={{ filter: 'saturate(1.15) contrast(1.05)' }}
+            className="absolute inset-0 object-cover carousel-image"
+            style={{
+              filter: 'saturate(1.15) contrast(1.05)',
+              // Overshoot the container by 1px on every edge so the scaled
+              // `image-in` animation (1.06 → 1.0) never parks a pixel exactly
+              // on the clip boundary. Prevents a 1px hairline where the outer
+              // card bg shows through during the micro-zoom load.
+              top: -1,
+              left: -1,
+              width: 'calc(100% + 2px)',
+              height: 'calc(100% + 2px)',
+            }}
           />
           <div
             className="absolute inset-0 pointer-events-none"
             style={{
-              background: `linear-gradient(to bottom, transparent 25%, ${withAlpha(theme.bg, 0.35)} 55%, ${withAlpha(theme.bg, 0.92)} 95%)`,
+              background: `linear-gradient(to bottom, transparent 25%, ${withAlpha(theme.bg, 0.35)} 55%, ${withAlpha(theme.bg, 0.95)} 90%, ${theme.bg} 100%)`,
             }}
           />
           <div className="absolute bottom-0 inset-x-0 px-5 pb-10 pt-16 z-10">
@@ -67,11 +83,25 @@ export function FloatingCarousel({ theme, nonce, isLight = false }: { theme: Car
                 fontFamily: theme.headlineFont ?? SERIF,
                 fontWeight: theme.headlineWeight ?? 400,
                 fontStyle: theme.italic ? 'italic' : 'normal',
-                fontSize: '28px',
+                fontSize: `${theme.headlineSizePx ?? 28}px`,
               }}
             >
               {theme.headline}
             </h3>
+            {theme.cta && (
+              <p
+                className="mt-2 tracking-wide"
+                style={{
+                  color: theme.fg,
+                  opacity: 0.75,
+                  fontFamily: "'Inter', system-ui, sans-serif",
+                  fontWeight: 500,
+                  fontSize: `${theme.ctaSizePx ?? 12}px`,
+                }}
+              >
+                {theme.cta}
+              </p>
+            )}
           </div>
           <div className="absolute bottom-4 inset-x-0 flex justify-center gap-1.5 z-20">
             {Array.from({ length: theme.slideCount }).map((_, i) => (
@@ -89,8 +119,15 @@ export function FloatingCarousel({ theme, nonce, isLight = false }: { theme: Car
         </div>
 
         <div
-          className="px-3 pt-2 pb-3 shrink-0"
-          style={{ background: chromeBg, color: chromeFg }}
+          className="px-3 pt-2 pb-3 shrink-0 relative"
+          style={{
+            background: chromeBg,
+            color: chromeFg,
+            // Overlap the image region by 1px so the chrome paints *over* any
+            // sub-pixel seam left by the gradient's final row. Purely visual.
+            marginTop: -1,
+            paddingTop: 'calc(0.5rem + 1px)',
+          }}
         >
           <div className="flex items-center gap-3 mb-1.5 opacity-85">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /></svg>
