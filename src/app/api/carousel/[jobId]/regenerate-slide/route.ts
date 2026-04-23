@@ -24,7 +24,9 @@ export async function POST(
   try {
     const { jobId } = await params;
     const body = await request.json();
-    const { slideIndex, mode, imageSource, promptOverride, wikipediaImageUrl, wikipediaQuery } = body;
+    const { slideIndex, mode, imageSource, promptOverride, wikipediaImageUrl, wikipediaQuery, provider } = body;
+    const providerOverride: 'gemini' | 'openai' | undefined =
+      provider === 'gemini' || provider === 'openai' ? provider : undefined;
 
     if (typeof slideIndex !== 'number') {
       return NextResponse.json({ error: 'slideIndex is required' }, { status: 400 });
@@ -62,7 +64,7 @@ export async function POST(
         result = await regenerateCarouselSlideCopy(jobId, slideIndex);
         break;
       case 'image':
-        result = await regenerateCarouselSlideImage(jobId, slideIndex, resolvedImageSource);
+        result = await regenerateCarouselSlideImage(jobId, slideIndex, resolvedImageSource, providerOverride);
         break;
       case 'full':
       default:

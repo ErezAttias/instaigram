@@ -25,7 +25,7 @@ import { fetchTopicKnowledge } from '@/lib/external/topic-knowledge';
 import { renderFactSlide } from '@/lib/visual/fact-slide-renderer';
 import { renderBoldSlide } from '@/lib/visual/bold-slide-renderer';
 import { DEFAULT_VISUAL_STYLE, type ChannelVisualStyleContext } from '@/lib/visual/visual-style';
-import { getImageProviderForTopic, getUnifiedImageProvider, UnifiedImageProvider, isCelebrityTopic, type ImageGenerator, type ImageSourceProvider } from '@/lib/ai/image-provider';
+import { getImageProviderForTopic, getUnifiedImageProvider, buildImageProviderByName, UnifiedImageProvider, isCelebrityTopic, type ImageGenerator, type ImageSourceProvider } from '@/lib/ai/image-provider';
 import { resolveWikipediaConcept } from '@/lib/ai/wikipedia-image-provider';
 import { ProviderFailedError } from '@/lib/ai/retry';
 import { buildSlidePrompt } from '@/lib/visual/prompt-builder';
@@ -1285,6 +1285,7 @@ export async function regenerateCarouselSlideImage(
   jobId: string,
   slideIndex: number,
   imageSource?: 'wikipedia' | 'generated',
+  providerOverride?: 'gemini' | 'openai',
 ) {
   const job = await prisma.carouselJob.findUnique({
     where: { id: jobId },
@@ -1305,9 +1306,11 @@ export async function regenerateCarouselSlideImage(
   const displaySupport = slide.displaySupport || '';
   // When user explicitly clicks "Regen Image" (imageSource='generated'), use the standard
   // Gemini provider — not the celebrity provider which routes to Wikipedia as primary.
-  const imageProvider = imageSource === 'generated'
-    ? getUnifiedImageProvider()
-    : getImageProviderForTopic(job.topic, job.direction);
+  const imageProvider = providerOverride
+    ? buildImageProviderByName(providerOverride)
+    : imageSource === 'generated'
+      ? getUnifiedImageProvider()
+      : getImageProviderForTopic(job.topic, job.direction);
 
   // Load channel visual style for regeneration.
   // If the job has no channelId (older jobs), look it up via the Post that references this job.

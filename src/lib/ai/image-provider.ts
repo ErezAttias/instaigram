@@ -559,6 +559,42 @@ export function getUnifiedImageProvider(): UnifiedImageProvider {
 }
 
 /**
+ * Build a UnifiedImageProvider with a specific primary (used for per-request provider overrides
+ * like the "Re-roll" picker in the editor). Not cached — each call creates a fresh instance.
+ * Falls back to Gemini as secondary when OpenAI is selected, and vice versa.
+ */
+export function buildImageProviderByName(name: 'gemini' | 'openai'): UnifiedImageProvider {
+  let primary: RawImageProvider;
+  let primaryName: ImageSourceProvider;
+  let secondary: RawImageProvider | null = null;
+  let secondaryName: ImageSourceProvider = 'stability';
+
+  if (name === 'openai') {
+    primary = createOpenAIImageProvider();
+    primaryName = 'openai';
+    try {
+      secondary = createGeminiImageProvider();
+      secondaryName = 'gemini';
+    } catch {
+      secondary = null;
+    }
+  } else {
+    primary = createGeminiImageProvider();
+    primaryName = 'gemini';
+    if (process.env.STABILITY_API_KEY) {
+      try {
+        secondary = createStabilityImageProvider();
+        secondaryName = 'stability';
+      } catch {
+        secondary = null;
+      }
+    }
+  }
+
+  return new UnifiedImageProvider(primary, secondary, primaryName, secondaryName);
+}
+
+/**
  * Create the celebrity image provider: fal.ai Flux 1.1 Pro (primary) + Stability (fallback).
  * Used for carousels about real people / celebrities where Gemini blocks likenesses.
  */
