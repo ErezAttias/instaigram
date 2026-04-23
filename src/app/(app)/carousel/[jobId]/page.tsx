@@ -1604,6 +1604,7 @@ function ReviewView({
               channelId={job.channelId}
               jobId={job.id}
               slideCount={job.slides.length}
+              currentSlideIndex={selectedSlide}
               target={selection === 'body' ? 'body' : 'title'}
               onTargetChange={(t) => setSelection(t)}
               onLiveDesign={setLiveDesign}
@@ -1700,6 +1701,8 @@ function PreviewView({
   // treatment so approved posts actually show the headline/body. Fetch the
   // channel's visual style so the preview matches what the user designed.
   const [previewDesign, setPreviewDesign] = useState<LiveDesign>(DEFAULT_LIVE_DESIGN);
+  const [openerTitleSizePx, setOpenerTitleSizePx] = useState<number | null>(null);
+  const [ctaTitleSizePx, setCtaTitleSizePx] = useState<number | null>(null);
   useEffect(() => {
     if (!job.channelId) return;
     fetch(`/api/admin/channels/${job.channelId}/visual-style`)
@@ -1717,18 +1720,32 @@ function PreviewView({
           titleWeight: typeof data.titleWeight === 'number' ? data.titleWeight : prev.titleWeight,
           bodyWeight: typeof data.bodyWeight === 'number' ? data.bodyWeight : prev.bodyWeight,
         }));
+        setOpenerTitleSizePx(typeof data.t1FontSizePxOpener === 'number' ? data.t1FontSizePxOpener : null);
+        setCtaTitleSizePx(typeof data.t1FontSizePxCta === 'number' ? data.t1FontSizePxCta : null);
       })
       .catch(() => {});
   }, [job.channelId]);
 
   const renderableSlides = job.slides.filter(s => s.imageUrl);
   const slideImages = renderableSlides.map(s => s.imageUrl as string);
-  const slideOverlays = renderableSlides.map(s => {
+  const lastIndex = renderableSlides.length - 1;
+  const slideOverlays = renderableSlides.map((s, idx) => {
     if (s.hasEmbeddedText) return null;
     const isOpener = s.role === 'OPENER';
+    const isCta = s.role === 'CTA';
     const hasSecondary = s.role === 'FACT' || s.role === 'IMPLICATION' || isOpener;
     const titleText = s.displayTitle || s.headline || '';
     const bodyText = hasSecondary ? (s.displaySupport || s.body || '') : '';
+    // Apply per-position title-size override for first/last slide.
+    const positionOverride =
+      idx === 0 && openerTitleSizePx !== null ? openerTitleSizePx
+      : idx === lastIndex && ctaTitleSizePx !== null ? ctaTitleSizePx
+      : (isOpener && openerTitleSizePx !== null) ? openerTitleSizePx
+      : (isCta && ctaTitleSizePx !== null) ? ctaTitleSizePx
+      : null;
+    const slideDesign = positionOverride !== null
+      ? { ...previewDesign, titleSizePx: positionOverride }
+      : previewDesign;
     return (
       <>
         <div
@@ -1741,7 +1758,7 @@ function PreviewView({
           }}
         />
         <LiveTextOverlay
-          design={previewDesign}
+          design={slideDesign}
           title={titleText}
           body={bodyText}
           isOpener={isOpener}

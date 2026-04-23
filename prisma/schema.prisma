@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client"
   output   = "../src/generated/prisma"
@@ -10,17 +7,269 @@ datasource db {
   provider = "postgresql"
 }
 
-// ─── Enums ───────────────────────────────────────────────
+model Channel {
+  id                   String              @id @default(cuid())
+  name                 String              @default("Untitled Channel")
+  language             String              @default("en")
+  niche                String?
+  status               ChannelStatus       @default(DRAFT)
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+  exploreTopic         String?
+  nicheMode            NicheSelectionMode  @default(DISCOVER)
+  contentIntent        String?
+  contentStrategy      Json?
+  instagramAccessToken String?
+  instagramTokenExpiry DateTime?
+  instagramUserId      String?
+  instagramUsername    String?
+  carouselLayout       CarouselLayout      @default(BOLD)
+  batchOrders          BatchOrder[]
+  carouselJobs         CarouselJob[]
+  memory               ChannelMemory?
+  positioning          ChannelPositioning?
+  visualStyle          ChannelVisualStyle?
+  generationJobs       GenerationJob[]
+  nicheOptions         NicheOption[]
+  posts                Post[]
+}
+
+model ChannelVisualStyle {
+  id                 String   @id @default(cuid())
+  channelId          String   @unique
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  headlineColor      String?
+  emphasisColor      String?
+  bodyColor          String?
+  textBgEnabled      Boolean  @default(false)
+  textBgColor        String?
+  logoBase64         String?
+  logoPosition       String   @default("bottom_right")
+  logoSizePx         Int      @default(80)
+  titleFontId        String   @default("inter")
+  bodyFontId         String   @default("lora")
+  singleFont         Boolean  @default(false)
+  t1FontSizePx       Int      @default(72)
+  t2FontSizePx       Int      @default(36)
+  bodyAlign          String   @default("left")
+  bodyWeight         Int      @default(400)
+  titleAlign         String   @default("left")
+  titleWeight        Int      @default(800)
+  t1FontSizePxCta    Int?
+  t1FontSizePxOpener Int?
+  channel            Channel  @relation(fields: [channelId], references: [id], onDelete: Cascade)
+}
+
+model ChannelPositioning {
+  id           String   @id @default(cuid())
+  channelId    String   @unique
+  angle        String
+  tone         String
+  contentStyle String
+  audienceFeel String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  channel      Channel  @relation(fields: [channelId], references: [id])
+}
+
+model ChannelMemory {
+  id              String   @id @default(cuid())
+  channelId       String   @unique
+  tone            String
+  aggressionLevel Float
+  style           String
+  avoidPatterns   Json
+  preferredHooks  Json
+  forbiddenWords  Json
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  channel         Channel  @relation(fields: [channelId], references: [id])
+}
+
+model NicheOption {
+  id                String   @id @default(cuid())
+  channelId         String
+  title             String
+  description       String
+  competitionScore  Int
+  viralityScore     Int
+  contentEaseScore  Int
+  monetizationScore Int
+  rationale         String
+  selected          Boolean  @default(false)
+  createdAt         DateTime @default(now())
+  contentIntent     String?
+  channel           Channel  @relation(fields: [channelId], references: [id])
+
+  @@index([channelId])
+}
+
+model Post {
+  id            String       @id @default(cuid())
+  channelId     String
+  dayIndex      Int
+  title         String
+  hook          String
+  type          PostType
+  status        PostStatus   @default(DRAFT)
+  publishDate   DateTime?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  visualHint    String?
+  pattern       PostPattern?
+  carouselJobId String?      @unique
+  caption       Caption?
+  carouselJob   CarouselJob? @relation(fields: [carouselJobId], references: [id])
+  channel       Channel      @relation(fields: [channelId], references: [id])
+  slides        Slide[]
+
+  @@unique([channelId, dayIndex])
+  @@index([channelId])
+}
+
+model Slide {
+  id                String    @id @default(cuid())
+  postId            String
+  slideIndex        Int
+  role              SlideRole
+  text              String
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  body              String?
+  concretenessScore Int       @default(3)
+  containsNumber    Boolean   @default(false)
+  factType          String?
+  headline          String?
+  noveltyScore      Int       @default(3)
+  qualityPassed     Boolean   @default(true)
+  supportingDetail  String?
+  topicEntity       String?
+  displayTitle      String?
+  displaySupport    String?
+  post              Post      @relation(fields: [postId], references: [id])
+
+  @@unique([postId, slideIndex])
+}
+
+model Caption {
+  id        String   @id @default(cuid())
+  postId    String   @unique
+  text      String
+  hashtags  Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  post      Post     @relation(fields: [postId], references: [id])
+}
+
+model CarouselJob {
+  id                   String            @id @default(cuid())
+  topic                String
+  direction            String?
+  status               CarouselJobStatus @default(PENDING)
+  approved             Boolean           @default(false)
+  progress             Json?
+  errorMessage         String?
+  pipelineMeta         Json?
+  caption              String?
+  hashtags             String[]
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
+  channelId            String?
+  batchOrderId         String?
+  article              String?
+  exactSubject         String?
+  instagramMediaId     String?
+  instagramPublishedAt DateTime?
+  publishedToInstagram Boolean           @default(false)
+  layout               CarouselLayout    @default(BOLD)
+  batchOrder           BatchOrder?       @relation(fields: [batchOrderId], references: [id])
+  channel              Channel?          @relation(fields: [channelId], references: [id])
+  slides               CarouselSlide[]
+  post                 Post?
+
+  @@index([channelId])
+  @@index([batchOrderId])
+}
+
+model CarouselSlide {
+  id                  String              @id @default(cuid())
+  carouselJobId       String
+  slideIndex          Int
+  role                SlideRole
+  headline            String?
+  body                String?
+  supportingDetail    String?
+  factType            String?
+  containsNumber      Boolean             @default(false)
+  concretenessScore   Int                 @default(3)
+  noveltyScore        Int                 @default(3)
+  topicEntity         String?
+  displayTitle        String?
+  displaySupport      String?
+  imageUrl            String?
+  imageError          String?
+  status              CarouselSlideStatus @default(PENDING)
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+  imageSource         String?             @default("generated")
+  imageSourceUrl      String?
+  imageAuthor         String?
+  imagePromptOverride String?
+  wikipediaQuery      String?
+  hasEmbeddedText     Boolean             @default(true)
+  carouselJob         CarouselJob         @relation(fields: [carouselJobId], references: [id], onDelete: Cascade)
+
+  @@unique([carouselJobId, slideIndex])
+  @@index([carouselJobId])
+}
+
+model BatchOrder {
+  id           String           @id @default(cuid())
+  channelId    String
+  status       BatchOrderStatus @default(PENDING)
+  size         Int
+  topics       Json?
+  direction    String?
+  completed    Int              @default(0)
+  failed       Int              @default(0)
+  progress     Json?
+  errorMessage String?
+  startedAt    DateTime?
+  completedAt  DateTime?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  channel      Channel          @relation(fields: [channelId], references: [id])
+  carouselJobs CarouselJob[]
+
+  @@index([channelId])
+}
+
+model GenerationJob {
+  id           String    @id @default(cuid())
+  channelId    String
+  postId       String?
+  jobType      JobType
+  status       JobStatus @default(PENDING)
+  payload      Json?
+  result       Json?
+  errorMessage String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  channel      Channel   @relation(fields: [channelId], references: [id])
+
+  @@index([channelId, jobType])
+}
 
 enum ChannelStatus {
   DRAFT
   NICHE_SELECTED
-  STRATEGY_DEFINED
   POSITIONED
-  NAMED
   HOOKS_GENERATED
   CONTENT_GENERATED
   COMPLETE
+  NAMED
+  STRATEGY_DEFINED
 }
 
 enum PostStatus {
@@ -38,7 +287,6 @@ enum PostType {
 }
 
 enum PostPattern {
-  // Legacy narrative-arc patterns (used by existing posts)
   CONTRAST
   MISTAKE
   MYTH
@@ -46,7 +294,6 @@ enum PostPattern {
   STORY
   BREAKDOWN
   OPINION
-  // V2 content-strategy patterns
   SCALE
   TIMELINE
   VERSUS
@@ -56,14 +303,12 @@ enum PostPattern {
 }
 
 enum SlideRole {
-  // Legacy narrative-arc roles (used by existing slides)
   HOOK
   SETUP
   BUILD
   TWIST
   INSIGHT
   CTA
-  // V2 content-engine roles
   OPENER
   FACT
   IMPLICATION
@@ -117,306 +362,4 @@ enum BatchOrderStatus {
   RUNNING
   COMPLETE
   FAILED
-}
-
-// ─── Models ──────────────────────────────────────────────
-
-model Channel {
-  id             String              @id @default(cuid())
-  name           String              @default("Untitled Channel")
-  language       String              @default("en")
-  niche          String?
-  nicheMode      NicheSelectionMode  @default(DISCOVER)
-  exploreTopic   String?
-  contentIntent    String?             // "evergreen_fact" | "story" | "general" — explicit content intent, set when niche is selected
-  contentStrategy  Json?               // Approved content strategy: { contentIntent, description, tone, hookTypes, audience }
-  carouselLayout   CarouselLayout      @default(BOLD)
-  status           ChannelStatus       @default(DRAFT)
-  createdAt      DateTime            @default(now())
-  updatedAt      DateTime            @updatedAt
-
-  // Instagram account connection
-  instagramUserId      String?
-  instagramUsername    String?
-  instagramAccessToken String?
-  instagramTokenExpiry DateTime?
-
-  positioning    ChannelPositioning?
-  memory         ChannelMemory?
-  visualStyle    ChannelVisualStyle?
-  nicheOptions   NicheOption[]
-  posts          Post[]
-  generationJobs GenerationJob[]
-  carouselJobs   CarouselJob[]
-  batchOrders    BatchOrder[]
-}
-
-model ChannelVisualStyle {
-  id             String   @id @default(cuid())
-  channelId      String   @unique
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  titleFontId    String   @default("inter")
-  bodyFontId     String   @default("lora")
-  singleFont     Boolean  @default(false)
-
-  headlineColor  String?
-  emphasisColor  String?
-  bodyColor      String?
-
-  textBgEnabled  Boolean  @default(false)
-  textBgColor    String?
-
-  logoBase64     String?
-  logoPosition   String   @default("bottom_right")
-  logoSizePx     Int      @default(80)
-
-  t1FontSizePx   Int      @default(72)
-  t2FontSizePx   Int      @default(36)
-
-  // Typography refinements — exposed via the carousel Design toolbar.
-  // Stored so the server composite matches the live CSS preview exactly.
-  titleAlign     String   @default("left")   // left | center | right
-  titleWeight    Int      @default(800)
-  bodyAlign      String   @default("left")
-  bodyWeight     Int      @default(400)
-
-  channel Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
-}
-
-model ChannelPositioning {
-  id           String   @id @default(cuid())
-  channelId    String   @unique
-  angle        String
-  tone         String
-  contentStyle String
-  audienceFeel String
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  channel Channel @relation(fields: [channelId], references: [id])
-}
-
-model ChannelMemory {
-  id              String   @id @default(cuid())
-  channelId       String   @unique
-  tone            String
-  aggressionLevel Float
-  style           String
-  avoidPatterns   Json
-  preferredHooks  Json
-  forbiddenWords  Json
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  channel Channel @relation(fields: [channelId], references: [id])
-}
-
-model NicheOption {
-  id                 String   @id @default(cuid())
-  channelId          String
-  title              String
-  description        String
-  competitionScore   Int
-  viralityScore      Int
-  contentEaseScore   Int
-  monetizationScore  Int
-  rationale          String
-  contentIntent      String?  // "evergreen_fact" | "story" | "general" — explicit content intent for this angle
-  selected           Boolean  @default(false)
-  createdAt          DateTime @default(now())
-
-  channel Channel @relation(fields: [channelId], references: [id])
-
-  @@index([channelId])
-}
-
-model Post {
-  id             String     @id @default(cuid())
-  channelId      String
-  dayIndex       Int
-  title          String
-  hook           String
-  visualHint     String?
-  pattern        PostPattern?
-  type           PostType
-  status         PostStatus @default(DRAFT)
-  publishDate    DateTime?
-  carouselJobId  String?    @unique
-  createdAt      DateTime   @default(now())
-  updatedAt      DateTime   @updatedAt
-
-  channel     Channel      @relation(fields: [channelId], references: [id])
-  carouselJob CarouselJob? @relation(fields: [carouselJobId], references: [id])
-  slides      Slide[]
-  caption     Caption?
-
-  @@unique([channelId, dayIndex])
-  @@index([channelId])
-}
-
-model Slide {
-  id         String    @id @default(cuid())
-  postId     String
-  slideIndex Int
-  role       SlideRole
-  text       String    // Legacy: single-line slide text (v1). Kept for backward compat.
-
-  // V2 structured content fields
-  headline          String?
-  body              String?
-  supportingDetail  String?
-  factType          String?   // statistic | comparison | mechanism | historical | example | definition
-  containsNumber    Boolean   @default(false)
-  concretenessScore Int       @default(3)
-  noveltyScore      Int       @default(3)
-  topicEntity       String?
-  qualityPassed     Boolean   @default(true)
-
-  // Compressed display fields (short, scannable text for Instagram rendering)
-  displayTitle      String?
-  displaySupport    String?
-
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
-
-  post Post @relation(fields: [postId], references: [id])
-
-  @@unique([postId, slideIndex])
-}
-
-model Caption {
-  id        String   @id @default(cuid())
-  postId    String   @unique
-  text      String
-  hashtags  Json
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  post Post @relation(fields: [postId], references: [id])
-}
-
-// ─── Standalone Carousel (MVP vertical slice) ──────────────
-
-model CarouselJob {
-  id           String             @id @default(cuid())
-  channelId    String?
-  topic        String
-  direction    String?
-  exactSubject String?            // User-specified exact concept — bypasses LLM concept selection
-  layout       CarouselLayout     @default(BOLD)
-  status       CarouselJobStatus  @default(PENDING)
-  approved     Boolean            @default(false)
-  progress     Json?              // { step, message, pct }
-  errorMessage String?
-  // Pipeline metadata (stored after generation completes)
-  pipelineMeta Json?              // { mode, concept, validation, fallback }
-  // Post copy
-  article      String?            // Mini-article synthesised from carousel facts
-  // Caption (generated after approval)
-  caption      String?            // Instagram post caption text
-  hashtags     String[]           // Recommended hashtags
-  // Instagram publishing
-  publishedToInstagram Boolean   @default(false)
-  instagramMediaId     String?
-  instagramPublishedAt DateTime?
-  createdAt    DateTime           @default(now())
-  updatedAt    DateTime           @updatedAt
-
-  channel      Channel?           @relation(fields: [channelId], references: [id])
-  batchOrderId String?
-  batchOrder   BatchOrder?        @relation(fields: [batchOrderId], references: [id])
-  slides       CarouselSlide[]
-  post         Post?
-
-  @@index([channelId])
-  @@index([batchOrderId])
-}
-
-model CarouselSlide {
-  id              String              @id @default(cuid())
-  carouselJobId   String
-  slideIndex      Int
-  role            SlideRole
-  // Content
-  headline        String?
-  body            String?
-  supportingDetail String?
-  factType        String?
-  containsNumber  Boolean             @default(false)
-  concretenessScore Int               @default(3)
-  noveltyScore    Int                 @default(3)
-  topicEntity     String?
-  // Compressed display text
-  displayTitle    String?
-  displaySupport  String?
-  // Rendered image (base64 stored in DB for MVP — move to S3 later)
-  imageUrl        String?
-  // true when imageUrl points at a flat PNG with text already baked in
-  // (legacy carousels); false for new carousels where text is a CSS overlay.
-  hasEmbeddedText Boolean             @default(true)
-  imageError      String?
-  // Image source: 'wikipedia' = real photo from Wikimedia, 'generated' = AI-generated
-  imageSource     String?             @default("generated")
-  // Original Wikimedia URL — stored so sibling slides can exclude it on next Wikipedia fetch
-  imageSourceUrl  String?
-  // User-edited image prompt (from ImagePreviewStep) — render path uses this instead of recomputing
-  imagePromptOverride String?
-  // Wikipedia author/attribution metadata (for CC-BY credit line on rendered slide)
-  imageAuthor     String?
-  // Wikipedia search query the user last ran for this slide (so we can restore their query on re-entry)
-  wikipediaQuery  String?
-  // Approval
-  status          CarouselSlideStatus @default(PENDING)
-  createdAt       DateTime            @default(now())
-  updatedAt       DateTime            @updatedAt
-
-  carouselJob CarouselJob @relation(fields: [carouselJobId], references: [id], onDelete: Cascade)
-
-  @@unique([carouselJobId, slideIndex])
-  @@index([carouselJobId])
-}
-
-// ─── Batch Orders ──────────────────────────────────────────
-
-model BatchOrder {
-  id            String           @id @default(cuid())
-  channelId     String
-  status        BatchOrderStatus @default(PENDING)
-  size          Int              // requested count (1-10)
-  topics        Json?            // string[] of specific topics, or null = AI picks
-  direction     String?          // global direction/constraints for the batch
-  completed     Int              @default(0)
-  failed        Int              @default(0)
-  progress      Json?            // { currentIndex, currentJobId, message }
-  errorMessage  String?
-  startedAt     DateTime?
-  completedAt   DateTime?
-  createdAt     DateTime         @default(now())
-  updatedAt     DateTime         @updatedAt
-
-  channel       Channel          @relation(fields: [channelId], references: [id])
-  carouselJobs  CarouselJob[]
-
-  @@index([channelId])
-}
-
-// ─── Legacy Models ──────────────────────────────────────────
-
-model GenerationJob {
-  id           String    @id @default(cuid())
-  channelId    String
-  postId       String?
-  jobType      JobType
-  status       JobStatus @default(PENDING)
-  payload      Json?
-  result       Json?
-  errorMessage String?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-
-  channel Channel @relation(fields: [channelId], references: [id])
-
-  @@index([channelId, jobType])
 }

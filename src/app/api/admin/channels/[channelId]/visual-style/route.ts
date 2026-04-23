@@ -68,6 +68,18 @@ export async function PUT(req: NextRequest, { params }: RouteContext) {
     body.t1FontSizePx = size;
   }
 
+  // Validate per-position title-size overrides (nullable — null clears).
+  for (const field of ['t1FontSizePxOpener', 't1FontSizePxCta'] as const) {
+    const val = body[field];
+    if (val === undefined) continue;
+    if (val === null) continue;
+    const size = Number(val);
+    if (isNaN(size) || size < 40 || size > 100) {
+      return NextResponse.json({ error: `${field} must be between 40 and 100, or null` }, { status: 400 });
+    }
+    body[field] = size;
+  }
+
   // Validate t2FontSizePx range
   if (body.t2FontSizePx !== undefined) {
     const size = Number(body.t2FontSizePx);

@@ -90,11 +90,17 @@ interface CarouselDesignPanelProps {
    */
   target?: Target
   onTargetChange?: (t: Target) => void
+  /**
+   * Index of the slide currently being edited. Used to show a per-slide
+   * title-size override (only for the first and last slide) without adding
+   * a new top-level settings panel.
+   */
+  currentSlideIndex?: number
 }
 
 type SaveState = 'idle' | 'saving' | 'error'
 
-export function CarouselDesignPanel({ channelId, jobId, slideCount, onRestyleStarted, onLiveDesign, target: targetProp, onTargetChange }: CarouselDesignPanelProps) {
+export function CarouselDesignPanel({ channelId, jobId, slideCount, onRestyleStarted, onLiveDesign, target: targetProp, onTargetChange, currentSlideIndex }: CarouselDesignPanelProps) {
   const [loaded, setLoaded] = useState(false)
   const [internalTarget, setInternalTarget] = useState<Target>('title')
   const controlled = targetProp !== undefined
@@ -131,6 +137,28 @@ export function CarouselDesignPanel({ channelId, jobId, slideCount, onRestyleSta
   const [bodyWeight, setBodyWeight] = useState<number>(DEFAULTS.bodyWeight)
   const [bodyColor, setBodyColor] = useState<string>(DEFAULTS.bodyColor)
 
+  // Per-position title-size overrides — persisted on ChannelVisualStyle so the
+  // server composite and downloaded ZIP match the preview. Middle slides always
+  // follow the global t1FontSizePx; only first/last can diverge.
+  const [openerTitleSizePx, setOpenerTitleSizePx] = useState<number | null>(null)
+  const [ctaTitleSizePx, setCtaTitleSizePx] = useState<number | null>(null)
+
+  const slidePosition: 'first' | 'last' | 'middle' | 'unknown' =
+    typeof currentSlideIndex !== 'number' ? 'unknown'
+      : currentSlideIndex === 0 ? 'first'
+        : currentSlideIndex === slideCount - 1 ? 'last'
+          : 'middle'
+  const canOverrideTitleSize = target === 'title' && (slidePosition === 'first' || slidePosition === 'last')
+  const activeOverride: number | null =
+    slidePosition === 'first' ? openerTitleSizePx
+    : slidePosition === 'last' ? ctaTitleSizePx
+    : null
+  const hasTitleOverride = canOverrideTitleSize && activeOverride !== null
+  const setActiveOverride = useCallback((sizePx: number | null) => {
+    if (slidePosition === 'first') setOpenerTitleSizePx(sizePx)
+    else if (slidePosition === 'last') setCtaTitleSizePx(sizePx)
+  }, [slidePosition])
+
   useEffect(() => {
     if (!channelId) { setLoaded(true); return }
     fetch(`/api/admin/channels/${channelId}/visual-style`)
@@ -147,6 +175,8 @@ export function CarouselDesignPanel({ channelId, jobId, slideCount, onRestyleSta
         if (data.bodyAlign) setBodyAlign(data.bodyAlign)
         if (typeof data.titleWeight === 'number') setTitleWeight(data.titleWeight)
         if (typeof data.bodyWeight === 'number') setBodyWeight(data.bodyWeight)
+        setOpenerTitleSizePx(typeof data.t1FontSizePxOpener === 'number' ? data.t1FontSizePxOpener : null)
+        setCtaTitleSizePx(typeof data.t1FontSizePxCta === 'number' ? data.t1FontSizePxCta : null)
       })
       .catch(() => {})
       .finally(() => setLoaded(true))
@@ -169,9 +199,14 @@ export function CarouselDesignPanel({ channelId, jobId, slideCount, onRestyleSta
 
   const active = useMemo(() => {
     if (target === 'title') {
+      // When editing the first/last slide with a custom override, the size
+      // slider writes to the per-slide override instead of the channel-global
+      // size. This keeps middle slides untouched.
+      const useOverride = canOverrideTitleSize && hasTitleOverride
       return {
         fontId: titleFontId, setFontId: setTitleFontId,
-        sizePx: titleSizePx, setSizePx: setTitleSizePx,
+        sizePx: useOverride ? (activeOverride as number) : titleSizePx,
+        setSizePx: useOverride ? (n: number) => setActiveOverride(n) : setTitleSizePx,
         align: titleAlign, setAlign: setTitleAlign,
         weight: titleWeight, setWeight: setTitleWeight,
         color: titleColor, setColor: setTitleColor,
@@ -190,6 +225,7 @@ export function CarouselDesignPanel({ channelId, jobId, slideCount, onRestyleSta
     target,
     titleFontId, titleSizePx, titleAlign, titleWeight, titleColor,
     bodyFontId, bodySizePx, bodyAlign, bodyWeight, bodyColor,
+    canOverrideTitleSize, hasTitleOverride, activeOverride, setActiveOverride,
   ])
 
   const activeFont = TITLE_FONTS.find(f => f.id === active.fontId) ?? TITLE_FONTS[0]
@@ -206,8 +242,8 @@ export function CarouselDesignPanel({ channelId, jobId, slideCount, onRestyleSta
 
   // Always-current snapshot of style values so the debounced timer reads the
   // latest state at fire time (not the stale closure from when queueSave was created).
-  const styleRef = useRef({ titleFontId, bodyFontId, titleColor, bodyColor, titleSizePx, bodySizePx, titleAlign, titleWeight, bodyAlign, bodyWeight })
-  styleRef.current = { titleFontId, bodyFontId, titleColor, bodyColor, titleSizePx, bodySizePx, titleAlign, titleWeight, bodyAlign, bodyWeight }
+  const styleRef = useRef({ titleFontId, bodyFontId, titleColor, bodyColor, titleSizePx, bodySizePx, titleAlign, titleWeight, bodyAlign, bodyWeight, openerTitleSizePx, ctaTitleSizePx })
+  styleRef.current = { titleFontId, bodyFontId, titleColor, bodyColor, titleSizePx, bodySizePx, titleAlign, titleWeight, bodyAlign, bodyWeight, openerTitleSizePx, ctaTitleSizePx }
 
   const queueSave = useCallback(() => {
     if (!channelId || !loaded) return
@@ -230,6 +266,8 @@ export function CarouselDesignPanel({ channelId, jobId, slideCount, onRestyleSta
             t1FontSizePx: style.titleSizePx, t2FontSizePx: style.bodySizePx,
             titleAlign: style.titleAlign, titleWeight: style.titleWeight,
             bodyAlign: style.bodyAlign, bodyWeight: style.bodyWeight,
+            t1FontSizePxOpener: style.openerTitleSizePx,
+            t1FontSizePxCta: style.ctaTitleSizePx,
           }),
           signal: ctrl.signal,
         })
@@ -260,6 +298,7 @@ export function CarouselDesignPanel({ channelId, jobId, slideCount, onRestyleSta
     queueSave, loaded,
     titleFontId, titleSizePx, titleAlign, titleWeight, titleColor,
     bodyFontId, bodySizePx, bodyAlign, bodyWeight, bodyColor,
+    openerTitleSizePx, ctaTitleSizePx,
   ])
 
   useEffect(() => () => {
@@ -273,19 +312,25 @@ export function CarouselDesignPanel({ channelId, jobId, slideCount, onRestyleSta
   const bodyFontMeta = TITLE_FONTS.find(f => f.id === bodyFontId) ?? TITLE_FONTS[0]
   const onLiveDesignRef = useRef(onLiveDesign)
   useEffect(() => { onLiveDesignRef.current = onLiveDesign }, [onLiveDesign])
+  // Effective title size for the currently-previewed slide: override if one
+  // exists for this position, otherwise the channel-global value.
+  const effectiveTitleSizePx =
+    slidePosition === 'first' && openerTitleSizePx !== null ? openerTitleSizePx
+    : slidePosition === 'last' && ctaTitleSizePx !== null ? ctaTitleSizePx
+    : titleSizePx
   useEffect(() => {
     if (!loaded) return
     onLiveDesignRef.current?.({
       titleFontFamily: titleFont.family,
       titleFontWeightDefault: titleFont.weight,
-      titleSizePx, titleAlign, titleWeight, titleColor,
+      titleSizePx: effectiveTitleSizePx, titleAlign, titleWeight, titleColor,
       bodyFontFamily: bodyFontMeta.family,
       bodyFontWeightDefault: bodyFontMeta.weight,
       bodySizePx, bodyAlign, bodyWeight, bodyColor,
     })
   }, [
     loaded,
-    titleFont, titleSizePx, titleAlign, titleWeight, titleColor,
+    titleFont, effectiveTitleSizePx, titleAlign, titleWeight, titleColor,
     bodyFontMeta, bodySizePx, bodyAlign, bodyWeight, bodyColor,
   ])
 
@@ -430,6 +475,28 @@ export function CarouselDesignPanel({ channelId, jobId, slideCount, onRestyleSta
 
         <div className={`w-full ${openTool === 'size' ? 'flex flex-col items-center' : 'hidden'} lg:flex lg:flex-col lg:items-stretch`}>
           <p className="hidden lg:block text-[10px] uppercase tracking-wider text-muted/60 mb-2">Size</p>
+          {canOverrideTitleSize && (
+            <div className="mb-2 inline-flex items-center gap-1 rounded-xl border-2 border-border p-1 self-center lg:self-start">
+              <button
+                type="button"
+                onClick={() => setActiveOverride(null)}
+                aria-pressed={!hasTitleOverride}
+                className={`px-2.5 h-7 rounded-lg text-[11px] font-semibold transition-all ${!hasTitleOverride ? 'bg-[#dc2743] text-white' : 'text-muted-light hover:text-foreground'}`}
+                title="Use the same title size as middle slides"
+              >
+                Match other slides
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveOverride(titleSizePx)}
+                aria-pressed={hasTitleOverride}
+                className={`px-2.5 h-7 rounded-lg text-[11px] font-semibold transition-all ${hasTitleOverride ? 'bg-[#dc2743] text-white' : 'text-muted-light hover:text-foreground'}`}
+                title={`Set a custom title size for the ${slidePosition} slide only`}
+              >
+                Custom for this slide
+              </button>
+            </div>
+          )}
           <div className="inline-flex items-center gap-2 rounded-xl border-2 border-border p-1 self-center lg:self-start">
             <button
               type="button"

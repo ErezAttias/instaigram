@@ -27,6 +27,7 @@ import type { ImageGenerationOptions, RawImageProvider } from './types';
 import type { AICallMeta } from './logger';
 import { GeminiImageProvider, createGeminiImageProvider } from './gemini-image-provider';
 import { StabilityImageProvider, createStabilityImageProvider } from './stability-image-provider';
+import { createOpenAIImageProvider } from './openai-image-provider';
 import { WikipediaImageProvider } from './wikipedia-image-provider';
 import { CelebrityHybridProvider } from './celebrity-hybrid-provider';
 import { ProviderFailedError, extractHttpStatus } from './retry';
@@ -34,7 +35,7 @@ import { ProviderFailedError, extractHttpStatus } from './retry';
 // ─── Types ───────────────────────────────────────────────────────
 
 /** Which provider generated the image */
-export type ImageSourceProvider = 'gemini' | 'stability' | 'fal' | 'fallback';
+export type ImageSourceProvider = 'gemini' | 'stability' | 'fal' | 'openai' | 'fallback';
 
 /** Result from the unified image provider, includes traceability */
 export interface ImageGenerationResult {
@@ -516,22 +517,44 @@ let _cachedCelebrityProvider: UnifiedImageProvider | null = null;
 export function getUnifiedImageProvider(): UnifiedImageProvider {
   if (_cachedUnifiedProvider) return _cachedUnifiedProvider;
 
-  const primary = createGeminiImageProvider();
+  // IMAGE_PROVIDER=openai routes the primary slot to OpenAI gpt-image-1.
+  // Gemini stays as the secondary fallback so a bad API key doesn't brick carousels.
+  const useOpenAI = (process.env.IMAGE_PROVIDER ?? '').toLowerCase() === 'openai';
 
-  let secondary: StabilityImageProvider | null = null;
-  if (process.env.STABILITY_API_KEY) {
+  let primary: RawImageProvider;
+  let primaryName: ImageSourceProvider;
+  let secondary: RawImageProvider | null = null;
+  let secondaryName: ImageSourceProvider = 'stability';
+
+  if (useOpenAI) {
+    primary = createOpenAIImageProvider();
+    primaryName = 'openai';
     try {
-      secondary = createStabilityImageProvider();
-      console.log(`[UnifiedImage] Initialized: PRIMARY=Gemini, SECONDARY=Stability AI SD3`);
+      secondary = createGeminiImageProvider();
+      secondaryName = 'gemini';
+      console.log(`[UnifiedImage] Initialized: PRIMARY=OpenAI gpt-image-1, SECONDARY=Gemini`);
     } catch (err) {
-      console.warn(`[UnifiedImage] Failed to initialize secondary (Stability): ${err instanceof Error ? err.message : err}`);
-      console.log(`[UnifiedImage] Initialized: PRIMARY=Gemini, SECONDARY=none`);
+      console.warn(`[UnifiedImage] Failed to initialize Gemini fallback: ${err instanceof Error ? err.message : err}`);
+      console.log(`[UnifiedImage] Initialized: PRIMARY=OpenAI gpt-image-1, SECONDARY=none`);
     }
   } else {
-    console.log(`[UnifiedImage] Initialized: PRIMARY=Gemini, SECONDARY=none (no STABILITY_API_KEY)`);
+    primary = createGeminiImageProvider();
+    primaryName = 'gemini';
+    if (process.env.STABILITY_API_KEY) {
+      try {
+        secondary = createStabilityImageProvider();
+        secondaryName = 'stability';
+        console.log(`[UnifiedImage] Initialized: PRIMARY=Gemini, SECONDARY=Stability AI SD3`);
+      } catch (err) {
+        console.warn(`[UnifiedImage] Failed to initialize secondary (Stability): ${err instanceof Error ? err.message : err}`);
+        console.log(`[UnifiedImage] Initialized: PRIMARY=Gemini, SECONDARY=none`);
+      }
+    } else {
+      console.log(`[UnifiedImage] Initialized: PRIMARY=Gemini, SECONDARY=none (no STABILITY_API_KEY)`);
+    }
   }
 
-  _cachedUnifiedProvider = new UnifiedImageProvider(primary, secondary, 'gemini', 'stability');
+  _cachedUnifiedProvider = new UnifiedImageProvider(primary, secondary, primaryName, secondaryName);
   return _cachedUnifiedProvider;
 }
 

@@ -147,7 +147,16 @@ function buildBoldOverlay(
   // Scale down for long titles: full size ≤40 chars, 50% floor at 150+ chars.
   const titleLen = input.displayTitle.length;
   const titleScaleRatio = titleLen <= 40 ? 1 : Math.max(0.5, 1 - 0.5 * (titleLen - 40) / 110);
-  const t1Size = Math.min(style?.t1FontSizePx ?? BOLD_FONT.title.size, 100) * titleScaleRatio;
+  // Per-position title-size override — OPENER and CTA slides may each carry
+  // their own size. Middle slides always follow the channel-global t1FontSizePx.
+  const isOpenerSlide = input.slideRole === 'OPENER' || input.slideRole === 'HOOK';
+  const isCtaSlide = input.slideRole === 'CTA';
+  const positionOverride =
+    isOpenerSlide ? style?.t1FontSizePxOpener
+    : isCtaSlide ? style?.t1FontSizePxCta
+    : null;
+  const baseT1 = positionOverride ?? style?.t1FontSizePx ?? BOLD_FONT.title.size;
+  const t1Size = Math.min(baseT1, 100) * titleScaleRatio;
   const PAD = 65;
   const contentWidth = CANVAS.width - PAD * 2;
 

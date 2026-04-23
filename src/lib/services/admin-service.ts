@@ -117,6 +117,8 @@ function toStyleContext(record: {
   logoSizePx: number;
   t1FontSizePx: number;
   t2FontSizePx: number;
+  t1FontSizePxOpener: number | null;
+  t1FontSizePxCta: number | null;
   titleAlign: string;
   titleWeight: number;
   bodyAlign: string;
@@ -136,6 +138,8 @@ function toStyleContext(record: {
     logoSizePx: record.logoSizePx,
     t1FontSizePx: record.t1FontSizePx,
     t2FontSizePx: record.t2FontSizePx,
+    t1FontSizePxOpener: record.t1FontSizePxOpener,
+    t1FontSizePxCta: record.t1FontSizePxCta,
     titleAlign: record.titleAlign as ChannelVisualStyleContext['titleAlign'],
     titleWeight: record.titleWeight,
     bodyAlign: record.bodyAlign as ChannelVisualStyleContext['bodyAlign'],
