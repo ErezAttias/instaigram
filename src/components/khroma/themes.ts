@@ -107,12 +107,16 @@ export const THEMES: CarouselTheme[] = [
     headline: 'A Ritual for\nSlow Mornings',
     cta: 'Swipe to slow down →',
     subhead: '@studio.sunday · Weekend rituals, unhurried',
-    bg: '#F6E7CE', fg: '#2B1A0F', accent: '#E23E57',
-    auroraA: '#E23E57', auroraB: '#FFC24B', auroraC: '#F6E7CE',
+    // Deep burnt-amber palette differentiates this from the pale cream of
+    // @stillpoint.daily. The amber aurora reads as "sun warming the room"
+    // and pairs with the warm window light in the photograph.
+    bg: '#2A170B', fg: '#F9E6C9', accent: '#E8A55F',
+    auroraA: '#E8A55F', auroraB: '#8B4F2A', auroraC: '#2A170B',
     imageUrl: '/sample-carousels/morning-room.png',
     slideCount: 3, activeIndex: 0,
     headlineFont: SERIF,
     headlineWeight: 400,
+    headlineSizePx: 42,
     italic: true,
   },
 ]
