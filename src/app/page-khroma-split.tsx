@@ -520,13 +520,30 @@ export default function HomeKhromaSplit({ initialJobId }: { initialJobId?: strin
                 </span>
                 <input
                   type="text"
+                  name="instaigram-topic"
                   value={topic}
                   onChange={e => setTopic(e.target.value)}
                   placeholder={PLACEHOLDER_EXAMPLES[placeholderIdx]}
                   autoComplete="off"
+                  // Suppress 1Password / LastPass / Dashlane / Bitwarden
+                  // autofill-target boxes — this isn't a login/credential field.
+                  data-1p-ignore=""
+                  data-lpignore="true"
+                  data-bwignore="true"
+                  data-form-type="other"
                   aria-label="Carousel topic"
                   className="flex-1 min-w-0 bg-transparent pl-2 pr-2 py-3.5 text-base focus:outline-none"
-                  style={{ fontFamily: SANS, color: textMain }}
+                  style={{
+                    fontFamily: SANS,
+                    color: textMain,
+                    // Belt-and-braces against any user-agent or extension
+                    // outline/border/shadow drawn on focus.
+                    boxShadow: 'none',
+                    outline: 'none',
+                    border: 'none',
+                    WebkitAppearance: 'none',
+                    appearance: 'none',
+                  }}
                 />
                 <button
                   type="submit"
@@ -1025,9 +1042,13 @@ export default function HomeKhromaSplit({ initialJobId }: { initialJobId?: strin
         .search-pill::before {
           content: '';
           position: absolute;
-          inset: 0;
+          /* Overshoot the parent's 1px idle border so the gradient ring
+             paints edge-to-edge on the border-box, not just inside it. */
+          inset: -1px;
           border-radius: inherit;
-          padding: 1.5px;
+          /* Integer padding avoids half-pixel rounding that renders the
+             stroke ~0.5px thinner on one or two edges. */
+          padding: 2px;
           background: linear-gradient(135deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);
           -webkit-mask:
             linear-gradient(#000 0 0) content-box,
@@ -1041,9 +1062,20 @@ export default function HomeKhromaSplit({ initialJobId }: { initialJobId?: strin
         }
         .search-pill:hover {
           background: var(--pill-hover-bg) !important;
+          /* Hide the idle 1px translucent border so only the gradient ring
+             is visible — stops the two borders from stacking unevenly. */
+          border-color: transparent !important;
         }
         .search-pill:hover::before {
           opacity: 1;
+        }
+        /* Override globals.css "input:focus" ring — the homepage search pill
+           carries its own gradient-border treatment, we don't want a second
+           rectangular ring inside it. */
+        .search-pill input:focus {
+          box-shadow: none !important;
+          border-color: transparent !important;
+          outline: none !important;
         }
       `}</style>
     </KhromaShell>
