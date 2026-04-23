@@ -73,12 +73,27 @@ export function KhromaShell({ children, preview, paused = false, rightContent, b
       {/* Left column */}
       <section className="relative z-10 flex flex-col justify-center px-8 sm:px-14 lg:px-20 py-16">
         <div className="max-w-[36rem] w-full mx-auto">
-          <div
-            className="mb-10 bg-clip-text text-transparent w-fit text-2xl font-semibold tracking-tight font-[family-name:var(--font-bricolage)]"
-            style={{ backgroundImage: IG_GRADIENT }}
+          {/* Logo: light-grey monochrome wordmark. No accent — the hero and
+              submit pill carry the color; the logo stays quiet. Links home. */}
+          {/* Use a native anchor (not next/link) so the click fully resets
+              the page — pipeline phases like "sample-facts" keep state in the
+              page component, and a soft SPA nav to "/" leaves the hero stuck. */}
+          {/* Logo (E2): all-lowercase wordmark with both "ai" letters in
+              heavier weight. Accent is a weight contrast only — fully
+              monochrome, no color or slant. */}
+          <a
+            href="/"
+            aria-label="instaigram — back to home"
+            className="mb-10 w-fit text-2xl leading-none inline-block transition-opacity hover:opacity-80 focus:outline-none focus-visible:opacity-80"
+            style={{
+              color: textMain,
+              fontFamily: SANS,
+              fontWeight: 500,
+              letterSpacing: '-0.035em',
+            }}
           >
-            InstAIgram
-          </div>
+            inst<span style={{ fontWeight: 800 }}>ai</span>gram
+          </a>
           {children}
         </div>
       </section>

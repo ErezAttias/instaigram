@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTheme } from '@/components/ThemeProvider'
-import { KhromaShell, SERIF, SANS } from '@/components/khroma/KhromaShell'
+import { KhromaShell, SERIF, SANS, IG_GRADIENT } from '@/components/khroma/KhromaShell'
 import { pickThemeForTopic, type CarouselTheme } from '@/components/khroma/themes'
 import { LiveCarousel } from '@/components/khroma/LiveCarousel'
 
@@ -488,29 +488,67 @@ export default function HomeKhromaSplit({ initialJobId }: { initialJobId?: strin
               You stay in the driver&rsquo;s seat.
             </p>
 
-            <form onSubmit={handleTopicSubmit} className="flex flex-col gap-4 items-start">
-              <input
-                type="text"
-                value={topic}
-                onChange={e => setTopic(e.target.value)}
-                placeholder={PLACEHOLDER_EXAMPLES[placeholderIdx]}
-                autoComplete="off"
-                className="w-full max-w-[28rem] px-4 py-3 text-base focus:outline-none rounded-md transition-colors"
+            {/* Unified search pill: input + submit in one bar. Submit is an
+                icon-only circle on the right so the prompt reads as a single
+                action ("type here, send") instead of two stacked elements.
+                On hover: border brightens to the IG-pink accent, a soft glow
+                halo appears, and a subtle gradient shimmer sweeps across. */}
+            <form onSubmit={handleTopicSubmit} className="flex flex-col gap-3 items-start">
+              <div
+                className="search-pill group relative w-full max-w-[28rem] flex items-center rounded-full focus-within:ring-2"
                 style={{
                   fontFamily: SANS,
-                  background: isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.06)',
-                  color: textMain,
-                  border: `1px solid ${isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)'}`,
+                  background: isLight ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.06)',
+                  border: `1px solid ${isLight ? 'rgba(0,0,0,0.12)' : 'rgba(255,255,255,0.14)'}`,
+                  boxShadow: isLight
+                    ? '0 1px 2px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.04)'
+                    : '0 8px 24px rgba(0,0,0,0.35)',
+                  // Ring color uses the IG-pink accent via CSS var so focus
+                  // glow harmonizes with the logo.
+                  ['--tw-ring-color' as string]: 'rgba(220,39,67,0.35)',
+                  // Hover glow varies by theme so it reads on both backdrops.
+                  ['--pill-hover-shadow' as string]: isLight
+                    ? '0 1px 2px rgba(0,0,0,0.04), 0 10px 32px rgba(220,39,67,0.18)'
+                    : '0 10px 36px rgba(220,39,67,0.28)',
                 }}
-              />
-              <button
-                type="submit"
-                disabled={!topic.trim()}
-                className="h-12 px-8 text-white font-medium rounded-md text-[15px] disabled:opacity-40 disabled:cursor-not-allowed transition-all hover:brightness-110 active:scale-[0.98]"
-                style={{ background: '#2563eb', fontFamily: SANS, boxShadow: '0 4px 14px rgba(37,99,235,0.35)' }}
               >
-                Preview
-              </button>
+                <span
+                  aria-hidden="true"
+                  className="pl-5 pr-1 flex items-center relative"
+                  style={{ color: textMuted }}
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="11" cy="11" r="7" />
+                    <path d="M20 20l-3.5-3.5" />
+                  </svg>
+                </span>
+                <input
+                  type="text"
+                  value={topic}
+                  onChange={e => setTopic(e.target.value)}
+                  placeholder={PLACEHOLDER_EXAMPLES[placeholderIdx]}
+                  autoComplete="off"
+                  aria-label="Carousel topic"
+                  className="flex-1 min-w-0 bg-transparent pl-2 pr-2 py-3.5 text-base focus:outline-none"
+                  style={{ fontFamily: SANS, color: textMain }}
+                />
+                <button
+                  type="submit"
+                  disabled={!topic.trim()}
+                  aria-label="Preview carousel"
+                  title="Preview"
+                  className="mr-1.5 h-10 w-10 shrink-0 rounded-full inline-flex items-center justify-center text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all hover:brightness-110 active:scale-[0.96]"
+                  style={{
+                    backgroundImage: IG_GRADIENT,
+                    boxShadow: topic.trim() ? '0 6px 18px rgba(220,39,67,0.35)' : 'none',
+                  }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M5 12h14" />
+                    <path d="M13 5l7 7-7 7" />
+                  </svg>
+                </button>
+              </div>
 
               {error && (
                 <div className="px-4 py-2.5 bg-danger/15 border border-danger/30 rounded-md">
@@ -596,8 +634,8 @@ export default function HomeKhromaSplit({ initialJobId }: { initialJobId?: strin
               <button
                 type="button"
                 onClick={startCarousel}
-                className="h-12 px-8 text-white font-medium rounded-md text-[15px] transition-all hover:brightness-110 active:scale-[0.98]"
-                style={{ background: '#2563eb', fontFamily: SANS, boxShadow: '0 4px 14px rgba(37,99,235,0.35)' }}
+                className="h-12 px-8 text-white font-medium rounded-full text-[15px] transition-all hover:brightness-110 active:scale-[0.98]"
+                style={{ backgroundImage: IG_GRADIENT, fontFamily: SANS, boxShadow: '0 4px 14px rgba(220,39,67,0.35)' }}
               >
                 Generate carousel →
               </button>
@@ -607,7 +645,7 @@ export default function HomeKhromaSplit({ initialJobId }: { initialJobId?: strin
                 className="text-sm font-medium underline-offset-4 hover:underline"
                 style={{ color: textMuted, fontFamily: SANS }}
               >
-                ← Change topic
+                Change topic
               </button>
             </div>
 
@@ -729,8 +767,8 @@ export default function HomeKhromaSplit({ initialJobId }: { initialJobId?: strin
               <button
                 type="button"
                 onClick={approveCopy}
-                className="h-12 px-8 text-white font-medium rounded-md text-[15px] transition-all hover:brightness-110 active:scale-[0.98]"
-                style={{ background: '#2563eb', fontFamily: SANS, boxShadow: '0 4px 14px rgba(37,99,235,0.35)' }}
+                className="h-12 px-8 text-white font-medium rounded-full text-[15px] transition-all hover:brightness-110 active:scale-[0.98]"
+                style={{ backgroundImage: IG_GRADIENT, fontFamily: SANS, boxShadow: '0 4px 14px rgba(220,39,67,0.35)' }}
               >
                 Approve copy →
               </button>
@@ -949,8 +987,8 @@ export default function HomeKhromaSplit({ initialJobId }: { initialJobId?: strin
                   type="button"
                   onClick={downloadCarousel}
                   disabled={downloading}
-                  className="h-12 px-8 text-white font-medium rounded-md text-[15px] transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed inline-flex items-center gap-2"
-                  style={{ background: '#2563eb', fontFamily: SANS, boxShadow: '0 4px 14px rgba(37,99,235,0.35)' }}
+                  className="h-12 px-8 text-white font-medium rounded-full text-[15px] transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed inline-flex items-center gap-2"
+                  style={{ backgroundImage: IG_GRADIENT, fontFamily: SANS, boxShadow: '0 4px 14px rgba(220,39,67,0.35)' }}
                 >
                   {downloading ? (
                     <>
@@ -979,6 +1017,16 @@ export default function HomeKhromaSplit({ initialJobId }: { initialJobId?: strin
           </>
         )}
       </div>
+      <style jsx global>{`
+        .search-pill {
+          transition: border-color 280ms cubic-bezier(0.22, 1, 0.36, 1),
+                      box-shadow 320ms cubic-bezier(0.22, 1, 0.36, 1);
+        }
+        .search-pill:hover {
+          border-color: rgba(220, 39, 67, 0.45) !important;
+          box-shadow: var(--pill-hover-shadow) !important;
+        }
+      `}</style>
     </KhromaShell>
   )
 }

@@ -10,6 +10,28 @@ import { createCarouselJob, runCarouselGeneration } from '@/lib/services/standal
 export const maxDuration = 300;
 
 /**
+ * Neon serverless Postgres auto-suspends on idle; the first request after a
+ * suspend can fail with "Control plane request failed" before the compute
+ * resumes. A single short retry catches that transient and prevents a
+ * cold-start blip from surfacing as a user-visible failure.
+ */
+async function withDbRetry<T>(op: () => Promise<T>): Promise<T> {
+  try {
+    return await op();
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    const isControlPlane =
+      msg.includes('Control plane request failed') ||
+      msg.includes('DriverAdapterError') ||
+      (err instanceof Error && err.name === 'DriverAdapterError');
+    if (!isControlPlane) throw err;
+    console.warn(`[api/carousel] DB control-plane blip, retrying once: ${msg.slice(0, 120)}`);
+    await new Promise(r => setTimeout(r, 300));
+    return op();
+  }
+}
+
+/**
  * POST /api/carousel — Create a new carousel job and start generation.
  * Returns the jobId immediately; generation runs async via waitUntil.
  */
@@ -31,7 +53,7 @@ export async function POST(request: NextRequest) {
     // and is still in-progress, return the existing job instead of starting
     // a duplicate 5-min generation.
     if (channelId) {
-      const recent = await prisma.carouselJob.findFirst({
+      const recent = await withDbRetry(() => prisma.carouselJob.findFirst({
         where: {
           channelId,
           topic,
@@ -40,7 +62,7 @@ export async function POST(request: NextRequest) {
         },
         orderBy: { createdAt: 'desc' },
         select: { id: true, status: true },
-      });
+      }));
       if (recent) {
         return NextResponse.json({ jobId: recent.id, status: recent.status, deduped: true }, { status: 200 });
       }
@@ -48,7 +70,9 @@ export async function POST(request: NextRequest) {
 
     // Pass topic as exactSubject to skip the concept selection LLM call
     const exactSubject = skipImages ? topic : undefined;
-    const job = await createCarouselJob(topic, direction, channelId, undefined, exactSubject, layout);
+    const job = await withDbRetry(() =>
+      createCarouselJob(topic, direction, channelId, undefined, exactSubject, layout)
+    );
 
     // Start generation in background (non-blocking). waitUntil keeps the
     // serverless execution context alive after we return the response so
