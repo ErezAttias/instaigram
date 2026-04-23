@@ -491,11 +491,11 @@ export default function HomeKhromaSplit({ initialJobId }: { initialJobId?: strin
             {/* Unified search pill: input + submit in one bar. Submit is an
                 icon-only circle on the right so the prompt reads as a single
                 action ("type here, send") instead of two stacked elements.
-                On hover: border brightens to the IG-pink accent, a soft glow
-                halo appears, and a subtle gradient shimmer sweeps across. */}
+                Hover (C4): IG-gradient border appears via a masked pseudo-
+                element, plus a subtle warm-tint wash on the pill bg. */}
             <form onSubmit={handleTopicSubmit} className="flex flex-col gap-3 items-start">
               <div
-                className="search-pill group relative w-full max-w-[28rem] flex items-center rounded-full focus-within:ring-2"
+                className="search-pill group relative w-full max-w-[28rem] flex items-center rounded-full"
                 style={{
                   fontFamily: SANS,
                   background: isLight ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.06)',
@@ -503,13 +503,9 @@ export default function HomeKhromaSplit({ initialJobId }: { initialJobId?: strin
                   boxShadow: isLight
                     ? '0 1px 2px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.04)'
                     : '0 8px 24px rgba(0,0,0,0.35)',
-                  // Ring color uses the IG-pink accent via CSS var so focus
-                  // glow harmonizes with the logo.
-                  ['--tw-ring-color' as string]: 'rgba(220,39,67,0.35)',
-                  // Hover glow varies by theme so it reads on both backdrops.
-                  ['--pill-hover-shadow' as string]: isLight
-                    ? '0 1px 2px rgba(0,0,0,0.04), 0 10px 32px rgba(220,39,67,0.18)'
-                    : '0 10px 36px rgba(220,39,67,0.28)',
+                  // Warm-tint wash revealed on hover (C4).
+                  ['--pill-hover-bg' as string]:
+                    'linear-gradient(135deg, rgba(240,148,51,0.08), rgba(220,39,67,0.10) 55%, rgba(188,24,136,0.08))',
                 }}
               >
                 <span
@@ -1018,13 +1014,36 @@ export default function HomeKhromaSplit({ initialJobId }: { initialJobId?: strin
         )}
       </div>
       <style jsx global>{`
+        /* Hover style C4: an IG-gradient border appears via a masked
+           pseudo-element (border-image trick), and the pill bg picks up a
+           very subtle warm tint. Border is hidden on non-hover so the seam
+           between bg and border doesn't tint the pill when idle. */
         .search-pill {
-          transition: border-color 280ms cubic-bezier(0.22, 1, 0.36, 1),
-                      box-shadow 320ms cubic-bezier(0.22, 1, 0.36, 1);
+          transition: background 320ms cubic-bezier(0.22, 1, 0.36, 1);
+          isolation: isolate;
+        }
+        .search-pill::before {
+          content: '';
+          position: absolute;
+          inset: 0;
+          border-radius: inherit;
+          padding: 1.5px;
+          background: linear-gradient(135deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);
+          -webkit-mask:
+            linear-gradient(#000 0 0) content-box,
+            linear-gradient(#000 0 0);
+          -webkit-mask-composite: xor;
+                  mask-composite: exclude;
+          opacity: 0;
+          transition: opacity 280ms cubic-bezier(0.22, 1, 0.36, 1);
+          pointer-events: none;
+          z-index: 1;
         }
         .search-pill:hover {
-          border-color: rgba(220, 39, 67, 0.45) !important;
-          box-shadow: var(--pill-hover-shadow) !important;
+          background: var(--pill-hover-bg) !important;
+        }
+        .search-pill:hover::before {
+          opacity: 1;
         }
       `}</style>
     </KhromaShell>
@@ -1729,6 +1748,7 @@ function ImageDesignPanel({
   const [wikiError, setWikiError] = useState<string | null>(null)
   const [wikiLoading, setWikiLoading] = useState(false)
   const [busy, setBusy] = useState(false)
+  const [provider, setProvider] = useState<'gemini' | 'openai'>('gemini')
 
   useEffect(() => {
     let cancelled = false
@@ -1757,7 +1777,7 @@ function ImageDesignPanel({
       await fetch(`/api/carousel/${jobId}/regenerate-slide`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ slideIndex: slide.slideIndex, mode: 'image', promptOverride: prompt }),
+        body: JSON.stringify({ slideIndex: slide.slideIndex, mode: 'image', promptOverride: prompt, imageSource: 'generated', provider }),
       })
       onRegenerateSlide(slide.slideIndex)
     } finally {
@@ -1845,11 +1865,54 @@ function ImageDesignPanel({
           Prompt
         </span>
         <AutoTextarea value={prompt} onChange={setPrompt} onBlur={() => { /* commit on action */ }} style={fieldStyle} />
+        <div className="mt-3 flex items-center gap-2 flex-wrap">
+        <div
+          role="radiogroup"
+          aria-label="Image provider"
+          className="inline-flex rounded-md overflow-hidden"
+          style={{ border: `1px solid ${isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)'}` }}
+        >
+          <button
+            type="button"
+            role="radio"
+            aria-checked={provider === 'gemini'}
+            onClick={() => setProvider('gemini')}
+            disabled={disabled}
+            className="h-10 px-3 text-[12px] font-medium transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+            style={{
+              background: provider === 'gemini'
+                ? (isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.12)')
+                : 'transparent',
+              color: provider === 'gemini' ? textMain : textMuted,
+              fontFamily: SANS,
+            }}
+          >
+            Nano Banana
+          </button>
+          <button
+            type="button"
+            role="radio"
+            aria-checked={provider === 'openai'}
+            onClick={() => setProvider('openai')}
+            disabled={disabled}
+            className="h-10 px-3 text-[12px] font-medium transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+            style={{
+              background: provider === 'openai'
+                ? (isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.12)')
+                : 'transparent',
+              color: provider === 'openai' ? textMain : textMuted,
+              fontFamily: SANS,
+              borderLeft: `1px solid ${isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)'}`,
+            }}
+          >
+            GPT image
+          </button>
+        </div>
         <button
           type="button"
           onClick={reRollWithPrompt}
           disabled={disabled || prompt.trim().length === 0}
-          className="mt-3 inline-flex items-center gap-2 h-10 px-4 rounded-md text-[13px] font-medium transition-all hover:brightness-110 disabled:opacity-60 disabled:cursor-not-allowed"
+          className="inline-flex items-center gap-2 h-10 px-4 rounded-md text-[13px] font-medium transition-all hover:brightness-110 disabled:opacity-60 disabled:cursor-not-allowed"
           style={buttonStyle}
         >
           {disabled ? (
@@ -1867,6 +1930,7 @@ function ImageDesignPanel({
             </>
           )}
         </button>
+        </div>
       </div>
 
       <div>
