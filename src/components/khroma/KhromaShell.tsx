@@ -99,9 +99,18 @@ export function KhromaShell({ children, preview, paused = false, rightContent, b
       </section>
 
       {/* Right column */}
-      <div className={`relative overflow-hidden min-h-[60vh] lg:min-h-0 mt-8 lg:mt-0${hideRightOnMobile ? ' hidden lg:block' : ''}`}>
+      <div
+        className={`right-col relative overflow-hidden min-h-[60vh] lg:min-h-0 mt-8 lg:mt-0${hideRightOnMobile ? ' hidden lg:block' : ''}`}
+        style={{
+          // Mobile-only feather at the top blends the aurora into whichever
+          // top-section bg is live (black in dark mode, cream in light).
+          ['--feather-color' as string]: pageBg,
+        }}
+      >
         {!bareRight && <AuroraBackdrop theme={current} isLight={isLight} />}
-        <div className="absolute inset-0 flex items-center justify-center p-8">
+        {/* z-10 keeps the carousel card above the mobile feather overlay
+            (which sits at z-2 to dissolve the aurora edge). */}
+        <div className="absolute inset-0 flex items-center justify-center p-8 z-10">
           {rightContent ?? <FloatingCarousel theme={current} nonce={previewKey} isLight={isLight} />}
         </div>
       </div>
@@ -111,7 +120,7 @@ export function KhromaShell({ children, preview, paused = false, rightContent, b
         type="button"
         onClick={toggle}
         aria-label={isLight ? 'Switch to dark mode' : 'Switch to light mode'}
-        className="fixed bottom-6 left-6 z-30 h-9 w-9 rounded-full flex items-center justify-center transition-colors"
+        className="fixed top-5 right-5 lg:top-auto lg:right-auto lg:bottom-6 lg:left-6 z-30 h-9 w-9 rounded-full flex items-center justify-center transition-colors"
         style={{
           background: isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)',
           border: `1px solid ${isLight ? 'rgba(0,0,0,0.12)' : 'rgba(255,255,255,0.12)'}`,
@@ -170,6 +179,39 @@ export function KhromaShell({ children, preview, paused = false, rightContent, b
         }
         .carousel-image {
           animation: image-in 1000ms cubic-bezier(0.22, 1, 0.36, 1) both;
+        }
+        /* Mobile seam fix: on stacked layouts, fade 140px of the top-section
+           bg into the aurora so the vertical boundary dissolves. Desktop is
+           a horizontal split and doesn't need it. */
+        .right-col::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          height: 140px;
+          pointer-events: none;
+          z-index: 2;
+          background: linear-gradient(
+            180deg,
+            var(--feather-color) 0%,
+            color-mix(in srgb, var(--feather-color) 55%, transparent) 35%,
+            transparent 100%
+          );
+        }
+        @media (min-width: 1024px) {
+          .right-col::before { display: none; }
+        }
+
+        /* Font sizes live on CSS vars set inline from the theme, so a media
+           query can shrink every headline in one place without fighting
+           inline styles. Keeps every demo title on two lines down to the
+           375px iPhone SE viewport. */
+        .fc-headline { font-size: var(--h-size); }
+        .fc-cta      { font-size: var(--cta-size); }
+        @media (max-width: 480px) {
+          .fc-headline { font-size: calc(var(--h-size) * 0.72); }
+          .fc-cta      { font-size: calc(var(--cta-size) * 0.85); }
         }
         .slide-swap-next, .slide-swap-prev {
           will-change: transform, opacity;

@@ -75,28 +75,34 @@ export function FloatingCarousel({ theme, nonce, isLight = false }: { theme: Car
               background: `linear-gradient(to bottom, transparent 25%, ${withAlpha(theme.bg, 0.35)} 55%, ${withAlpha(theme.bg, 0.95)} 90%, ${theme.bg} 100%)`,
             }}
           />
-          <div className="absolute bottom-0 inset-x-0 px-5 pb-10 pt-16 z-10">
+          <div
+            className="absolute bottom-0 inset-x-0 px-5 pb-10 pt-16 z-10 fc-text"
+            // Font sizes live on CSS vars so a media query can scale them
+            // down on mobile without overriding inline styles.
+            style={{
+              ['--h-size' as string]: `${theme.headlineSizePx ?? 28}px`,
+              ['--cta-size' as string]: `${theme.ctaSizePx ?? 12}px`,
+            }}
+          >
             <h3
-              className="whitespace-pre-line leading-[1.02] tracking-tight"
+              className="whitespace-pre-line leading-[1.02] tracking-tight fc-headline"
               style={{
                 color: theme.fg,
                 fontFamily: theme.headlineFont ?? SERIF,
                 fontWeight: theme.headlineWeight ?? 400,
                 fontStyle: theme.italic ? 'italic' : 'normal',
-                fontSize: `${theme.headlineSizePx ?? 28}px`,
               }}
             >
               {theme.headline}
             </h3>
             {theme.cta && (
               <p
-                className="mt-2 tracking-wide"
+                className="mt-2 tracking-wide fc-cta"
                 style={{
                   color: theme.fg,
                   opacity: 0.75,
                   fontFamily: "'Inter', system-ui, sans-serif",
                   fontWeight: 500,
-                  fontSize: `${theme.ctaSizePx ?? 12}px`,
                 }}
               >
                 {theme.cta}
