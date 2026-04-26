@@ -192,13 +192,13 @@ export function LiveCarousel({
                   onClick={() => onEditElement?.('headline')}
                 >
                   <h3
-                    className="whitespace-pre-line leading-[1.05] tracking-tight"
+                    className="fc-headline whitespace-pre-line leading-[1.05] tracking-tight"
                     style={{
                       color: theme.fg,
                       fontFamily: theme.headlineFont ?? SERIF,
                       fontWeight: theme.headlineWeight ?? 400,
                       fontStyle: theme.italic ? 'italic' : 'normal',
-                      fontSize: theme.headlineSizePx ? `${theme.headlineSizePx}px` : '28px',
+                      ['--h-size' as string]: `${theme.headlineSizePx ?? 28}px`,
                     }}
                   >
                     {current?.displayTitle || current?.headline || '—'}
@@ -212,13 +212,13 @@ export function LiveCarousel({
                     className="mt-2"
                   >
                     <p
-                      className="opacity-80 leading-snug"
+                      className="fc-support opacity-80 leading-snug"
                       style={{
                         color: theme.supportColor ?? theme.fg,
                         fontFamily: theme.supportFont ?? "'Inter', system-ui, sans-serif",
                         fontWeight: theme.supportWeight ?? 400,
                         fontStyle: theme.supportItalic ? 'italic' : 'normal',
-                        fontSize: theme.supportSizePx ? `${theme.supportSizePx}px` : '13px',
+                        ['--s-size' as string]: `${theme.supportSizePx ?? 13}px`,
                       }}
                     >
                       {current.displaySupport}
