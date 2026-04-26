@@ -210,10 +210,14 @@ export function KhromaShell({ children, preview, paused = false, rightContent, b
         .fc-headline { font-size: var(--h-size); }
         .fc-cta      { font-size: var(--cta-size); }
         .fc-support  { font-size: var(--s-size); }
+        /* Default LiveCarousel width: cap at 380px / 80% of parent on
+           desktop. On mobile, widen to match the body's 28rem column. */
+        .carousel-float-width { width: min(380px, 80%); }
         @media (max-width: 480px) {
           .fc-headline { font-size: calc(var(--h-size) * 0.62); }
           .fc-cta      { font-size: calc(var(--cta-size) * 0.85); }
           .fc-support  { font-size: calc(var(--s-size) * 0.85); }
+          .carousel-float-width { width: min(28rem, 100%); }
         }
         .slide-swap-next, .slide-swap-prev {
           will-change: transform, opacity;

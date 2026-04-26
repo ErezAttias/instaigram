@@ -94,8 +94,7 @@ export function LiveCarousel({
 
   return (
     <div
-      className="relative select-none carousel-float flex flex-col items-center gap-3"
-      style={{ width: 'min(380px, 80%)' }}
+      className="relative select-none carousel-float carousel-float-width flex flex-col items-center gap-3"
     >
       <div
         className="relative flex flex-col rounded-[22px] overflow-hidden w-full"
