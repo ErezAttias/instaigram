@@ -110,7 +110,7 @@ export function KhromaShell({ children, preview, paused = false, rightContent, b
         {!bareRight && <AuroraBackdrop theme={current} isLight={isLight} />}
         {/* z-10 keeps the carousel card above the mobile feather overlay
             (which sits at z-2 to dissolve the aurora edge). */}
-        <div className="absolute inset-0 flex items-center justify-center p-4 lg:p-8 z-10">
+        <div className="absolute inset-0 flex items-center justify-center px-8 py-4 sm:px-14 lg:p-8 z-10">
           {rightContent ?? <FloatingCarousel theme={current} nonce={previewKey} isLight={isLight} />}
         </div>
       </div>
