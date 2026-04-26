@@ -100,7 +100,7 @@ export function KhromaShell({ children, preview, paused = false, rightContent, b
 
       {/* Right column */}
       <div
-        className={`right-col relative overflow-hidden min-h-[60vh] lg:min-h-0 mt-8 lg:mt-0${hideRightOnMobile ? ' hidden lg:block' : ''}`}
+        className={`right-col relative overflow-visible lg:overflow-hidden min-h-[60vh] lg:min-h-0 mt-8 lg:mt-0${hideRightOnMobile ? ' hidden lg:block' : ''}`}
         style={{
           // Mobile-only feather at the top blends the aurora into whichever
           // top-section bg is live (black in dark mode, cream in light).
@@ -110,7 +110,7 @@ export function KhromaShell({ children, preview, paused = false, rightContent, b
         {!bareRight && <AuroraBackdrop theme={current} isLight={isLight} />}
         {/* z-10 keeps the carousel card above the mobile feather overlay
             (which sits at z-2 to dissolve the aurora edge). */}
-        <div className="absolute inset-0 flex items-center justify-center p-8 z-10">
+        <div className="absolute inset-0 flex items-center justify-center p-4 lg:p-8 z-10">
           {rightContent ?? <FloatingCarousel theme={current} nonce={previewKey} isLight={isLight} />}
         </div>
       </div>
