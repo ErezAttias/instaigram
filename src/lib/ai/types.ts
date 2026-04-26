@@ -66,6 +66,20 @@ export interface ImageGenerationOptions {
   subjectName?: string;
   /** URLs already used by other slides — Wikipedia provider will skip these to avoid duplicates */
   excludeUrls?: string[];
+  /**
+   * Image-to-image: pass 1+ existing images as a *style/composition*
+   * reference. When supplied, providers that support image input (currently
+   * `gpt-image-1` via `images.edit`) will route through that endpoint
+   * instead of plain `images.generate`. No mask = treat as style anchor,
+   * not strict inpainting.
+   */
+  referenceImages?: Buffer[];
+  /**
+   * gpt-image-1 only. Controls how strongly the model preserves the look
+   * of the reference image(s). Defaults to `'high'` when references are
+   * present, otherwise unused.
+   */
+  inputFidelity?: 'low' | 'high';
 }
 
 /**

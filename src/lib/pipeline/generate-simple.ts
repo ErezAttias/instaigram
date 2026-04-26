@@ -89,6 +89,7 @@ const FactTypeEnum = z.enum([
 const HookSlide = z.object({
   type: z.literal('hook'),
   title: z.string(),
+  swipeCta: z.string().optional(),
 });
 
 const ContentSlide = z.object({
@@ -176,7 +177,7 @@ function buildPrompt(topic: string, niche?: string, tone?: string): string {
     '',
     'Return a JSON object: { "slides": [ ... ] }',
     'The array must contain EXACTLY 6 slides in this order:',
-    '  1. First slide: type "hook" — { "type":"hook", "title":"..." }',
+    '  1. First slide: type "hook" — { "type":"hook", "title":"...", "swipeCta":"..." }',
     '  2–5. Four content slides: { "type":"content", "title":"...", "content":"...", "topicEntity":"...", "factType":"..." }',
     '  6. Last slide: type "cta" — { "type":"cta", "title":"..." }',
     '',
@@ -206,16 +207,71 @@ function buildPrompt(topic: string, niche?: string, tone?: string): string {
     '',
     '═══ TITLE RULES ═══',
     '',
-    '  • title: 6–16 words. A complete, interesting fact — not a label or teaser.',
+    '  • title: 6–10 words. ≤55 chars HARD CAP. A complete, interesting fact — not a label or teaser.',
+    '  • Long titles get truncated and broken by the image renderer. Tighten relentlessly.',
     '  • Must contain an action verb (earned, discovered, broke, created, banned, etc.)',
     '  • Must include a specific number, name, or concrete detail',
     '  • The title alone must teach the reader something surprising',
     '  • Vary how titles open across the 4 facts — mix numbers, names, and contrasts',
     '',
+    '═══ HOOK SLIDE RULES ═══',
+    '',
+    '  • The hook title may NOT promise a fact count ("6 facts", "5 things", "10 ways").',
+    '    The carousel only has 4 fact slides — count claims will be wrong.',
+    '    ✗ "Jellyfish: 6 Facts That Will Blow Your Mind" — count is wrong (only 4 facts)',
+    '    ✓ "Jellyfish Are Older Than Dinosaurs. Still Here." — single hook, no count',
+    '    ✓ "Everything You Think You Know About Jellyfish Is Wrong" — myth-busting',
+    '  • Pick ONE hook angle. Do not stack two ("older than dinosaurs AND blow your mind").',
+    '',
+    '  HOOK swipeCta (REQUIRED on the hook slide):',
+    '  • 3–6 words starting with "Swipe". The CTA must point to the SPECIFIC payload the carousel delivers — counts, examples, names, mechanisms — not a generic teaser.',
+    '  • ≤40 characters HARD CAP.',
+    '  • CRITICAL — DO NOT RESTATE THE HOOK. If the hook title is itself a complete revealing sentence ("Greek Gods Were Way Weirder Than Disney Showed You"), a generic "Swipe to find out" is redundant — the hook already revealed the claim. Point at what the slides ADD instead.',
+    '    ✗ "Greek Gods Were Way Weirder Than Disney Showed You" → "Swipe to find out" (redundant — nothing left to find out)',
+    '    ✓ "Greek Gods Were Way Weirder Than Disney Showed You" → "Swipe for the weirdest myths"',
+    '    ✓ "Greek Gods Were Way Weirder Than Disney Showed You" → "Swipe for 4 examples"',
+    '  • CTAs like "Swipe to find out", "Swipe to learn more", "Swipe to see" are BANNED for complete-sentence hooks. They are only acceptable for question or intrigue-stub hooks ("Why Honey Never Expires", "The Hidden Cost of X").',
+    '  • Match the hook pattern:',
+    '    "Why X Does Y" → "Swipe to learn why"',
+    '    "How X Works" → "Swipe to find out how"',
+    '    "5 Foods That Destroy Your Gut" → "Swipe to see them"',
+    '    "Everything You Think About X Is Wrong" → "Swipe to see the truth"',
+    '    "What Happens When You Stop Eating Sugar" → "Swipe to see what happens"',
+    '  • Self-check: read the hook title and the swipeCta together. If the CTA promises something the hook already revealed, rewrite it to point at the specific payload (count, examples, names, mechanisms) the next 4 slides will deliver.',
+    '',
     '═══ OTHER FIELDS ═══',
     '',
-    '  • content (content slides only): 1–3 sentences expanding the title. Include the mechanism, context, or consequence. 100–200 characters.',
-    '  • topicEntity: the specific subject of THIS slide (≤30 chars). E.g. "Viggo Mortensen", "honey preservation", "Oxford University".',
+    '  • content (content slides only): a SINGLE FLOWING PARAGRAPH of 1–2 sentences. ≤180 characters HARD CAP.',
+    '    Anything over 180 chars gets visibly clipped mid-word in the rendered slide.',
+    '    Aim for ~25 words — enough to add real context, not so much it feels padded.',
+    '',
+    '    THE PARAGRAPH RULE:',
+    '    - Sentences MUST connect to each other using causal or explanatory connectives',
+    '    - The paragraph must read as ONE cohesive thought, not 2-3 separate factoids',
+    '    - Use connectives: because, which, so, letting, making, meaning, — and, — so, since, thanks to, allowing, only for',
+    '    - Each sentence should NEED the one before it to make full sense',
+    '    - Must include at least one number, named entity, or specific mechanism',
+    '    - Must answer "why" or "how" — not just restate the title',
+    '',
+    '    GOOD flowing paragraph:',
+    '      "Delivers 600 mg of venom per bite — the highest yield of any snake — used for hunting rather than defense, since its 2-inch fangs fold flat against the roof of its mouth and snap forward only at the moment of strike."',
+    '',
+    '    BAD (disconnected sentences):',
+    '      "Delivers 600 mg venom in one bite. Used for hunting, not defense. Fangs reach 2 inches long."',
+    '      → Three factoids. No connection. Reads like bullet points.',
+    '',
+    '    REJECT and rewrite if:',
+    '    - Sentences are disconnected (no causal or explanatory link)',
+    '    - Vague phrasing ("led to chaos", "changed everything", "something happened")',
+    '    - Last sentence is abstract interpretation ("symbolizes...", "represents...", "embodies...")',
+    '    - No concrete detail — no number, entity, or mechanism',
+    '',
+    '  • topicEntity: REQUIRED. A SPECIFIC named subject for THIS slide — never the carousel topic itself.',
+    '    The image renderer uses this to draw the slide. Generic = generic image. Specific = striking image.',
+    '    ✓ "Australian box jellyfish", "Turritopsis dohrnii", "moon jellyfish swarm at Oskarshamn reactor"',
+    '    ✗ "jellyfish" (when carousel topic is "facts about jellyfish" — too generic, repeats every slide)',
+    '    ✗ null or empty — every fact slide MUST supply one.',
+    '    ≤40 chars. Real-world entity (species, person, place, object, event), not a category.',
     '  • factType: one of "statistic", "comparison", "mechanism", "historical", "example", "definition".',
     '  • Each content slide = one idea. No lists, no meta-commentary, no "Did you know".',
     '',
@@ -226,9 +282,14 @@ function buildPrompt(topic: string, niche?: string, tone?: string): string {
 // ─── Adapter: ModelResponse → PipelineResult ────────────────
 
 function adaptToPipelineResult(slides: ModelSlide[], topic: string, layout?: 'DETAILED' | 'BOLD'): PipelineResult {
+  const clampCtaText = (t: string) => t.length > 40 ? t.slice(0, 39).trimEnd() + '…' : t;
   const v2Slides: GeneratedSlideV2[] = slides.map((s, i) => {
     if (s.type === 'hook') {
-      return baseSlide(i, 'OPENER', s.title, '', null, null);
+      const slide = baseSlide(i, 'OPENER', s.title, '', null, null);
+      if (s.swipeCta && s.swipeCta.trim()) {
+        slide.swipeCta = clampCtaText(s.swipeCta.trim());
+      }
+      return slide;
     }
     if (s.type === 'cta') {
       return baseSlide(i, 'CTA', s.title, '', null, null);
@@ -236,10 +297,18 @@ function adaptToPipelineResult(slides: ModelSlide[], topic: string, layout?: 'DE
     return baseSlide(i, 'FACT', s.title, s.content, s.topicEntity, s.factType);
   });
 
+  // Hard-clamp display strings here so Sonnet over-runs don't slip past the
+  // schema (this adapter doesn't validate). Title cap matches HARD_TITLE_LIMIT
+  // in the renderer; support cap matches the schema's max(180).
+  const clampTitle = (t: string) => t.length > 55 ? t.slice(0, 54).trimEnd() + '…' : t;
+  const clampSupport = (t: string) => t.length > 180 ? t.slice(0, 179).trimEnd() + '…' : t;
+  const clampCta = (t: string) => t.length > 40 ? t.slice(0, 39).trimEnd() + '…' : t;
+
   const compressedSlides: CompressedSlideDisplay[] = slides.map((s, i) => ({
     slideNumber: i,
-    displayTitle: s.title,
-    displaySupport: s.type === 'content' ? s.content : '',
+    displayTitle: clampTitle(s.title),
+    displaySupport: s.type === 'content' ? clampSupport(s.content) : '',
+    ...(s.type === 'hook' && s.swipeCta ? { swipeCta: clampCta(s.swipeCta) } : {}),
   }));
 
   const carousel = {

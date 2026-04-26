@@ -47,7 +47,12 @@ export async function POST(request: NextRequest) {
     const direction = body.direction?.trim() || undefined;
     const channelId = body.channelId?.trim() || undefined;
     const skipImages = body.skipImages === true;
-    const layout = 'BOLD' as const;
+    const boardProvider: 'openai' | 'gemini' | undefined =
+      body.provider === 'gemini' || body.provider === 'openai' ? body.provider : undefined;
+    // feat/baked-text-carousel branch: default new carousels to BAKED so
+    // gpt-image-1 renders text + scene in one shot. Flip back to 'BOLD' to
+    // keep behaviour identical to main.
+    const layout = 'BAKED' as const;
 
     // Dedupe: if the same channel+topic was just submitted in the last 10s
     // and is still in-progress, return the existing job instead of starting
@@ -71,14 +76,14 @@ export async function POST(request: NextRequest) {
     // Pass topic as exactSubject to skip the concept selection LLM call
     const exactSubject = skipImages ? topic : undefined;
     const job = await withDbRetry(() =>
-      createCarouselJob(topic, direction, channelId, undefined, exactSubject, layout)
+      createCarouselJob(topic, direction, channelId, undefined, exactSubject, layout, boardProvider)
     );
 
     // Start generation in background (non-blocking). waitUntil keeps the
     // serverless execution context alive after we return the response so
     // the promise actually finishes in prod instead of being killed.
     waitUntil(
-      runCarouselGeneration(job.id, undefined, { skipImages }).catch(err => {
+      runCarouselGeneration(job.id, undefined, { skipImages, boardProvider }).catch(err => {
         console.error(`[api/carousel] Background generation failed for ${job.id}: ${err.message}`);
       })
     );

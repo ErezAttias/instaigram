@@ -12,7 +12,7 @@
  *   OPENAI_IMAGE_QUALITY       — 'low' | 'medium' | 'high' | 'auto' (default: medium)
  */
 
-import OpenAI from 'openai';
+import OpenAI, { toFile } from 'openai';
 import { logAICall, summarizeInput } from './logger';
 import type { AICallMeta } from './logger';
 import type { AIResult, ImageGenerationOptions, RawImageProvider } from './types';
@@ -68,24 +68,56 @@ export class OpenAIImageProvider implements RawImageProvider {
   ): Promise<AIResult<Buffer>> {
     const startTime = Date.now();
     const size = this.resolveSize(options?.width, options?.height);
+    const refs = options?.referenceImages ?? [];
+    const useEdit = refs.length > 0;
+    const inputFidelity = options?.inputFidelity ?? (useEdit ? 'high' : undefined);
 
-    console.log(`[OpenAI-Image] Model: ${this.model} quality: ${this.quality} size: ${size} (role: ${options?.slideRole ?? 'unset'})`);
+    console.log(
+      `[OpenAI-Image] Model: ${this.model} quality: ${this.quality} size: ${size} `
+      + `endpoint: ${useEdit ? `images.edit (refs:${refs.length}, input_fidelity:${inputFidelity})` : 'images.generate'} `
+      + `(role: ${options?.slideRole ?? 'unset'})`,
+    );
 
     const imageBuffer = await this.withRetryWrapped(
       async () => {
-        const response = await this.client.images.generate({
-          model: this.model,
-          prompt,
-          n: 1,
-          size,
-          quality: this.quality,
-        });
+        let b64: string | undefined;
 
-        const imageData = response.data;
-        if (!imageData || imageData.length === 0) {
-          throw new Error(`${this.model} returned empty response`);
+        if (useEdit) {
+          // images.edit accepts up to 16 reference images for gpt-image-1.
+          // No mask = treat input as style/composition reference, not strict
+          // inpainting (per OpenAI SDK JSDoc).
+          const files = await Promise.all(
+            refs.map((buf, i) => toFile(buf, `ref-${i}.png`, { type: 'image/png' })),
+          );
+          const response = await this.client.images.edit({
+            model: this.model,
+            image: files.length === 1 ? files[0] : files,
+            prompt,
+            n: 1,
+            size,
+            quality: this.quality,
+            ...(inputFidelity ? { input_fidelity: inputFidelity } : {}),
+          } as Parameters<typeof this.client.images.edit>[0]) as { data?: Array<{ b64_json?: string }> };
+          const imageData = response.data;
+          if (!imageData || imageData.length === 0) {
+            throw new Error(`${this.model} edit returned empty response`);
+          }
+          b64 = imageData[0].b64_json;
+        } else {
+          const response = await this.client.images.generate({
+            model: this.model,
+            prompt,
+            n: 1,
+            size,
+            quality: this.quality,
+          });
+          const imageData = response.data;
+          if (!imageData || imageData.length === 0) {
+            throw new Error(`${this.model} returned empty response`);
+          }
+          b64 = imageData[0].b64_json;
         }
-        const b64 = imageData[0].b64_json;
+
         if (!b64) {
           throw new Error(`${this.model} returned empty image data`);
         }
@@ -93,7 +125,7 @@ export class OpenAIImageProvider implements RawImageProvider {
         console.log(`[OpenAI-Image] Image received: ${Math.round(b64.length * 0.75 / 1024)}KB`);
         return Buffer.from(b64, 'base64');
       },
-      { task: 'generateImage', prompt, model: this.model }
+      { task: useEdit ? 'editImage' : 'generateImage', prompt, model: this.model }
     );
 
     const meta: AICallMeta = {
@@ -117,7 +149,7 @@ export class OpenAIImageProvider implements RawImageProvider {
     if (!width || !height) return '1024x1536';
     const ratio = width / height;
     if (ratio > 1.2) return '1536x1024';
-    if (ratio < 0.8) return '1024x1536';
+    if (ratio <= 0.85) return '1024x1536';
     return '1024x1024';
   }
 

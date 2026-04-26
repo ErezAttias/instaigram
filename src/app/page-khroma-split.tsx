@@ -23,7 +23,9 @@ type Phase =
   | 'creating-job'
   | 'generating-copy'
   | 'copy-review'
-  | 'rendering'
+  | 'designing-board'    // Phase 1: gpt-image-1 is generating the cinematic SET
+  | 'board-review'       // board ready, awaiting user approval
+  | 'rendering'          // Phase 2: per-slide regen from approved board
   | 'done'
 
 type Slide = {
@@ -34,6 +36,10 @@ type Slide = {
   displaySupport: string | null
   imageUrl?: string | null
   status?: string
+  /** True when the image already contains the headline + support text
+   *  (e.g. baked-text carousels). Tells LiveCarousel to skip the CSS
+   *  overlay so the same words don't appear twice. */
+  hasEmbeddedText?: boolean
 }
 
 export default function HomeKhromaSplit({ initialJobId }: { initialJobId?: string } = {}) {
@@ -50,11 +56,26 @@ export default function HomeKhromaSplit({ initialJobId }: { initialJobId?: strin
   const [phase, setPhase] = useState<Phase>(initialJobId ? 'generating-copy' : 'idle')
   const [submittedTopic, setSubmittedTopic] = useState('')
   const [sampleFacts, setSampleFacts] = useState<string[]>([])
+  /** Index of the sample fact currently being regenerated (one at a time). */
+  const [regeneratingFactIndex, setRegeneratingFactIndex] = useState<number | null>(null)
+  /** Slide index currently being copy-regenerated on the copy-review screen. */
+  const [regeneratingSlideCopyIndex, setRegeneratingSlideCopyIndex] = useState<number | null>(null)
   const [jobId, setJobId] = useState<string | null>(initialJobId ?? null)
   const [slides, setSlides] = useState<Slide[]>([])
   const [caption, setCaption] = useState<string>('')
   const [hashtags, setHashtags] = useState<string[]>([])
   const [regeneratingSet, setRegeneratingSet] = useState<Set<number>>(new Set())
+  const [styleBible, setStyleBible] = useState<{
+    visualLanguage?: string;
+    palette?: { primary?: string; secondary?: string; accent?: string; text?: string; background?: string };
+    typography?: { headlineDescription?: string; bodyDescription?: string };
+    composition?: string;
+    mood?: string;
+    motifs?: string[];
+    textPlacement?: string;
+  } | null>(null)
+  const [designBoardUrl, setDesignBoardUrl] = useState<string | null>(null)
+  const [boardActionPending, setBoardActionPending] = useState<'approve' | 'regenerate' | null>(null)
   const [activeSlide, setActiveSlideRaw] = useState(0)
   const [slideDir, setSlideDir] = useState<'next' | 'prev'>('next')
   const [editTarget, setEditTarget] = useState<'overview' | 'headline' | 'support' | 'image' | 'textbg'>('overview')
@@ -92,15 +113,27 @@ export default function HomeKhromaSplit({ initialJobId }: { initialJobId?: strin
         if (cancelled) return
         if (Array.isArray(data.slides)) setSlides(data.slides)
         if (data.topic) setSubmittedTopic(data.topic)
+        const meta = (data.pipelineMeta && typeof data.pipelineMeta === 'object') ? data.pipelineMeta : null
+        const sb = meta?.styleBible
+        if (sb && typeof sb === 'object') setStyleBible(sb)
+        const boardUrl = meta?.designBoardUrl as string | undefined
+        if (boardUrl) setDesignBoardUrl(boardUrl)
+        const boardApproved = meta?.designBoardApproved === true
+        const progressStep = data?.progress?.step as string | undefined
         if (typeof data.caption === 'string' && data.caption) setCaption(data.caption)
         if (Array.isArray(data.hashtags)) setHashtags(data.hashtags)
-        const copyDone = data.status === 'COMPLETE'
+        const copyDone = data.status === 'COMPLETE' || data.status === 'RENDERING'
+        const renderingDone = data.status === 'COMPLETE'
         const hasSlides = Array.isArray(data.slides) && data.slides.length > 0
         const allResolved = hasSlides && data.slides.every((s: Slide) => !!s.imageUrl || s.status === 'FAILED_IMAGE')
         const anyImage = hasSlides && data.slides.some((s: Slide) => !!s.imageUrl)
-        if (copyDone && allResolved) setPhase('done')
-        else if (copyDone && anyImage) setPhase('rendering')
-        else if (copyDone) setPhase('copy-review')
+        if (renderingDone && allResolved) setPhase('done')
+        else if (boardUrl && !boardApproved) setPhase('board-review')
+        else if (progressStep === 'render' && data.status === 'RENDERING' && !boardUrl) setPhase('designing-board')
+        else if (boardApproved && copyDone) setPhase('rendering')
+        else if (anyImage) setPhase('rendering')
+        else if (data.status === 'COMPLETE' && !hasSlides) setPhase('copy-review')
+        else if (data.status === 'COMPLETE') setPhase('copy-review')
         else setPhase('generating-copy')
       } catch {
         setError('Failed to load carousel')
@@ -117,7 +150,12 @@ export default function HomeKhromaSplit({ initialJobId }: { initialJobId?: strin
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
   useEffect(() => {
     if (!jobId) return
-    if (phase !== 'generating-copy' && phase !== 'rendering') return
+    if (
+      phase !== 'generating-copy' &&
+      phase !== 'rendering' &&
+      phase !== 'designing-board' &&
+      phase !== 'board-review'
+    ) return
     let cancelled = false
     const poll = async () => {
       try {
@@ -130,6 +168,12 @@ export default function HomeKhromaSplit({ initialJobId }: { initialJobId?: strin
         }
         if (typeof data.caption === 'string' && data.caption) setCaption(data.caption)
         if (Array.isArray(data.hashtags)) setHashtags(data.hashtags)
+        const meta = (data.pipelineMeta && typeof data.pipelineMeta === 'object') ? data.pipelineMeta : null
+        const sb = meta?.styleBible
+        if (sb && typeof sb === 'object') setStyleBible(sb)
+        const boardUrl = meta?.designBoardUrl as string | undefined
+        const boardApproved = meta?.designBoardApproved === true
+        if (boardUrl) setDesignBoardUrl(boardUrl)
         // Copy-generation phase moves to review as soon as the copy is final.
         if (phase === 'generating-copy') {
           if (data.status === 'COMPLETE') {
@@ -140,6 +184,22 @@ export default function HomeKhromaSplit({ initialJobId }: { initialJobId?: strin
             setError('Generation failed. Try a different topic.')
             setPhase('sample-facts')
           }
+        }
+        // Designing-board phase: wait for the board URL to land, then move
+        // to board-review (which shows the board for approval).
+        if (phase === 'designing-board') {
+          if (boardUrl) {
+            setPhase('board-review')
+          } else if (data.status === 'FAILED') {
+            if (pollRef.current) clearInterval(pollRef.current)
+            setError(data.errorMessage || 'Board generation failed. Try Regenerate.')
+            setPhase('board-review')
+          }
+        }
+        // Board-review phase: detect approval via pipelineMeta flag, then
+        // transition to slide rendering. Or detect a NEW board (regenerated).
+        if (phase === 'board-review' && boardApproved) {
+          setPhase('rendering')
         }
         // Rendering phase ends when every slide has an imageUrl (or failed).
         if (phase === 'rendering' && Array.isArray(data.slides) && data.slides.length > 0) {
@@ -182,6 +242,50 @@ export default function HomeKhromaSplit({ initialJobId }: { initialJobId?: strin
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to preview topic')
       setPhase('idle')
+    }
+  }
+
+  async function regenerateSampleFact(index: number) {
+    if (regeneratingFactIndex !== null) return // serialize, one at a time
+    setRegeneratingFactIndex(index)
+    try {
+      const res = await fetch('/api/carousel/generate-angles/regenerate-fact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ topic: submittedTopic, existingFacts: sampleFacts }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok || !data.fact) throw new Error(data.error || 'Failed to regenerate fact')
+      setSampleFacts(prev => prev.map((f, i) => (i === index ? data.fact : f)))
+    } catch (err) {
+      // Soft-fail — don't block the user. Could add a toast later.
+      console.error('[regenerateSampleFact]', err)
+    } finally {
+      setRegeneratingFactIndex(null)
+    }
+  }
+
+  async function regenerateSlideCopy(slideIndex: number) {
+    if (!jobId) return
+    if (regeneratingSlideCopyIndex !== null) return
+    setRegeneratingSlideCopyIndex(slideIndex)
+    try {
+      const res = await fetch(`/api/carousel/${jobId}/regenerate-slide`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slideIndex, mode: 'copy' }),
+      })
+      if (!res.ok) throw new Error('Failed to regenerate slide')
+      // Refetch the job so the slide list reflects the new copy. The poller
+      // is paused in copy-review, so do a one-shot fetch here.
+      const jobRes = await fetch(`/api/carousel/${jobId}`)
+      const text = await jobRes.text()
+      const data = JSON.parse(text.replace(/[\x00-\x1f]/g, ' '))
+      if (Array.isArray(data.slides)) setSlides(data.slides)
+    } catch (err) {
+      console.error('[regenerateSlideCopy]', err)
+    } finally {
+      setRegeneratingSlideCopyIndex(null)
     }
   }
 
@@ -326,7 +430,11 @@ export default function HomeKhromaSplit({ initialJobId }: { initialJobId?: strin
 
   async function approveCopy() {
     if (!jobId) return
-    setPhase('rendering')
+    // Phase 1 (design board) starts here. The board generation runs in the
+    // background; the poll flips to 'board-review' once the board URL
+    // appears on the job's pipelineMeta.
+    setPhase('designing-board')
+    setDesignBoardUrl(null)
     try {
       const pRes = await fetch(`/api/carousel/${jobId}/preview-prompts`)
       const pData = await pRes.json().catch(() => ({}))
@@ -344,11 +452,38 @@ export default function HomeKhromaSplit({ initialJobId }: { initialJobId?: strin
           })),
         }),
       })
-      // Stay in 'rendering' — the main poll flips to 'done' once every
-      // slide has its imageUrl (or FAILED_IMAGE).
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to render images')
+      setError(err instanceof Error ? err.message : 'Failed to start board generation')
       setPhase('copy-review')
+    }
+  }
+
+  async function approveDesignBoard() {
+    if (!jobId || boardActionPending) return
+    setBoardActionPending('approve')
+    try {
+      const res = await fetch(`/api/carousel/${jobId}/approve-board`, { method: 'POST' })
+      if (!res.ok && res.status !== 202) throw new Error('approve-board failed')
+      setPhase('rendering')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to approve board')
+    } finally {
+      setBoardActionPending(null)
+    }
+  }
+
+  async function regenerateDesignBoard() {
+    if (!jobId || boardActionPending) return
+    setBoardActionPending('regenerate')
+    setDesignBoardUrl(null)
+    try {
+      const res = await fetch(`/api/carousel/${jobId}/regenerate-board`, { method: 'POST' })
+      if (!res.ok && res.status !== 202) throw new Error('regenerate-board failed')
+      setPhase('designing-board')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to regenerate board')
+    } finally {
+      setBoardActionPending(null)
     }
   }
 
@@ -624,23 +759,70 @@ export default function HomeKhromaSplit({ initialJobId }: { initialJobId?: strin
             </p>
 
             <ul className="flex flex-col gap-3 max-h-[48vh] overflow-y-auto pr-2 -mr-2">
-              {sampleFacts.map((fact, i) => (
-                <li
-                  key={i}
-                  className="p-4 rounded-xl flex items-start gap-3"
-                  style={{
-                    background: isLight ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.04)',
-                    border: `1px solid ${isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.08)'}`,
-                  }}
-                >
-                  <span className="shrink-0 text-[11px] font-mono tabular-nums mt-1 opacity-50" style={{ color: textMuted }}>
-                    {String(i + 1).padStart(2, '0')}
-                  </span>
-                  <p className="text-[15px] leading-relaxed" style={{ color: textMain, fontFamily: SANS }}>
-                    {fact}
-                  </p>
-                </li>
-              ))}
+              {sampleFacts.map((fact, i) => {
+                const isRegen = regeneratingFactIndex === i
+                const isAnyRegen = regeneratingFactIndex !== null
+                return (
+                  <li
+                    key={i}
+                    className="group relative p-4 pr-12 rounded-xl flex items-start gap-3 transition-colors"
+                    style={{
+                      background: isLight ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.04)',
+                      border: `1px solid ${isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.08)'}`,
+                    }}
+                  >
+                    <span className="shrink-0 text-[11px] font-mono tabular-nums mt-1 opacity-50" style={{ color: textMuted }}>
+                      {String(i + 1).padStart(2, '0')}
+                    </span>
+                    <p
+                      className="text-[15px] leading-relaxed transition-opacity"
+                      style={{
+                        color: textMain,
+                        fontFamily: SANS,
+                        opacity: isRegen ? 0.35 : 1,
+                      }}
+                    >
+                      {fact}
+                    </p>
+
+                    {/* Hover-revealed "regenerate this fact" button. Always
+                        visible while the fact is mid-regen so the user can
+                        see the spinner. */}
+                    <button
+                      type="button"
+                      onClick={() => regenerateSampleFact(i)}
+                      disabled={isAnyRegen}
+                      aria-label="Regenerate this fact"
+                      title="Regenerate this fact"
+                      className={`absolute top-1/2 right-3 -translate-y-1/2 w-8 h-8 rounded-full inline-flex items-center justify-center transition-all duration-200 ${
+                        isRegen
+                          ? 'opacity-100'
+                          : 'opacity-0 group-hover:opacity-100 focus-visible:opacity-100'
+                      } disabled:cursor-not-allowed`}
+                      style={{
+                        background: isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)',
+                        border: `1px solid ${isLight ? 'rgba(0,0,0,0.12)' : 'rgba(255,255,255,0.14)'}`,
+                        color: textMain,
+                      }}
+                    >
+                      {isRegen ? (
+                        <span
+                          aria-hidden="true"
+                          className="w-3.5 h-3.5 border-2 rounded-full animate-spin"
+                          style={{ borderColor: 'currentColor', borderTopColor: 'transparent' }}
+                        />
+                      ) : (
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <path d="M3 12a9 9 0 0 1 15.5-6.3L21 8" />
+                          <path d="M21 3v5h-5" />
+                          <path d="M21 12a9 9 0 0 1-15.5 6.3L3 16" />
+                          <path d="M3 21v-5h5" />
+                        </svg>
+                      )}
+                    </button>
+                  </li>
+                )
+              })}
             </ul>
 
             <div className="mt-10 flex items-center gap-5 flex-wrap">
@@ -752,28 +934,71 @@ export default function HomeKhromaSplit({ initialJobId }: { initialJobId?: strin
             </p>
 
             <ul className="flex flex-col gap-3 max-h-[48vh] overflow-y-auto pr-2 -mr-2">
-              {slides.map(s => (
-                <li
-                  key={s.slideIndex}
-                  className="p-4 rounded-xl"
-                  style={{
-                    background: isLight ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.04)',
-                    border: `1px solid ${isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.08)'}`,
-                  }}
-                >
-                  <div className="text-[10px] uppercase tracking-wider mb-1.5 opacity-70" style={{ color: textMuted, fontFamily: SANS }}>
-                    {s.role} · {s.slideIndex + 1} / {slides.length}
-                  </div>
-                  <p className="text-[15px] font-semibold leading-snug" style={{ color: textMain, fontFamily: SANS }}>
-                    {s.displayTitle || s.headline}
-                  </p>
-                  {s.displaySupport && (
-                    <p className="text-[13px] mt-1 leading-relaxed" style={{ color: textMuted, fontFamily: SANS }}>
-                      {s.displaySupport}
+              {slides.map(s => {
+                const isRegen = regeneratingSlideCopyIndex === s.slideIndex
+                const disabled = regeneratingSlideCopyIndex !== null
+                // Skip CTA / OPENER — those are formula-driven, not facts.
+                const isFact = s.role === 'FACT' || s.role === 'IMPLICATION'
+                return (
+                  <li
+                    key={s.slideIndex}
+                    className="group relative p-4 rounded-xl"
+                    style={{
+                      background: isLight ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.04)',
+                      border: `1px solid ${isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.08)'}`,
+                    }}
+                  >
+                    <div className="text-[10px] uppercase tracking-wider mb-1.5 opacity-70" style={{ color: textMuted, fontFamily: SANS }}>
+                      {s.role} · {s.slideIndex + 1} / {slides.length}
+                    </div>
+                    <p
+                      className="text-[15px] font-semibold leading-snug pr-9 transition-opacity"
+                      style={{ color: textMain, fontFamily: SANS, opacity: isRegen ? 0.4 : 1 }}
+                    >
+                      {s.displayTitle || s.headline}
                     </p>
-                  )}
-                </li>
-              ))}
+                    {s.displaySupport && (
+                      <p
+                        className="text-[13px] mt-1 leading-relaxed pr-9 transition-opacity"
+                        style={{ color: textMuted, fontFamily: SANS, opacity: isRegen ? 0.4 : 1 }}
+                      >
+                        {s.displaySupport}
+                      </p>
+                    )}
+                    {isFact && (
+                      <button
+                        type="button"
+                        onClick={() => regenerateSlideCopy(s.slideIndex)}
+                        disabled={disabled}
+                        aria-label="Regenerate this fact"
+                        title="Regenerate this fact"
+                        className="absolute top-3 right-3 p-1.5 rounded-md transition-all opacity-0 group-hover:opacity-100 focus:opacity-100 disabled:cursor-not-allowed"
+                        style={{
+                          color: textMuted,
+                          background: 'transparent',
+                        }}
+                        onMouseEnter={e => { e.currentTarget.style.background = isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.06)' }}
+                        onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
+                      >
+                        <svg
+                          className={`w-4 h-4 ${isRegen ? 'animate-spin' : ''}`}
+                          viewBox="0 0 20 20"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.8"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="M3 10a7 7 0 0 1 12-4.95L17 7" />
+                          <path d="M17 3v4h-4" />
+                          <path d="M17 10a7 7 0 0 1-12 4.95L3 13" />
+                          <path d="M3 17v-4h4" />
+                        </svg>
+                      </button>
+                    )}
+                  </li>
+                )
+              })}
             </ul>
 
             <div className="mt-6 flex items-center gap-5 flex-wrap">
@@ -800,6 +1025,89 @@ export default function HomeKhromaSplit({ initialJobId }: { initialJobId?: strin
                 style={{ color: textMuted, fontFamily: SANS }}
               >
                 ← Back
+              </button>
+            </div>
+          </>
+        )}
+
+        {phase === 'designing-board' && (
+          <>
+            <p className="mb-6 uppercase tracking-[0.22em] text-[11px]" style={{ color: textMuted, fontFamily: SANS, fontWeight: 600 }}>
+              Step 03 — Designing the set
+            </p>
+            <h1
+              className="mb-8"
+              style={{
+                fontFamily: SERIF,
+                fontWeight: 400,
+                color: textMain,
+                fontSize: 'clamp(3rem, 5.4vw, 4.75rem)',
+                lineHeight: 1,
+                letterSpacing: '-0.015em',
+              }}
+            >
+              Designing <span style={{ fontStyle: 'italic' }}>the set</span><span className="dots-anchor"><span className="dots" /></span>
+            </h1>
+            <p className="mb-8 max-w-[30rem]" style={{ color: textMuted, fontFamily: SANS, fontSize: '16px', lineHeight: 1.6 }}>
+              Drafting all 6 slides as a single cinematic set, so they share one design system. You&rsquo;ll see the design board next, then approve to render the full slides.
+            </p>
+            <div className="flex items-center gap-2 text-[13px]" style={{ color: textMuted, fontFamily: SANS }}>
+              <span className="w-3 h-3 border-2 border-current/30 border-t-current rounded-full animate-spin" />
+              <span>Composing slides 1&ndash;6&hellip;</span>
+            </div>
+          </>
+        )}
+
+        {phase === 'board-review' && (
+          <>
+            <p className="mb-6 uppercase tracking-[0.22em] text-[11px]" style={{ color: textMuted, fontFamily: SANS, fontWeight: 600 }}>
+              Step 03 — Review the design
+            </p>
+            <h1
+              className="mb-4"
+              style={{
+                fontFamily: SERIF,
+                fontWeight: 400,
+                color: textMain,
+                fontSize: 'clamp(2.25rem, 3.6vw, 3.25rem)',
+                lineHeight: 1.05,
+                letterSpacing: '-0.015em',
+              }}
+            >
+              Does this <span style={{ fontStyle: 'italic' }}>set</span> work?
+            </h1>
+            <p className="mb-6 max-w-[30rem]" style={{ color: textMuted, fontFamily: SANS, fontSize: '15px', lineHeight: 1.55 }}>
+              All 6 slides at preview resolution, designed as one set. Approve to render each at full quality, or regenerate for a different design.
+            </p>
+
+            {designBoardUrl && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={designBoardUrl}
+                alt="Carousel design board — 6 slides as a 2×3 set"
+                className="mb-6 max-w-[28rem] rounded-xl border"
+                style={{ borderColor: isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.08)' }}
+              />
+            )}
+
+            <div className="flex items-center gap-5 flex-wrap">
+              <button
+                type="button"
+                onClick={approveDesignBoard}
+                disabled={!designBoardUrl || boardActionPending !== null}
+                className="h-12 px-8 text-white font-medium rounded-full text-[15px] transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{ backgroundImage: IG_GRADIENT, fontFamily: SANS, boxShadow: '0 4px 14px rgba(220,39,67,0.35)' }}
+              >
+                {boardActionPending === 'approve' ? 'Approving…' : 'Approve & render →'}
+              </button>
+              <button
+                type="button"
+                onClick={regenerateDesignBoard}
+                disabled={boardActionPending !== null}
+                className="text-sm font-medium underline-offset-4 hover:underline disabled:opacity-50"
+                style={{ color: textMuted, fontFamily: SANS }}
+              >
+                {boardActionPending === 'regenerate' ? 'Regenerating…' : 'Regenerate board'}
               </button>
             </div>
           </>
@@ -859,6 +1167,56 @@ export default function HomeKhromaSplit({ initialJobId }: { initialJobId?: strin
                 <span>Rendering slide {Math.min(renderedCount + 1, totalCount || 1)}…</span>
               </div>
             </div>
+
+            {styleBible && (
+              <div
+                className="mt-6 max-w-[34rem] rounded-xl p-5 animate-fade-up"
+                style={{
+                  background: isLight ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.04)',
+                  border: `1px solid ${isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.08)'}`,
+                }}
+              >
+                <p className="mb-3 uppercase tracking-[0.18em] text-[11px] opacity-70" style={{ color: textMuted, fontFamily: SANS, fontWeight: 600 }}>
+                  Style direction picked
+                </p>
+                {styleBible.visualLanguage && (
+                  <p className="mb-4" style={{ color: textMain, fontFamily: SANS, fontSize: '15px', lineHeight: 1.55, fontWeight: 500 }}>
+                    {styleBible.visualLanguage}
+                  </p>
+                )}
+                {styleBible.palette && (
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    {([
+                      ['Background', styleBible.palette.background],
+                      ['Primary', styleBible.palette.primary],
+                      ['Secondary', styleBible.palette.secondary],
+                      ['Accent', styleBible.palette.accent],
+                      ['Text', styleBible.palette.text],
+                    ] as const).filter(([, c]) => !!c).map(([label, color]) => (
+                      <div key={label} className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg" style={{ border: `1px solid ${isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.10)'}`, background: isLight ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.02)' }}>
+                        <span aria-hidden="true" className="w-4 h-4 rounded-full" style={{ backgroundColor: color, border: `1px solid ${isLight ? 'rgba(0,0,0,0.15)' : 'rgba(255,255,255,0.15)'}` }} />
+                        <span className="text-[11px]" style={{ color: textMuted, fontFamily: SANS }}>{label}</span>
+                        <span className="text-[11px] font-mono opacity-60" style={{ color: textMuted }}>{color}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div className="grid sm:grid-cols-2 gap-x-6 gap-y-3 text-[13px]" style={{ color: textMuted, fontFamily: SANS, lineHeight: 1.5 }}>
+                  {styleBible.mood && (
+                    <div>
+                      <span className="text-[10px] uppercase tracking-wider opacity-60 block mb-0.5">Mood</span>
+                      <span>{styleBible.mood}</span>
+                    </div>
+                  )}
+                  {styleBible.composition && (
+                    <div>
+                      <span className="text-[10px] uppercase tracking-wider opacity-60 block mb-0.5">Composition</span>
+                      <span>{styleBible.composition}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </>
         )}
 

@@ -55,6 +55,32 @@ interface CarouselJob {
   slides: CarouselSlide[];
   caption: string | null;
   hashtags: string[];
+  /** 'DETAILED' | 'BOLD' | 'BAKED'. BAKED = gpt-image-1 produced text+scene
+   *  in one image; the design panel is hidden because there's no overlay. */
+  layout?: 'DETAILED' | 'BOLD' | 'BAKED';
+  pipelineMeta?: {
+    styleBible?: StyleBibleData;
+    [k: string]: unknown;
+  } | null;
+}
+
+interface StyleBibleData {
+  visualLanguage?: string;
+  palette?: {
+    primary?: string;
+    secondary?: string;
+    accent?: string;
+    text?: string;
+    background?: string;
+  };
+  typography?: {
+    headlineDescription?: string;
+    bodyDescription?: string;
+  };
+  composition?: string;
+  mood?: string;
+  motifs?: string[];
+  textPlacement?: string;
 }
 
 interface ProgressEvent {
@@ -67,33 +93,45 @@ interface ProgressEvent {
 
 // ─── Progress Steps ─────────────────────────────────────────
 
-/** The 4 user-facing generation phases. */
+/** The 4 user-facing generation phases for the BAKED design-board flow. */
 const USER_STEPS = [
-  { key: 'facts',  label: 'Finding facts' },
-  { key: 'copy',   label: 'Writing copy' },
-  { key: 'images', label: 'Creating images' },
-  { key: 'checks', label: 'Final checks' },
+  { key: 'research', label: 'Researching' },
+  { key: 'copy',     label: 'Writing copy' },
+  { key: 'design',   label: 'Designing the set' },
+  { key: 'render',   label: 'Rendering slides' },
 ] as const;
 
-/** Map backend step names → user-facing phase index (0-3, or 4 = all done). */
-function getActiveStepIndex(backendStep: string | undefined): number {
+/**
+ * Map backend step → user-facing phase index (0-3, or 4 = all done).
+ * The BAKED flow emits `step: 'render'` for both the design-board phase and
+ * the per-slide rendering phase. We disambiguate using `pct`: <30 is the
+ * board, >=30 is the per-slide rendering.
+ */
+function getActiveStepIndex(
+  backendStep: string | undefined,
+  pct: number,
+): number {
   if (!backendStep) return 0;
   switch (backendStep) {
     case 'hook':
     case 'knowledge':
-      return 0; // Finding facts
+      return 0; // Researching
     case 'pipeline':
     case 'quality':
     case 'narrative':
     case 'promise':
     case 'pipeline_done':
-      return 1; // Writing copy (includes quality gates that run mid-pipeline)
+      return 1; // Writing copy (includes mid-pipeline quality gates)
     case 'render':
-      return 2; // Creating images
+      // Phase 1 (board) is pct 0–30; Phase 2 (per-slide) is pct >=30.
+      return pct < 30 ? 2 : 3;
+    case 'board_ready':
+    case 'board_failed':
+      return 2; // Sit on "Designing the set" while user reviews/approves
     case 'saving':
-      return 3; // Final checks
+      return 3; // Rendering slides (final save)
     case 'complete':
-      return 4; // All done (past last step)
+      return 4; // All done
     default:
       return 0;
   }
@@ -168,17 +206,99 @@ function getUserFacingError(rawError: string): string {
 
 // ─── Progress Screen (Screen B) ─────────────────────────────
 
+function StyleBiblePanel({ bible }: { bible: StyleBibleData }) {
+  const swatches: { label: string; color?: string }[] = [
+    { label: 'Background', color: bible.palette?.background },
+    { label: 'Primary', color: bible.palette?.primary },
+    { label: 'Secondary', color: bible.palette?.secondary },
+    { label: 'Accent', color: bible.palette?.accent },
+    { label: 'Text', color: bible.palette?.text },
+  ].filter(s => !!s.color);
+
+  return (
+    <div className="animate-fade-up mt-2 mb-2 p-5 rounded-xl border border-border bg-surface">
+      <div className="flex items-center gap-2 mb-4">
+        <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
+        <h2 className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-light">
+          Style direction picked
+        </h2>
+      </div>
+
+      {bible.visualLanguage && (
+        <p className="text-[15px] font-medium text-foreground leading-snug mb-4">
+          {bible.visualLanguage}
+        </p>
+      )}
+
+      {swatches.length > 0 && (
+        <div className="flex flex-wrap gap-2 mb-4">
+          {swatches.map(s => (
+            <div key={s.label} className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg border border-border bg-background">
+              <span
+                aria-hidden="true"
+                className="w-4 h-4 rounded-full border border-border"
+                style={{ backgroundColor: s.color }}
+              />
+              <span className="text-[11px] text-muted-light">{s.label}</span>
+              <span className="text-[11px] font-mono text-muted/60">{s.color}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="grid sm:grid-cols-2 gap-x-6 gap-y-3 text-[13px] leading-snug">
+        {bible.mood && (
+          <div>
+            <span className="text-[10px] uppercase tracking-wider text-muted/60 block mb-0.5">Mood</span>
+            <span className="text-muted-light">{bible.mood}</span>
+          </div>
+        )}
+        {bible.composition && (
+          <div>
+            <span className="text-[10px] uppercase tracking-wider text-muted/60 block mb-0.5">Composition</span>
+            <span className="text-muted-light">{bible.composition}</span>
+          </div>
+        )}
+        {bible.typography?.headlineDescription && (
+          <div>
+            <span className="text-[10px] uppercase tracking-wider text-muted/60 block mb-0.5">Headline type</span>
+            <span className="text-muted-light">{bible.typography.headlineDescription}</span>
+          </div>
+        )}
+        {bible.textPlacement && (
+          <div>
+            <span className="text-[10px] uppercase tracking-wider text-muted/60 block mb-0.5">Text placement</span>
+            <span className="text-muted-light">{bible.textPlacement}</span>
+          </div>
+        )}
+      </div>
+
+      {bible.motifs && bible.motifs.length > 0 && (
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {bible.motifs.map((m, i) => (
+            <span key={i} className="text-[11px] px-2 py-0.5 rounded-full bg-surface-elevated text-muted-light border border-border">
+              {m}
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ProgressView({
   progress,
   error,
   slides,
+  styleBible,
 }: {
   progress: ProgressEvent | null;
   error: string | null;
   slides: CarouselSlide[];
+  styleBible: StyleBibleData | null;
 }) {
   const pct = progress?.pct ?? 0;
-  const rawIndex = getActiveStepIndex(progress?.step);
+  const rawIndex = getActiveStepIndex(progress?.step, pct);
 
   // Monotonic: never show a step earlier than the highest we've reached
   const highWaterRef = useRef(0);
@@ -313,6 +433,9 @@ function ProgressView({
             style={{ width: `${Math.max(pct, 3)}%` }}
           />
         </div>
+
+        {/* Style bible — appears once Sonnet has chosen the look (mid-render). */}
+        {styleBible && <StyleBiblePanel bible={styleBible} />}
       </div>
 
       {/* Progressive slide grid — shown during render phase */}
@@ -1599,6 +1722,26 @@ function ReviewView({
                 wikipediaQuery: r.pageTitle,
               })}
             />
+          ) : job.layout === 'BAKED' ? (
+            // BAKED carousels have text already rendered into the image by
+            // gpt-image-1 — the live CSS overlay is bypassed and the design
+            // panel doesn't apply. Show a small notice instead.
+            <div className="rounded-2xl border border-border bg-surface p-6 flex flex-col gap-3">
+              <div className="text-[10px] uppercase tracking-wider text-muted-light font-semibold">
+                Generated by gpt-image-1
+              </div>
+              <h3 className="text-base font-semibold text-foreground leading-snug">
+                Text is part of the image.
+              </h3>
+              <p className="text-sm text-muted leading-relaxed">
+                Every slide was rendered with the headline, supporting copy
+                and CTA already drawn in. To change a slide&rsquo;s look or
+                wording, click the slide image and use{' '}
+                <span className="font-semibold text-foreground">Re-roll</span>
+                {' '}— the model will produce a fresh take while keeping the
+                style of slide 1.
+              </p>
+            </div>
           ) : (
             <CarouselDesignPanel
               channelId={job.channelId}
@@ -2050,7 +2193,8 @@ export default function CarouselJobPage() {
     job.slides.length > 0 &&
     job.slides.every(s => !s.imageUrl && s.status !== 'FAILED_IMAGE');
   if (phase === 'progress' && (!job || job.status === 'PENDING' || job.status === 'GENERATING' || job.status === 'RENDERING' || renderingInBackground)) {
-    return <ProgressView progress={progress} error={error} slides={partialSlides} />;
+    const styleBible = (job?.pipelineMeta?.styleBible as StyleBibleData | undefined) ?? null;
+    return <ProgressView progress={progress} error={error} slides={partialSlides} styleBible={styleBible} />;
   }
 
   // Error state

@@ -34,8 +34,11 @@ COMPRESSION RULES
 ═══════════════════════════════════════════
 
 For each slide, produce:
-  displayTitle: 5–10 words. The core claim — punchy, concrete, scannable in under 1 second.
-  displaySupport: 1–2 sentences. Expands the title with the surprising detail, number, or context that makes it interesting.
+  displayTitle: 5–8 words. ≤55 characters HARD CAP. The core claim — punchy, concrete, scannable in under 1 second.
+                Long titles get truncated by the image model and break ("60 ADULT H HUMANS"). Tighten relentlessly.
+  displaySupport: 1–2 sentences, ~25 words. ≤180 characters HARD CAP.
+                  Keep enough room for context — terse one-liners feel stripped down. But longer than 180 chars
+                  gets silently clipped by the image model.
 
 Rules:
 - No fluff: remove "most people don't know", "here's the thing", "the truth is"
@@ -68,12 +71,19 @@ Role-specific behavior:
      "The Hidden Cost of X" → swipeCta: "Swipe to find out"
   IMPORTANT: The CTA must feel natural for the specific hook. Do NOT always default to "Swipe to learn why".
 
+  CRITICAL — DO NOT RESTATE THE HOOK:
+  If the headline is itself a complete revealing sentence (e.g. "Greek Gods Were Shocking, Petty, and Violent"), a generic CTA like "Swipe to find out" sounds redundant — there's nothing left to find out. In that case the CTA must point to what the swipes ADD, not re-tease the hook.
+     ✗ Headline: "Greek Gods Were Shocking, Petty, and Violent" → swipeCta: "Swipe to find out"  (redundant)
+     ✓ Headline: "Greek Gods Were Shocking, Petty, and Violent" → swipeCta: "Swipe for the worst stories"
+     ✓ Headline: "Greek Gods Were Shocking, Petty, and Violent" → swipeCta: "Swipe for 5 examples"
+  Rule of thumb: if you can read the headline and the CTA together and the CTA feels like it's promising something the headline already delivered, rewrite the CTA to point at the specific payload (counts, examples, names, mechanisms) the slides will deliver.
+
 - FACT: Transform into a FLOWING PARAGRAPH — one cohesive thought, not a list of disconnected sentences.
 
   MANDATORY STRUCTURE — every FACT slide MUST use this format:
 
-  displayTitle = the core claim (5–10 words, must include a number or entity)
-  displaySupport = a SINGLE FLOWING PARAGRAPH of 2–3 sentences (max 180 characters total).
+  displayTitle = the core claim (5–8 words, ≤55 chars, must include a number or entity)
+  displaySupport = a SINGLE FLOWING PARAGRAPH of 1–2 sentences (max 180 characters / ~28 words total).
 
   THE PARAGRAPH RULE:
   - Sentences MUST connect to each other using causal or explanatory connectives
@@ -173,8 +183,8 @@ Return exactly this JSON structure:
   "compressed": [
     {
       "slideNumber": 0,
-      "displayTitle": "string (5–10 words, core claim)",
-      "displaySupport": "string (1–2 sentences expanding the title, or empty for OPENER)",
+      "displayTitle": "string (5–8 words, ≤55 chars, core claim)",
+      "displaySupport": "string (1–2 sentences, ≤180 chars, expanding the title, or empty for OPENER)",
       "swipeCta": "string (OPENER slides only, e.g. 'Swipe to learn why')"
     },
     ...one entry per input slide, same order...

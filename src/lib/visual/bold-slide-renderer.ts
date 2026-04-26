@@ -262,11 +262,11 @@ function buildBoldOverlay(
   }
 
   // Swipe CTA for OPENER slides — rendered in the BODY font (paragraph voice),
-  // not the display font. Source: displaySubtitle (from slide.displaySupport),
-  // with the legacy `swipeCta` field as a fallback and a generic default so the
-  // line never disappears on openers.
+  // not the display font. Source: displaySubtitle (from slide.displaySupport)
+  // or the explicit swipeCta field. No generic fallback — if the upstream
+  // pipeline produced no contextual CTA, the line is omitted.
   const ctaText = isOpener
-    ? (input.displaySubtitle?.trim() || input.swipeCta?.trim() || 'Swipe to find out')
+    ? (input.displaySubtitle?.trim() || input.swipeCta?.trim() || null)
     : null;
   if (isOpener && ctaText) {
     const ctaY = Math.round(startY + titleBlockHeight + ctaGap + ctaFontSize);

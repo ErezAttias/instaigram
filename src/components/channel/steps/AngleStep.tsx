@@ -14,6 +14,27 @@ export function AngleStep({ topic, onSelect, onBack }: AngleStepProps) {
   const [loading, setLoading] = useState(true)
   const [sampleFacts, setSampleFacts] = useState<string[]>([])
   const [error, setError] = useState<string | null>(null)
+  const [regenIndex, setRegenIndex] = useState<number | null>(null)
+
+  const handleRegenerate = async (i: number) => {
+    if (regenIndex !== null) return
+    setRegenIndex(i)
+    try {
+      const res = await fetch('/api/carousel/generate-angles/regenerate-fact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ topic, existingFacts: sampleFacts }),
+      })
+      const data = await res.json()
+      if (data.fact) {
+        setSampleFacts(prev => prev.map((f, idx) => (idx === i ? data.fact : f)))
+      }
+    } catch {
+      // Silent fail — user can retry
+    } finally {
+      setRegenIndex(null)
+    }
+  }
 
   useEffect(() => {
     let cancelled = false
@@ -79,15 +100,44 @@ export function AngleStep({ topic, onSelect, onBack }: AngleStepProps) {
         {/* Sample facts */}
         {!loading && sampleFacts.length > 0 && (
           <div className="space-y-3 mb-2">
-            {sampleFacts.map((fact, i) => (
-              <div
-                key={i}
-                className="p-4 rounded-xl border border-border bg-background flex items-start gap-3"
-              >
-                <span className="text-xs font-bold text-muted/40 mt-0.5 shrink-0">{i + 1}</span>
-                <p className="text-[15px] font-medium text-foreground leading-snug">{fact}</p>
-              </div>
-            ))}
+            {sampleFacts.map((fact, i) => {
+              const isRegen = regenIndex === i
+              const disabled = regenIndex !== null
+              return (
+                <div
+                  key={i}
+                  className="group p-4 rounded-xl border border-border bg-background flex items-start gap-3 relative"
+                >
+                  <span className="text-xs font-bold text-muted/40 mt-0.5 shrink-0">{i + 1}</span>
+                  <p className={`text-[15px] font-medium text-foreground leading-snug flex-1 transition-opacity ${isRegen ? 'opacity-40' : ''}`}>
+                    {fact}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => handleRegenerate(i)}
+                    disabled={disabled}
+                    aria-label="Regenerate this fact"
+                    title="Regenerate this fact"
+                    className="shrink-0 p-1.5 rounded-md text-muted-light hover:text-foreground hover:bg-surface-elevated transition-all opacity-0 group-hover:opacity-100 focus:opacity-100 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+                  >
+                    <svg
+                      className={`w-4 h-4 ${isRegen ? 'animate-spin' : ''}`}
+                      viewBox="0 0 20 20"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M3 10a7 7 0 0 1 12-4.95L17 7" />
+                      <path d="M17 3v4h-4" />
+                      <path d="M17 10a7 7 0 0 1-12 4.95L3 13" />
+                      <path d="M3 17v-4h4" />
+                    </svg>
+                  </button>
+                </div>
+              )
+            })}
             <p className="text-xs text-muted/50 text-center pt-2">
               These are samples — the actual carousel will have different, unique facts.
             </p>

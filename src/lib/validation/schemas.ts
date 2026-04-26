@@ -282,6 +282,9 @@ export const GeneratedSlideV2 = z.object({
   noveltyScore:      z.number().int().min(1).max(5),
   topicEntity:       z.string().nullable(),
   factRefs:          z.array(z.string()).default([]),
+  // OPENER only: contextual swipe CTA generated alongside the hook.
+  // Carries through gate rewrites since rewrites only touch headline/body.
+  swipeCta:          z.string().max(40).optional(),
 });
 
 export const GeneratedCarousel = z.object({
@@ -445,8 +448,8 @@ export const PatchResponse = z.object({
 
 export const CompressedSlideDisplay = z.object({
   slideNumber:     z.number().int().min(0).max(6),
-  displayTitle:    z.string().min(1).max(160),  // Bold: 6–16 words fact; Detailed: 5–10 words punchy
-  displaySupport:  z.string().max(200),          // FACT: 2-3 sentence flowing paragraph. Others: 8–15 words.
+  displayTitle:    z.string().min(1).max(60),   // ≤8 words, ≤55 chars target — schema cap is 60 to allow tiny over-runs
+  displaySupport:  z.string().max(180),          // FACT: ~28 words / 180 chars max — fits reliably in the safe area
   swipeCta:        z.string().max(40).optional(), // OPENER only: contextual CTA e.g. "Swipe to learn why"
 });
 

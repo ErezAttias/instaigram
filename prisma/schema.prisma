@@ -354,6 +354,9 @@ enum NicheSelectionMode {
 enum CarouselLayout {
   DETAILED
   BOLD
+  // gpt-image-1 generates the slide with text already rendered into the
+  // image. No design panel; the saved file is the final published image.
+  BAKED
 }
 
 enum BatchOrderStatus {

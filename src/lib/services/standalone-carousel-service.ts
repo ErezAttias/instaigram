@@ -108,7 +108,15 @@ export type ProgressCallback = (event: ProgressEvent) => void;
 
 // ─── Create Job ─────────────────────────────────────────────
 
-export async function createCarouselJob(topic: string, direction?: string, channelId?: string, batchOrderId?: string, exactSubject?: string, layout?: 'DETAILED' | 'BOLD') {
+export async function createCarouselJob(
+  topic: string,
+  direction?: string,
+  channelId?: string,
+  batchOrderId?: string,
+  exactSubject?: string,
+  layout?: 'DETAILED' | 'BOLD' | 'BAKED',
+  boardProvider?: 'openai' | 'gemini',
+) {
   return prisma.carouselJob.create({
     data: {
       topic,
@@ -118,6 +126,9 @@ export async function createCarouselJob(topic: string, direction?: string, chann
       batchOrderId: batchOrderId || null,
       layout: layout || 'DETAILED',
       status: 'PENDING',
+      pipelineMeta: boardProvider
+        ? JSON.parse(JSON.stringify({ designBoardProvider: boardProvider }))
+        : undefined,
     },
   });
 }
@@ -384,7 +395,7 @@ async function renderSlideImage(
 export async function runCarouselGeneration(
   jobId: string,
   onProgress?: ProgressCallback,
-  options?: { skipImages?: boolean },
+  options?: { skipImages?: boolean; boardProvider?: 'openai' | 'gemini' },
 ): Promise<void> {
   const job = await prisma.carouselJob.findUnique({ where: { id: jobId } });
   if (!job) throw new Error(`CarouselJob ${jobId} not found`);
@@ -765,11 +776,11 @@ export async function runCarouselGeneration(
           topicEntity: slide.topicEntity,
           displayTitle: compressed?.displayTitle ?? null,
           // OPENER slides use displaySupport as the swipe-CTA line (rendered
-          // in the body font). If the LLM returned a dedicated `swipeCta`,
-          // promote it here; otherwise fall back to a generic invite so the
-          // line is always present. FACT/IMPLICATION keep their normal body.
+          // in the body font). The contextual swipeCta is generated alongside
+          // the hook in generate-simple.ts. No generic fallback — empty is
+          // better than a CTA disconnected from the headline.
           displaySupport: slide.role === 'OPENER'
-            ? (compressed?.swipeCta || compressed?.displaySupport || 'Swipe to find out')
+            ? (slide.swipeCta || compressed?.swipeCta || null)
             : (compressed?.displaySupport ?? null),
           imageUrl: null,
           imageError: null,
@@ -797,6 +808,17 @@ export async function runCarouselGeneration(
       return;
     }
 
+    // ── BAKED layout: design-board flow.
+    //    Phase 1 designs all 6 slides as one composite image (cohesion by
+    //    construction), then waits for user approval before Phase 2 renders
+    //    each slide at full resolution. Provider is read from
+    //    pipelineMeta.designBoardProvider (set at job creation).
+    if (job.layout === 'BAKED') {
+      emit('render', 'Designing the slide set…', 50);
+      await runBakedDesignBoardPhase1(jobId);
+      return;
+    }
+
     // ── Image stage — per-slide timeout, per-slide fallback ───
     const imageStageStart = Date.now();
 
@@ -805,12 +827,12 @@ export async function runCarouselGeneration(
       const slideNum = slide.slideNumber + 1;
       const compressed = finalCompressed.find(c => c.slideNumber === slide.slideNumber);
       const displayTitle = compressed?.displayTitle || slide.headline;
-      // For OPENER/HOOK slides, displaySupport carries the swipe-CTA line
-      // (rendered in the body font). Prefer the compressed swipeCta, then any
-      // displaySupport, then a generic invite so the line is always present.
+      // For OPENER/HOOK slides, displaySupport carries the contextual swipeCta
+      // generated alongside the hook in generate-simple.ts. No generic
+      // fallback — empty is better than a CTA disconnected from the hook.
       const isOpenerRole = slide.role === 'OPENER';
       const displaySupport = isOpenerRole
-        ? (compressed?.swipeCta || compressed?.displaySupport || 'Swipe to find out')
+        ? (slide.swipeCta || compressed?.swipeCta || '')
         : (compressed?.displaySupport || '');
 
       emit('render', `Rendering slide ${i + 1}/${finalSlides.length}...`, 50 + Math.round((i / finalSlides.length) * 40));
@@ -845,7 +867,7 @@ export async function runCarouselGeneration(
             topicEntity: slide.topicEntity,
             displayTitle: compressed?.displayTitle ?? null,
             displaySupport: slide.role === 'OPENER'
-              ? (compressed?.swipeCta || compressed?.displaySupport || 'Swipe to find out')
+              ? (slide.swipeCta || compressed?.swipeCta || null)
               : (compressed?.displaySupport ?? null),
             imageUrl: null,
             imageError: 'CTA_ENFORCEMENT_FAILED: CTA does not contain a valid call to action after all retry attempts',
@@ -1699,6 +1721,19 @@ export async function runImageStage(jobId: string): Promise<void> {
     data: { status: 'RENDERING', progress: { step: 'render', message: 'Starting image rendering...', pct: 0 } },
   });
 
+  // ── BAKED layout fork: design-board flow.
+  //    Phase 1: gpt-image-1 designs all 6 cinematic slides as one composite
+  //              (cohesion by construction). The board is saved and shown
+  //              to the user for approval.
+  //    Phase 2: triggered when the user approves — each slide is regenerated
+  //              at full 1024×1536 by pointing gpt-image-1 at the board.
+  //    Failure: if Phase 1 fails the job is marked FAILED; the user can
+  //              click "Regenerate board" to retry Phase 1.
+  if (job.layout === 'BAKED') {
+    return runBakedDesignBoardPhase1(jobId);
+  }
+
+
   const imageProvider = getImageProviderForTopic(job.topic, job.direction);
   const slidesToRender = job.slides.filter(s => !s.imageUrl);
 
@@ -1848,4 +1883,272 @@ export async function approveCarousel(jobId: string) {
   });
 
   return getCarouselJob(jobId);
+}
+
+// ─── Design-board flow (Phase 1: render board, Phase 2: per-slide regen)
+
+/**
+ * Phase 1 of the BAKED design-board flow. Generates a single 1024×1536
+ * design board showing all 6 slides as a 2×3 SET. Saves the board to R2,
+ * persists its URL on the job, and parks the job in `progress.step =
+ * 'board_ready'` so the UI can show the board for user approval.
+ *
+ * The job stays in status RENDERING during board review — this matches the
+ * homepage poll which already treats RENDERING as the "still working" state.
+ * Phase 2 transitions to COMPLETE.
+ */
+export async function runBakedDesignBoardPhase1(
+  jobId: string,
+  boardProvider?: 'openai' | 'gemini',
+): Promise<void> {
+  const job = await prisma.carouselJob.findUnique({
+    where: { id: jobId },
+    include: { slides: { orderBy: { slideIndex: 'asc' } } },
+  });
+  if (!job) throw new Error(`CarouselJob ${jobId} not found`);
+
+  await prisma.carouselJob.update({
+    where: { id: jobId },
+    data: {
+      status: 'RENDERING',
+      progress: { step: 'render', message: 'Designing the slide set…', pct: 5 },
+    },
+  });
+
+  const { renderDesignBoard } = await import('@/lib/visual/baked-slide-renderer');
+  const { buildImageProviderByName } = await import('@/lib/ai/image-provider');
+  const { saveImageWithSuffix } = await import('@/lib/storage/image-storage');
+
+  const metaForProvider = (job.pipelineMeta as Record<string, unknown> | null) ?? {};
+  const metaProvider = metaForProvider.designBoardProvider as 'openai' | 'gemini' | undefined;
+  const resolvedProvider: 'openai' | 'gemini' = boardProvider ?? metaProvider ?? 'openai';
+  const provider = buildImageProviderByName(resolvedProvider);
+  console.log(`[BakedBoard] Phase 1 — provider: ${resolvedProvider}`);
+  const orderedSlides = job.slides.slice().sort((a, b) => a.slideIndex - b.slideIndex);
+  const boardSlides = orderedSlides.map(s => ({
+    slideIndex: s.slideIndex,
+    role: s.role,
+    displayTitle: s.displayTitle || s.headline || '',
+    displaySupport: s.displaySupport ?? undefined,
+    swipeCta: ((s as Record<string, unknown>).swipeCta as string | undefined) ?? undefined,
+  }));
+
+  console.log(`[BakedBoard] Phase 1 — designing SET of ${boardSlides.length} slides`);
+  const startTime = Date.now();
+
+  let boardUrl: string;
+  try {
+    const result = await renderDesignBoard(boardSlides, provider);
+    boardUrl = await saveImageWithSuffix(jobId, 0, result.image.toString('base64'), '-design-board');
+    console.log(`[BakedBoard] Phase 1 complete in ${((Date.now() - startTime) / 1000).toFixed(1)}s — ${boardUrl}`);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error(`[BakedBoard] Phase 1 failed: ${msg}`);
+    await prisma.carouselJob.update({
+      where: { id: jobId },
+      data: {
+        status: 'FAILED',
+        errorMessage: `Design board generation failed: ${msg.slice(0, 500)}`,
+        progress: { step: 'board_failed', message: 'Could not design the slide set — try Regenerate.', pct: 100 },
+      },
+    });
+    return;
+  }
+
+  // Persist board URL on pipelineMeta (no Prisma migration needed).
+  const existingMeta = (job.pipelineMeta as Record<string, unknown> | null) ?? {};
+  await prisma.carouselJob.update({
+    where: { id: jobId },
+    data: {
+      pipelineMeta: JSON.parse(JSON.stringify({
+        ...existingMeta,
+        designBoardUrl: boardUrl,
+        designBoardProvider: resolvedProvider,
+        designBoardApproved: false,
+      })),
+      progress: {
+        step: 'board_ready',
+        message: 'Design ready — review and approve to render slides.',
+        pct: 30,
+      },
+    },
+  });
+}
+
+/**
+ * Phase 2 of the BAKED design-board flow. Loads the board PNG (saved by
+ * Phase 1) and uses it as a reference for each individual slide regen.
+ * Each slide is rendered at full 1024×1536 by `images.edit` against the
+ * board, with the slide's text content in the prompt.
+ *
+ * Called by POST /api/carousel/[jobId]/approve-board after the user
+ * approves the design board.
+ */
+export async function runBakedDesignBoardPhase2(jobId: string): Promise<void> {
+  const job = await prisma.carouselJob.findUnique({
+    where: { id: jobId },
+    include: { slides: { orderBy: { slideIndex: 'asc' } } },
+  });
+  if (!job) throw new Error(`CarouselJob ${jobId} not found`);
+
+  const meta = (job.pipelineMeta as Record<string, unknown> | null) ?? {};
+  const boardUrl = meta.designBoardUrl as string | undefined;
+  if (!boardUrl) throw new Error('Cannot start Phase 2 — no design board on job');
+
+  // Mark board approved so the UI hides the approval gate during regen.
+  await prisma.carouselJob.update({
+    where: { id: jobId },
+    data: {
+      pipelineMeta: JSON.parse(JSON.stringify({ ...meta, designBoardApproved: true })),
+      progress: { step: 'render', message: 'Rendering slides from the design board…', pct: 35 },
+    },
+  });
+
+  // Load the board PNG. It's a public R2 URL so a plain fetch works.
+  const boardRes = await fetch(boardUrl);
+  if (!boardRes.ok) throw new Error(`Failed to fetch design board (${boardRes.status})`);
+  const board = Buffer.from(await boardRes.arrayBuffer());
+
+  const { renderSlideFromBoard, renderSlideFromExtractedPrompt } = await import('@/lib/visual/baked-slide-renderer');
+  const { buildImageProviderByName } = await import('@/lib/ai/image-provider');
+  const { detectTextDiffs, correctSlideText } = await import('@/lib/ai/text-corrector');
+  const { extractPanelPrompts } = await import('@/lib/ai/panel-prompt-extractor');
+  const provider = buildImageProviderByName('openai');
+
+  const orderedSlides = job.slides.slice().sort((a, b) => a.slideIndex - b.slideIndex);
+  const startTime = Date.now();
+
+  // ── Vision-extract a detailed structured prompt from each panel of the
+  //    board. These prompts explicitly encode typography / layout / colors,
+  //    so per-slide regeneration via images.generate produces near-identical
+  //    reproductions at full resolution — much higher fidelity than passing
+  //    the small reference panel into images.edit.
+  let extractedPrompts: string[] = [];
+  try {
+    await prisma.carouselJob.update({
+      where: { id: jobId },
+      data: { progress: { step: 'render', message: 'Reading the design board…', pct: 38 } },
+    });
+    const panels = orderedSlides.map(s => {
+      const isOpener = s.role === 'OPENER';
+      const swipeCta = ((s as Record<string, unknown>).swipeCta as string | undefined);
+      return {
+        headline: s.displayTitle || s.headline || '',
+        body: !isOpener ? (s.displaySupport || undefined) : undefined,
+        swipeCta: isOpener ? swipeCta : undefined,
+      };
+    });
+    extractedPrompts = await extractPanelPrompts(board, panels);
+    if (extractedPrompts.length !== orderedSlides.length) {
+      console.warn(`[BakedBoard] Panel-prompt extraction returned ${extractedPrompts.length} prompts for ${orderedSlides.length} slides — falling back to legacy renderSlideFromBoard for missing ones.`);
+    }
+  } catch (err) {
+    console.error(`[BakedBoard] Panel-prompt extraction failed: ${err instanceof Error ? err.message : err} — falling back to legacy renderSlideFromBoard.`);
+    extractedPrompts = [];
+  }
+
+  for (let i = 0; i < orderedSlides.length; i++) {
+    const slide = orderedSlides[i];
+    const isOpener = slide.role === 'OPENER';
+    const displayTitle = slide.displayTitle || slide.headline || '';
+    const displaySupport = isOpener
+      ? (((slide as Record<string, unknown>).swipeCta as string | undefined)
+          || slide.displaySupport
+          || '')
+      : (slide.displaySupport || '');
+    const swipeCta = isOpener
+      ? ((slide as Record<string, unknown>).swipeCta as string | undefined)
+      : undefined;
+
+    await prisma.carouselJob.update({
+      where: { id: jobId },
+      data: {
+        progress: {
+          step: 'render',
+          message: `Rendering slide ${i + 1}/${orderedSlides.length} from board…`,
+          pct: 35 + Math.round((i / orderedSlides.length) * 60),
+        },
+      },
+    });
+
+    console.log(`[BakedBoard] Phase 2 — slide ${slide.slideIndex + 1} (${slide.role})`);
+
+    try {
+      const extractedPrompt = extractedPrompts[i];
+      const result = extractedPrompt
+        ? await renderSlideFromExtractedPrompt(extractedPrompt, slide.role, provider)
+        : await renderSlideFromBoard(
+            {
+              slideRole: slide.role,
+              slideIndex: i,
+              totalSlides: orderedSlides.length,
+              displayTitle,
+              displaySupport,
+              swipeCta,
+            },
+            board,
+            provider,
+          );
+      console.log(`[BakedBoard] Phase 2 — slide ${slide.slideIndex + 1} rendered via ${extractedPrompt ? 'extracted prompt' : 'legacy board reference'}`);
+
+      // ── Phase 3 — text correction. Vision-OCR the rendered slide,
+      //    diff against intended text, surgically fix typos via images.edit
+      //    if any are found. Falls back to the original on any failure.
+      let finalImage = result.image;
+      try {
+        const diffs = await detectTextDiffs(result.image, {
+          headline: displayTitle,
+          body: !isOpener ? displaySupport : undefined,
+          swipeCta: isOpener ? swipeCta : undefined,
+        });
+        if (diffs.length > 0) {
+          console.log(`[TextCorrector] Slide ${slide.slideIndex + 1} — ${diffs.length} typo(s):`, diffs.map(d => `${d.rendered}→${d.intended}`).join(', '));
+          const corrected = await correctSlideText(result.image, diffs);
+          if (corrected) {
+            // Re-apply the same 4:5 crop the renderer applies on its raw output.
+            // eslint-disable-next-line @typescript-eslint/no-require-imports
+            const sharp = require('sharp');
+            finalImage = await sharp(corrected)
+              .resize(1080, 1350, { fit: 'cover', position: 'centre', kernel: 'lanczos3' })
+              .png()
+              .toBuffer();
+            console.log(`[TextCorrector] Slide ${slide.slideIndex + 1} — corrected`);
+          }
+        } else {
+          console.log(`[TextCorrector] Slide ${slide.slideIndex + 1} — no typos`);
+        }
+      } catch (corrErr) {
+        console.error(`[TextCorrector] Slide ${slide.slideIndex + 1} — correction skipped: ${corrErr instanceof Error ? corrErr.message : corrErr}`);
+      }
+
+      const imageUrl = await saveImage(jobId, slide.slideIndex, finalImage.toString('base64'));
+      await prisma.carouselSlide.update({
+        where: { id: slide.id },
+        data: {
+          imageUrl,
+          status: 'PENDING',
+          imageSource: 'generated',
+          imageError: null,
+          hasEmbeddedText: true,
+        },
+      });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error(`[BakedBoard] Phase 2 — slide ${slide.slideIndex + 1} failed: ${msg}`);
+      await prisma.carouselSlide.update({
+        where: { id: slide.id },
+        data: { status: 'FAILED_IMAGE', imageError: msg.slice(0, 2000) },
+      });
+    }
+  }
+
+  console.log(`[BakedBoard] Phase 2 complete in ${((Date.now() - startTime) / 1000).toFixed(1)}s`);
+
+  await prisma.carouselJob.update({
+    where: { id: jobId },
+    data: {
+      status: 'COMPLETE',
+      progress: { step: 'complete', message: 'Carousel ready', pct: 100 },
+    },
+  });
 }
