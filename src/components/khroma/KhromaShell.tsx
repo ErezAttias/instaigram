@@ -207,16 +207,20 @@ export function KhromaShell({ children, preview, paused = false, rightContent, b
            query can shrink every headline in one place without fighting
            inline styles. Keeps every demo title on two lines down to the
            375px iPhone SE viewport. */
-        .fc-headline { font-size: var(--h-size); }
-        .fc-cta      { font-size: var(--cta-size); }
-        .fc-support  { font-size: var(--s-size); }
+        /* Container-relative type so the headline / support / CTA scale
+           smoothly with the carousel width — at the 380px desktop width
+           they hit their full theme size, then shrink proportionally as
+           the IG card narrows. The 100cqi-based coefficient is the theme
+           default size as a percentage of 380px (28/380 = 7.4%, etc.). */
+        .carousel-float { container-type: inline-size; }
+        .fc-headline { font-size: clamp(16px, 7.4cqi, var(--h-size)); }
+        .fc-support  { font-size: clamp(11px, 3.4cqi, var(--s-size)); }
+        .fc-cta      { font-size: clamp(12px, 3.7cqi, var(--cta-size)); }
+
         /* Default LiveCarousel width: cap at 380px / 80% of parent on
            desktop. On mobile, widen to match the body's 28rem column. */
         .carousel-float-width { width: min(380px, 80%); }
         @media (max-width: 480px) {
-          .fc-headline { font-size: calc(var(--h-size) * 0.62); }
-          .fc-cta      { font-size: calc(var(--cta-size) * 0.85); }
-          .fc-support  { font-size: calc(var(--s-size) * 0.85); }
           .carousel-float-width { width: min(28rem, 100%); }
         }
         .slide-swap-next, .slide-swap-prev {
