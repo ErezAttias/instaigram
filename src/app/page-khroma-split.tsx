@@ -373,13 +373,6 @@ export default function HomeKhromaSplit({ initialJobId }: { initialJobId?: strin
     }
   }
 
-  const [mobileTab, setMobileTab] = useState<'edit' | 'preview'>('edit')
-
-  // Reset mobile tab whenever the user leaves the done phase.
-  useEffect(() => {
-    if (phase !== 'done') setMobileTab('edit')
-  }, [phase])
-
   const [downloading, setDownloading] = useState(false)
   async function downloadCarousel() {
     if (!jobId) return
@@ -459,7 +452,7 @@ export default function HomeKhromaSplit({ initialJobId }: { initialJobId?: strin
     <KhromaShell
       preview={preview}
       rightContent={rightContent}
-      hideRightOnMobile={phase === 'done' && mobileTab === 'preview'}
+      hideRightOnMobile={false}
     >
       <div key={phase} className="phase-panel">
         {phase === 'idle' && (
@@ -864,54 +857,9 @@ export default function HomeKhromaSplit({ initialJobId }: { initialJobId?: strin
 
         {phase === 'done' && jobId && (
           <>
-            {/* ── Mobile tab bar (hidden on lg+) ─────────────────────────── */}
-            <div
-              className="flex items-center gap-1 mb-5 p-1 rounded-xl lg:hidden"
-              style={{
-                background: isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.06)',
-              }}
-            >
-              {(['edit', 'preview'] as const).map(tab => (
-                <button
-                  key={tab}
-                  type="button"
-                  onClick={() => setMobileTab(tab)}
-                  className="flex-1 py-2 rounded-lg text-[13px] font-medium capitalize transition-all"
-                  style={{
-                    background: mobileTab === tab
-                      ? (isLight ? '#ffffff' : 'rgba(255,255,255,0.12)')
-                      : 'transparent',
-                    color: mobileTab === tab ? textMain : textMuted,
-                    fontFamily: SANS,
-                    boxShadow: mobileTab === tab ? '0 1px 3px rgba(0,0,0,0.12)' : 'none',
-                  }}
-                >
-                  {tab === 'edit' ? 'Edit' : 'Preview'}
-                </button>
-              ))}
-            </div>
-
-            {/* ── Mobile preview panel ────────────────────────────────────── */}
-            {mobileTab === 'preview' && (
-              <div className="lg:hidden -mx-8 sm:-mx-14 flex justify-center">
-                <LiveCarousel
-                  slides={slides}
-                  theme={livePreviewTheme}
-                  username={submittedTopic.toLowerCase().replace(/\s+/g, '.').slice(0, 20) || livePreviewTheme.username}
-                  autoCycle={false}
-                  activeIndex={activeSlide}
-                  onActiveChange={setActiveSlide}
-                  slideDirection={slideDir}
-                  onRegenerateSlide={regenerateSlideImage}
-                  onEditElement={(which) => { setEditTarget(which); setMobileTab('edit') }}
-                  regeneratingSet={regeneratingSet}
-                  isLight={isLight}
-                />
-              </div>
-            )}
-
-            {/* ── Edit panel — always visible on desktop, gated by tab on mobile ── */}
-            <div className={mobileTab === 'preview' ? 'hidden lg:block' : ''}>
+            {/* Mobile preview lives in the right column above this section, so
+                no tab switcher is needed — Edit panel is always shown here. */}
+            <div>
               <p className="mb-4 uppercase tracking-[0.22em] text-[11px]" style={{ color: textMuted, fontFamily: SANS, fontWeight: 600 }}>
                 Carousel ready — edit freely
               </p>
@@ -1092,6 +1040,48 @@ function BackButton({ onClick, textMuted }: { onClick: () => void; textMuted: st
     >
       ← Back
     </button>
+  )
+}
+
+/**
+ * Section wrapper that collapses on mobile (toggles via the row label) and
+ * is always expanded on desktop (lg+). Used inside the design panels to
+ * fold each tool group (Font / Weight / Size / Style / Color) so the
+ * mobile edit pane doesn't sprawl below the fold.
+ */
+function MobileCollapsible({
+  title,
+  children,
+  defaultOpen = false,
+  textMuted,
+}: {
+  title: string
+  children: React.ReactNode
+  defaultOpen?: boolean
+  textMuted: string
+}) {
+  const [open, setOpen] = useState(defaultOpen)
+  return (
+    <div className="mb-5">
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center justify-between mb-2 lg:pointer-events-none"
+        aria-expanded={open}
+      >
+        <span className="text-[11px] uppercase tracking-[0.14em] opacity-60" style={{ color: textMuted, fontFamily: SANS }}>
+          {title}
+        </span>
+        <span
+          className="lg:hidden inline-flex items-center text-[10px] opacity-60 transition-transform"
+          style={{ color: textMuted, transform: open ? 'rotate(180deg)' : 'rotate(0deg)' }}
+          aria-hidden="true"
+        >
+          ▾
+        </span>
+      </button>
+      <div className={open ? 'block' : 'hidden lg:block'}>{children}</div>
+    </div>
   )
 }
 
@@ -1617,10 +1607,7 @@ function TextDesignPanel({
         <BackButton onClick={onBack} textMuted={textMuted} />
       </div>
 
-      <div className="mb-5">
-        <span className="block text-[11px] uppercase tracking-[0.14em] mb-2 opacity-60" style={{ color: textMuted, fontFamily: SANS }}>
-          Font
-        </span>
+      <MobileCollapsible title={`Font · ${currentFont}`} textMuted={textMuted}>
         <div className="flex flex-wrap gap-2">
           {HEADLINE_FONTS.map(f => (
             <button
@@ -1633,12 +1620,9 @@ function TextDesignPanel({
             </button>
           ))}
         </div>
-      </div>
+      </MobileCollapsible>
 
-      <div className="mb-5">
-        <span className="block text-[11px] uppercase tracking-[0.14em] mb-2 opacity-60" style={{ color: textMuted, fontFamily: SANS }}>
-          Weight
-        </span>
+      <MobileCollapsible title={`Weight · ${currentWeight}`} textMuted={textMuted}>
         <div className="flex flex-wrap gap-2">
           {HEADLINE_WEIGHTS.map(w => (
             <button
@@ -1651,17 +1635,9 @@ function TextDesignPanel({
             </button>
           ))}
         </div>
-      </div>
+      </MobileCollapsible>
 
-      <div className="mb-5">
-        <div className="flex items-center justify-between mb-2">
-          <span className="block text-[11px] uppercase tracking-[0.14em] opacity-60" style={{ color: textMuted, fontFamily: SANS }}>
-            Size
-          </span>
-          <span className="text-[11px] opacity-60 tabular-nums" style={{ color: textMuted, fontFamily: SANS }}>
-            {currentSize}px
-          </span>
-        </div>
+      <MobileCollapsible title={`Size · ${currentSize}px`} textMuted={textMuted}>
         <div className="flex items-center gap-2">
           <button
             type="button"
@@ -1695,12 +1671,9 @@ function TextDesignPanel({
             }}
           >+</button>
         </div>
-      </div>
+      </MobileCollapsible>
 
-      <div className="mb-5">
-        <span className="block text-[11px] uppercase tracking-[0.14em] mb-2 opacity-60" style={{ color: textMuted, fontFamily: SANS }}>
-          Style
-        </span>
+      <MobileCollapsible title={`Style · ${currentItalic ? 'Italic' : 'Regular'}`} textMuted={textMuted}>
         <button
           type="button"
           onClick={() => setOverrides(o => ({ ...o, [italicKey]: !o[italicKey] }))}
@@ -1708,12 +1681,9 @@ function TextDesignPanel({
         >
           Italic
         </button>
-      </div>
+      </MobileCollapsible>
 
-      <div className="mb-2">
-        <span className="block text-[11px] uppercase tracking-[0.14em] mb-2 opacity-60" style={{ color: textMuted, fontFamily: SANS }}>
-          Color
-        </span>
+      <MobileCollapsible title="Color" textMuted={textMuted}>
         <div className="flex items-center gap-2 flex-wrap">
           {TEXT_COLOR_SWATCHES.map(c => {
             const active = currentColor.toLowerCase() === c.toLowerCase()
@@ -1748,7 +1718,7 @@ function TextDesignPanel({
             Reset
           </button>
         </div>
-      </div>
+      </MobileCollapsible>
     </div>
   )
 }
