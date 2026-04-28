@@ -540,17 +540,13 @@ export function getUnifiedImageProvider(): UnifiedImageProvider {
   } else {
     primary = createGeminiImageProvider();
     primaryName = 'gemini';
-    if (process.env.STABILITY_API_KEY) {
-      try {
-        secondary = createStabilityImageProvider();
-        secondaryName = 'stability';
-        console.log(`[UnifiedImage] Initialized: PRIMARY=Gemini, SECONDARY=Stability AI SD3`);
-      } catch (err) {
-        console.warn(`[UnifiedImage] Failed to initialize secondary (Stability): ${err instanceof Error ? err.message : err}`);
-        console.log(`[UnifiedImage] Initialized: PRIMARY=Gemini, SECONDARY=none`);
-      }
-    } else {
-      console.log(`[UnifiedImage] Initialized: PRIMARY=Gemini, SECONDARY=none (no STABILITY_API_KEY)`);
+    try {
+      secondary = createOpenAIImageProvider();
+      secondaryName = 'openai';
+      console.log(`[UnifiedImage] Initialized: PRIMARY=Gemini, SECONDARY=OpenAI gpt-image-1`);
+    } catch (err) {
+      console.warn(`[UnifiedImage] Failed to initialize OpenAI fallback: ${err instanceof Error ? err.message : err}`);
+      console.log(`[UnifiedImage] Initialized: PRIMARY=Gemini, SECONDARY=none`);
     }
   }
 
