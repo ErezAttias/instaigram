@@ -223,6 +223,40 @@ export function KhromaShell({ children, preview, paused = false, rightContent, b
         @media (max-width: 480px) {
           .carousel-float-width { width: min(28rem, 100%); }
         }
+
+        /* Mobile floating bottom sheet for the design panel. On lg+ the
+           sheet wrapper is transparent and its children render inline. */
+        .design-sheet {
+          position: fixed;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          z-index: 50;
+          max-height: 75vh;
+          overflow-y: auto;
+          border-top-left-radius: 22px;
+          border-top-right-radius: 22px;
+          padding: 0 1.25rem 1.5rem;
+          box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.35);
+          transform: translateY(100%);
+          transition: transform 320ms cubic-bezier(0.22, 1, 0.36, 1);
+          will-change: transform;
+        }
+        .design-sheet.design-sheet-open { transform: translateY(0); }
+        .design-sheet-body { padding-top: 0.5rem; }
+        @media (min-width: 1024px) {
+          .design-sheet {
+            position: static;
+            max-height: none;
+            overflow: visible;
+            padding: 0;
+            box-shadow: none;
+            border-radius: 0;
+            transform: none !important;
+            background: transparent !important;
+            transition: none;
+          }
+        }
         .slide-swap-next, .slide-swap-prev {
           will-change: transform, opacity;
         }

@@ -1044,6 +1044,67 @@ function BackButton({ onClick, textMuted }: { onClick: () => void; textMuted: st
 }
 
 /**
+ * Mobile bottom-sheet wrapper. On lg+ it renders inline, transparently —
+ * children appear in flow as if the wrapper weren't there. On mobile it
+ * renders as a fixed sheet pinned to the viewport bottom, with a darkened
+ * backdrop and a handle to dismiss. Used to surface the design tools on
+ * top of the carousel preview without forcing the user to scroll.
+ */
+function FloatingDesignSheet({
+  open,
+  onClose,
+  isLight,
+  children,
+}: {
+  open: boolean
+  onClose: () => void
+  isLight: boolean
+  children: React.ReactNode
+}) {
+  // Lock body scroll while the sheet is open on mobile so the carousel
+  // preview behind doesn't move under the user's finger.
+  useEffect(() => {
+    if (!open) return
+    if (typeof window === 'undefined') return
+    if (window.matchMedia('(min-width: 1024px)').matches) return
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = prev }
+  }, [open])
+
+  return (
+    <>
+      {/* Mobile-only backdrop */}
+      <div
+        className={`lg:hidden fixed inset-0 z-40 transition-opacity duration-300 ${open ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
+        style={{ background: 'rgba(0,0,0,0.5)' }}
+        onClick={onClose}
+        aria-hidden="true"
+      />
+      {/* Sheet — fixed at bottom on mobile, inline on lg+ */}
+      <div
+        className={`design-sheet ${open ? 'design-sheet-open' : ''}`}
+        style={{
+          background: isLight ? '#ffffff' : '#0d0d0d',
+        }}
+        role="dialog"
+        aria-modal="true"
+      >
+        {/* Drag handle / dismiss tap target — mobile only */}
+        <button
+          type="button"
+          onClick={onClose}
+          className="lg:hidden block mx-auto mt-2 mb-3 w-10 h-1.5 rounded-full"
+          style={{ background: isLight ? 'rgba(0,0,0,0.18)' : 'rgba(255,255,255,0.22)' }}
+          aria-label="Close design panel"
+        />
+        <div className="design-sheet-body">{children}</div>
+      </div>
+    </>
+  )
+}
+
+/**
  * Section wrapper that collapses on mobile (toggles via the row label) and
  * is always expanded on desktop (lg+). Used inside the design panels to
  * fold each tool group (Font / Weight / Size / Style / Color) so the
@@ -1290,65 +1351,73 @@ function SlideEditor({
           </>
         )}
 
-        {editTarget === 'headline' && (
-          <TextDesignPanel
-            title="Headline — design"
-            fontKey="headlineFont"
-            weightKey="headlineWeight"
-            sizeKey="headlineSizePx"
-            italicKey="italic"
-            colorKey="fg"
-            overrides={themeOverrides}
-            setOverrides={setThemeOverrides}
-            themeBase={themeBase}
-            onBack={() => setEditTarget('overview')}
+        {(editTarget === 'headline' || editTarget === 'support' || editTarget === 'image' || editTarget === 'textbg') && (
+          <FloatingDesignSheet
+            open={editTarget !== 'overview'}
+            onClose={() => setEditTarget('overview')}
             isLight={isLight}
-            textMain={textMain}
-            textMuted={textMuted}
-          />
-        )}
+          >
+            {editTarget === 'headline' && (
+              <TextDesignPanel
+                title="Headline — design"
+                fontKey="headlineFont"
+                weightKey="headlineWeight"
+                sizeKey="headlineSizePx"
+                italicKey="italic"
+                colorKey="fg"
+                overrides={themeOverrides}
+                setOverrides={setThemeOverrides}
+                themeBase={themeBase}
+                onBack={() => setEditTarget('overview')}
+                isLight={isLight}
+                textMain={textMain}
+                textMuted={textMuted}
+              />
+            )}
 
-        {editTarget === 'support' && (
-          <TextDesignPanel
-            title={current.role === 'OPENER' || current.role === 'CTA' ? 'Call to action — design' : 'Paragraph — design'}
-            fontKey="supportFont"
-            weightKey="supportWeight"
-            sizeKey="supportSizePx"
-            italicKey="supportItalic"
-            colorKey="supportColor"
-            overrides={themeOverrides}
-            setOverrides={setThemeOverrides}
-            themeBase={themeBase}
-            onBack={() => setEditTarget('overview')}
-            isLight={isLight}
-            textMain={textMain}
-            textMuted={textMuted}
-          />
-        )}
+            {editTarget === 'support' && (
+              <TextDesignPanel
+                title={current.role === 'OPENER' || current.role === 'CTA' ? 'Call to action — design' : 'Paragraph — design'}
+                fontKey="supportFont"
+                weightKey="supportWeight"
+                sizeKey="supportSizePx"
+                italicKey="supportItalic"
+                colorKey="supportColor"
+                overrides={themeOverrides}
+                setOverrides={setThemeOverrides}
+                themeBase={themeBase}
+                onBack={() => setEditTarget('overview')}
+                isLight={isLight}
+                textMain={textMain}
+                textMuted={textMuted}
+              />
+            )}
 
-        {editTarget === 'image' && (
-          <ImageDesignPanel
-            jobId={jobId}
-            slide={current}
-            regenerating={regeneratingSet.has(current.slideIndex)}
-            onRegenerateSlide={onRegenerateSlide}
-            onBack={() => setEditTarget('overview')}
-            isLight={isLight}
-            textMain={textMain}
-            textMuted={textMuted}
-          />
-        )}
+            {editTarget === 'image' && (
+              <ImageDesignPanel
+                jobId={jobId}
+                slide={current}
+                regenerating={regeneratingSet.has(current.slideIndex)}
+                onRegenerateSlide={onRegenerateSlide}
+                onBack={() => setEditTarget('overview')}
+                isLight={isLight}
+                textMain={textMain}
+                textMuted={textMuted}
+              />
+            )}
 
-        {editTarget === 'textbg' && (
-          <TextBgColorPanel
-            overrides={themeOverrides}
-            setOverrides={setThemeOverrides}
-            themeBase={themeBase}
-            onBack={() => setEditTarget('overview')}
-            isLight={isLight}
-            textMain={textMain}
-            textMuted={textMuted}
-          />
+            {editTarget === 'textbg' && (
+              <TextBgColorPanel
+                overrides={themeOverrides}
+                setOverrides={setThemeOverrides}
+                themeBase={themeBase}
+                onBack={() => setEditTarget('overview')}
+                isLight={isLight}
+                textMain={textMain}
+                textMuted={textMuted}
+              />
+            )}
+          </FloatingDesignSheet>
         )}
       </div>
 
