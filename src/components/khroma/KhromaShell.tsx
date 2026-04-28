@@ -271,7 +271,11 @@ export function KhromaShell({ children, preview, paused = false, rightContent, b
             position: fixed;
             top: env(safe-area-inset-top, 0);
             left: 50%;
-            transform: translateX(-50%);
+            /* The .carousel-float animation also drives transform; the
+               !important here defeats it so the card stays centered
+               instead of being yanked back by the float keyframes. */
+            transform: translateX(-50%) !important;
+            animation: none !important;
             z-index: 65;
             /* IG card is 4:5; sized off viewport height so it always
                fits the top half. Width is explicit (not auto) so the
