@@ -1999,7 +1999,6 @@ function ImageDesignPanel({
           role="radiogroup"
           aria-label="Image provider"
           className="inline-flex rounded-md overflow-hidden"
-          style={{ border: `1px solid ${isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)'}` }}
         >
           <button
             type="button"
