@@ -1190,11 +1190,13 @@ function MobileCollapsible({
           {title}
         </span>
         <span
-          className="lg:hidden inline-flex items-center text-[10px] opacity-60 transition-transform"
+          className="lg:hidden inline-flex items-center transition-transform"
           style={{ color: textMuted, transform: open ? 'rotate(180deg)' : 'rotate(0deg)' }}
           aria-hidden="true"
         >
-          ▾
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
         </span>
       </button>
       <div className={open ? 'block' : 'hidden lg:block'}>{children}</div>
