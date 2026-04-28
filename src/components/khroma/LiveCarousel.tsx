@@ -224,35 +224,35 @@ export function LiveCarousel({
                     </p>
                   </TrackingEditZone>
                 )}
-                {/* Persistent BG-color affordance below the paragraph. The
-                    full bottom strip is already a TrackingEditZone, but
-                    on touch there's no hover hint so we render a visible
-                    chip the user can tap. */}
-                {onEditElement && (
-                  <button
-                    type="button"
-                    onClick={(e) => { e.stopPropagation(); onEditElement('textbg') }}
-                    className="bg-color-chip mt-3 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium"
-                    style={{
-                      background: 'rgba(0,0,0,0.45)',
-                      border: '1px solid rgba(255,255,255,0.18)',
-                      color: 'rgba(255,255,255,0.95)',
-                      fontFamily: "'Inter', system-ui, sans-serif",
-                      backdropFilter: 'blur(8px)',
-                    }}
-                  >
-                    <span
-                      aria-hidden="true"
-                      className="inline-block w-3 h-3 rounded-full"
-                      style={{
-                        background: theme.textBgColor ?? theme.bg,
-                        border: '1px solid rgba(255,255,255,0.4)',
-                      }}
-                    />
-                    BG color
-                  </button>
-                )}
               </div>
+              {/* Persistent BG-color affordance — overlaid on the
+                  gradient strip below the support text. position:absolute
+                  so it never displaces the headline / paragraph. */}
+              {onEditElement && (
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); onEditElement('textbg') }}
+                  className="bg-color-chip absolute left-5 bottom-3 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium"
+                  style={{
+                    background: 'rgba(0,0,0,0.45)',
+                    border: '1px solid rgba(255,255,255,0.18)',
+                    color: 'rgba(255,255,255,0.95)',
+                    fontFamily: "'Inter', system-ui, sans-serif",
+                    backdropFilter: 'blur(8px)',
+                    zIndex: 20,
+                  }}
+                >
+                  <span
+                    aria-hidden="true"
+                    className="inline-block w-3 h-3 rounded-full"
+                    style={{
+                      background: theme.textBgColor ?? theme.bg,
+                      border: '1px solid rgba(255,255,255,0.4)',
+                    }}
+                  />
+                  BG color
+                </button>
+              )}
             </div>
           </div>
 
