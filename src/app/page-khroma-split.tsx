@@ -1353,7 +1353,7 @@ function SlideEditor({
 
         {(editTarget === 'headline' || editTarget === 'support' || editTarget === 'image' || editTarget === 'textbg') && (
           <FloatingDesignSheet
-            open={editTarget !== 'overview'}
+            open
             onClose={() => setEditTarget('overview')}
             isLight={isLight}
           >
