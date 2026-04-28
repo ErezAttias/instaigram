@@ -5,7 +5,7 @@ import { isColorLight, withAlpha } from './utils'
 import type { CarouselTheme } from './themes'
 
 const IG_GRADIENT = 'linear-gradient(135deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888)'
-const SERIF = "'Instrument Serif', 'Times New Roman', serif"
+const SERIF = "'Roboto Slab', Georgia, serif"
 
 export type LiveSlide = {
   slideIndex: number

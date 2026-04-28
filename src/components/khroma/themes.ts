@@ -32,7 +32,7 @@ export type CarouselTheme = {
   textBgHeight?: number
 }
 
-const SERIF = "'Instrument Serif', 'Times New Roman', serif"
+const SERIF = "'Roboto Slab', Georgia, serif"
 
 export const THEMES: CarouselTheme[] = [
   {
