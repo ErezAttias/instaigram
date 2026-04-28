@@ -207,15 +207,15 @@ export function KhromaShell({ children, preview, paused = false, rightContent, b
            query can shrink every headline in one place without fighting
            inline styles. Keeps every demo title on two lines down to the
            375px iPhone SE viewport. */
-        /* Container-relative type so the headline / support / CTA scale
-           smoothly with the carousel width — at the 380px desktop width
-           they hit their full theme size, then shrink proportionally as
-           the IG card narrows. The 100cqi-based coefficient is the theme
-           default size as a percentage of 380px (28/380 = 7.4%, etc.). */
+        /* The user controls font-size directly via the size slider, but
+           we still need a safety cap so a generous slider value doesn't
+           overflow on a narrow card. font-size follows the slider's
+           --h-size, capped only when the container is too small to
+           hold it (12cqi ≈ 12% of the IG card width). */
         .carousel-float { container-type: inline-size; }
-        .fc-headline { font-size: clamp(16px, 7.4cqi, var(--h-size)); }
-        .fc-support  { font-size: clamp(11px, 3.4cqi, var(--s-size)); }
-        .fc-cta      { font-size: clamp(12px, 3.7cqi, var(--cta-size)); }
+        .fc-headline { font-size: min(var(--h-size), 12cqi); }
+        .fc-support  { font-size: min(var(--s-size), 5.5cqi); }
+        .fc-cta      { font-size: min(var(--cta-size), 5.5cqi); }
 
         /* Default LiveCarousel width: cap at 380px / 80% of parent on
            desktop. On mobile, widen to match the body's 28rem column. */
@@ -266,28 +266,24 @@ export function KhromaShell({ children, preview, paused = false, rightContent, b
            live alongside the design tools. The card scales itself to fit
            the available top half of the viewport (50vh - chrome). */
         @media (max-width: 1023.98px) {
-          body.sheet-open .carousel-float {
+          body.sheet-open .carousel-float,
+          body.sheet-open .carousel-float-width {
             position: fixed;
             top: env(safe-area-inset-top, 0);
             left: 50%;
             transform: translateX(-50%);
             z-index: 65;
-            max-height: 50vh;
-            width: auto;
-            margin: 0;
-          }
-          body.sheet-open .carousel-float-width {
-            /* Override the column-width rule above when pinned: scale the
-               card by viewport height instead so it always fits. The IG
-               card itself is aspect 4:5 so width follows from height. */
-            width: auto !important;
+            /* IG card is 4:5; sized off viewport height so it always
+               fits the top half. Width is explicit (not auto) so the
+               inline-size container query has a concrete value. */
             height: 50vh;
-            max-width: min(28rem, 100vw - 2rem);
+            width: min(calc(50vh * 4 / 5), calc(100vw - 2rem), 28rem) !important;
+            max-height: 50vh;
+            margin: 0;
           }
           body.sheet-open .carousel-float > div:first-of-type {
             height: 100%;
-            width: auto;
-            aspect-ratio: 4 / 5;
+            width: 100%;
             border-radius: 14px;
           }
           /* When the sheet is open we want the user to see the SLIDE,
