@@ -232,7 +232,7 @@ export function LiveCarousel({
                 <button
                   type="button"
                   onClick={(e) => { e.stopPropagation(); onEditElement('textbg') }}
-                  className="bg-color-chip absolute left-5 bottom-3 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium"
+                  className="bg-color-chip absolute right-5 bottom-3 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium"
                   style={{
                     background: 'rgba(0,0,0,0.45)',
                     border: '1px solid rgba(255,255,255,0.18)',
