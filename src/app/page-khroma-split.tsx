@@ -1321,7 +1321,7 @@ function SlideEditor({
     border: `1px solid ${isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)'}`,
     color: textMain,
     fontFamily: SANS,
-    borderRadius: 10,
+    borderRadius: 8,
     padding: '10px 12px',
     width: '100%',
     outline: 'none',
@@ -1961,7 +1961,7 @@ function ImageDesignPanel({
     border: `1px solid ${isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)'}`,
     color: textMain,
     fontFamily: SANS,
-    borderRadius: 10,
+    borderRadius: 8,
     padding: '10px 12px',
     width: '100%',
     outline: 'none',
@@ -1998,7 +1998,7 @@ function ImageDesignPanel({
         <div
           role="radiogroup"
           aria-label="Image provider"
-          className="inline-flex rounded-md overflow-hidden"
+          className="inline-flex rounded-lg overflow-hidden"
         >
           <button
             type="button"
@@ -2040,7 +2040,7 @@ function ImageDesignPanel({
           type="button"
           onClick={reRollWithPrompt}
           disabled={disabled || prompt.trim().length === 0}
-          className="inline-flex items-center gap-2 h-10 px-4 rounded-md text-[13px] font-medium transition-all hover:brightness-110 disabled:opacity-60 disabled:cursor-not-allowed"
+          className="inline-flex items-center gap-2 h-10 px-4 rounded-lg text-[13px] font-medium transition-all hover:brightness-110 disabled:opacity-60 disabled:cursor-not-allowed"
           style={buttonStyle}
         >
           {disabled ? (
@@ -2078,7 +2078,7 @@ function ImageDesignPanel({
             type="button"
             onClick={searchWiki}
             disabled={wikiLoading || wikiQuery.trim().length === 0}
-            className="h-10 px-4 rounded-md text-[13px] font-medium transition-all hover:brightness-110 disabled:opacity-60 disabled:cursor-not-allowed"
+            className="h-10 px-4 rounded-lg text-[13px] font-medium transition-all hover:brightness-110 disabled:opacity-60 disabled:cursor-not-allowed"
             style={buttonStyle}
           >
             {wikiLoading ? '…' : 'Search'}
@@ -2097,7 +2097,7 @@ function ImageDesignPanel({
               border: `1px solid ${isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.08)'}`,
             }}
           >
-            <img src={wikiResult.imageUrl} alt={wikiResult.title ?? ''} className="w-20 h-20 object-cover rounded-md shrink-0" />
+            <img src={wikiResult.imageUrl} alt={wikiResult.title ?? ''} className="w-20 h-20 object-cover rounded-lg shrink-0" />
             <div className="flex flex-col justify-between min-w-0 flex-1">
               <div className="min-w-0">
                 <p className="text-[12px] truncate" style={{ color: textMain, fontFamily: SANS }}>{wikiResult.title ?? 'Result'}</p>
@@ -2111,7 +2111,7 @@ function ImageDesignPanel({
                 type="button"
                 onClick={useWikiImage}
                 disabled={disabled}
-                className="self-start mt-2 inline-flex items-center gap-2 h-8 px-3 rounded-md text-[12px] font-medium transition-all hover:brightness-110 disabled:opacity-60 disabled:cursor-not-allowed"
+                className="self-start mt-2 inline-flex items-center gap-2 h-8 px-3 rounded-lg text-[12px] font-medium transition-all hover:brightness-110 disabled:opacity-60 disabled:cursor-not-allowed"
                 style={buttonStyle}
               >
                 Use this image
