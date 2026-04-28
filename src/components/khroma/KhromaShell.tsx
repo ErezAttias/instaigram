@@ -288,12 +288,15 @@ export function KhromaShell({ children, preview, paused = false, rightContent, b
             height: 100%;
             width: auto;
             aspect-ratio: 4 / 5;
+            border-radius: 14px;
           }
-          /* Hide the slide-rail scaffolding (Download button, Start
-             another, etc.) under the pinned carousel — the user can
-             access these by closing the sheet. */
-          body.sheet-open .right-col,
-          body.sheet-open section { /* restored on close */ }
+          /* When the sheet is open we want the user to see the SLIDE,
+             not the Instagram chrome around it. Hide the simulated IG
+             header / dot row / footer so the photo + headline overlay
+             can fill the pinned card. */
+          body.sheet-open .ig-chrome {
+            display: none !important;
+          }
         }
         .slide-swap-next, .slide-swap-prev {
           will-change: transform, opacity;

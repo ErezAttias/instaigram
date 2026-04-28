@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
 import { useTheme } from '@/components/ThemeProvider'
@@ -1096,10 +1096,13 @@ function FloatingDesignSheet({
 
   const sheet = (
     <>
-      {/* Mobile-only backdrop */}
+      {/* Mobile-only dismiss layer — covers ONLY the strip between the
+          pinned carousel (top 50vh) and the sheet itself, so tapping the
+          slide preview keeps it interactive (slide nav, etc.) and the
+          slide isn't visually dimmed. */}
       <div
-        className={`lg:hidden fixed inset-0 z-[60] transition-opacity duration-300 ${open ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
-        style={{ background: 'rgba(0,0,0,0.5)' }}
+        className={`lg:hidden fixed left-0 right-0 z-[60] transition-opacity duration-300 ${open ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
+        style={{ top: '50vh', bottom: 0, background: 'transparent' }}
         onClick={onClose}
         aria-hidden="true"
       />
@@ -1137,23 +1140,49 @@ function FloatingDesignSheet({
  * fold each tool group (Font / Weight / Size / Style / Color) so the
  * mobile edit pane doesn't sprawl below the fold.
  */
+/**
+ * Inside a TextDesignPanel only one section may be expanded at a time on
+ * mobile. Sections coordinate via a context so the parent panel doesn't
+ * have to thread state into each row by hand.
+ */
+const CollapsibleGroupContext = React.createContext<{
+  activeId: string | null
+  setActiveId: (id: string | null) => void
+} | null>(null)
+
+function CollapsibleGroup({ children }: { children: React.ReactNode }) {
+  const [activeId, setActiveId] = useState<string | null>(null)
+  return (
+    <CollapsibleGroupContext.Provider value={{ activeId, setActiveId }}>
+      {children}
+    </CollapsibleGroupContext.Provider>
+  )
+}
+
 function MobileCollapsible({
+  id,
   title,
   children,
-  defaultOpen = false,
   textMuted,
 }: {
+  id: string
   title: string
   children: React.ReactNode
-  defaultOpen?: boolean
   textMuted: string
 }) {
-  const [open, setOpen] = useState(defaultOpen)
+  const ctx = React.useContext(CollapsibleGroupContext)
+  // Stand-alone fallback (no group): keep prior single-instance behavior.
+  const [localOpen, setLocalOpen] = useState(false)
+  const open = ctx ? ctx.activeId === id : localOpen
+  const toggle = () => {
+    if (ctx) ctx.setActiveId(open ? null : id)
+    else setLocalOpen(o => !o)
+  }
   return (
     <div className="mb-5">
       <button
         type="button"
-        onClick={() => setOpen(o => !o)}
+        onClick={toggle}
         className="w-full flex items-center justify-between mb-2 lg:pointer-events-none"
         aria-expanded={open}
       >
@@ -1703,7 +1732,8 @@ function TextDesignPanel({
         <BackButton onClick={onBack} textMuted={textMuted} />
       </div>
 
-      <MobileCollapsible title={`Font · ${currentFont}`} textMuted={textMuted}>
+      <CollapsibleGroup>
+      <MobileCollapsible id="font" title={`Font · ${currentFont}`} textMuted={textMuted}>
         <div className="flex flex-wrap gap-2">
           {HEADLINE_FONTS.map(f => (
             <button
@@ -1718,7 +1748,7 @@ function TextDesignPanel({
         </div>
       </MobileCollapsible>
 
-      <MobileCollapsible title={`Weight · ${currentWeight}`} textMuted={textMuted}>
+      <MobileCollapsible id="weight" title={`Weight · ${currentWeight}`} textMuted={textMuted}>
         <div className="flex flex-wrap gap-2">
           {HEADLINE_WEIGHTS.map(w => (
             <button
@@ -1733,7 +1763,7 @@ function TextDesignPanel({
         </div>
       </MobileCollapsible>
 
-      <MobileCollapsible title={`Size · ${currentSize}px`} textMuted={textMuted}>
+      <MobileCollapsible id="size" title={`Size · ${currentSize}px`} textMuted={textMuted}>
         <div className="flex items-center gap-2">
           <button
             type="button"
@@ -1769,7 +1799,7 @@ function TextDesignPanel({
         </div>
       </MobileCollapsible>
 
-      <MobileCollapsible title={`Style · ${currentItalic ? 'Italic' : 'Regular'}`} textMuted={textMuted}>
+      <MobileCollapsible id="style" title={`Style · ${currentItalic ? 'Italic' : 'Regular'}`} textMuted={textMuted}>
         <button
           type="button"
           onClick={() => setOverrides(o => ({ ...o, [italicKey]: !o[italicKey] }))}
@@ -1779,7 +1809,7 @@ function TextDesignPanel({
         </button>
       </MobileCollapsible>
 
-      <MobileCollapsible title="Color" textMuted={textMuted}>
+      <MobileCollapsible id="color" title="Color" textMuted={textMuted}>
         <div className="flex items-center gap-2 flex-wrap">
           {TEXT_COLOR_SWATCHES.map(c => {
             const active = currentColor.toLowerCase() === c.toLowerCase()
@@ -1815,6 +1845,7 @@ function TextDesignPanel({
           </button>
         </div>
       </MobileCollapsible>
+      </CollapsibleGroup>
     </div>
   )
 }

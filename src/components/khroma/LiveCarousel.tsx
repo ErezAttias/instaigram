@@ -107,7 +107,7 @@ export function LiveCarousel({
       >
         {/* Header */}
         <div
-          className="flex items-center gap-2 px-3 py-2.5 shrink-0"
+          className="ig-chrome flex items-center gap-2 px-3 py-2.5 shrink-0"
           style={{ background: chromeBg, color: chromeFg }}
         >
           <div className="p-[2px] rounded-full shrink-0" style={{ background: IG_GRADIENT }}>
@@ -232,7 +232,7 @@ export function LiveCarousel({
 
         {/* Instagram chrome: slide dots (not part of slide design) */}
         <div
-          className="shrink-0 flex justify-center gap-1.5 py-2"
+          className="ig-chrome shrink-0 flex justify-center gap-1.5 py-2"
           style={{ background: chromeBg }}
         >
           {slides.map((s, i) => (
@@ -256,7 +256,7 @@ export function LiveCarousel({
 
         {/* Footer */}
         <div
-          className="px-3 py-3 shrink-0 flex items-center gap-3 [&>svg]:opacity-85"
+          className="ig-chrome px-3 py-3 shrink-0 flex items-center gap-3 [&>svg]:opacity-85"
           style={{ background: chromeBg, color: chromeFg }}
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /></svg>
