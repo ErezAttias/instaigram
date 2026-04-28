@@ -231,7 +231,7 @@ export function KhromaShell({ children, preview, paused = false, rightContent, b
           left: 0;
           right: 0;
           bottom: 0;
-          z-index: 50;
+          z-index: 70;
           max-height: 75vh;
           overflow-y: auto;
           border-top-left-radius: 22px;

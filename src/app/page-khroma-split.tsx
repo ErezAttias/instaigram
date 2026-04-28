@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
 import { useTheme } from '@/components/ThemeProvider'
 import { KhromaShell, SERIF, SANS, IG_GRADIENT } from '@/components/khroma/KhromaShell'
@@ -1061,22 +1062,37 @@ function FloatingDesignSheet({
   isLight: boolean
   children: React.ReactNode
 }) {
+  const [mounted, setMounted] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
+
+  // Detect mobile-vs-desktop on the client and keep it in sync. The desktop
+  // path renders inline; the mobile path portals to <body> so no ancestor
+  // transform / filter can pull the fixed sheet out of viewport space.
+  useEffect(() => {
+    setMounted(true)
+    if (typeof window === 'undefined') return
+    const mq = window.matchMedia('(max-width: 1023.98px)')
+    const update = () => setIsMobile(mq.matches)
+    update()
+    mq.addEventListener('change', update)
+    return () => mq.removeEventListener('change', update)
+  }, [])
+
   // Lock body scroll while the sheet is open on mobile so the carousel
   // preview behind doesn't move under the user's finger.
   useEffect(() => {
-    if (!open) return
-    if (typeof window === 'undefined') return
-    if (window.matchMedia('(min-width: 1024px)').matches) return
+    if (!open || !isMobile) return
+    if (typeof document === 'undefined') return
     const prev = document.body.style.overflow
     document.body.style.overflow = 'hidden'
     return () => { document.body.style.overflow = prev }
-  }, [open])
+  }, [open, isMobile])
 
-  return (
+  const sheet = (
     <>
       {/* Mobile-only backdrop */}
       <div
-        className={`lg:hidden fixed inset-0 z-40 transition-opacity duration-300 ${open ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
+        className={`lg:hidden fixed inset-0 z-[60] transition-opacity duration-300 ${open ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
         style={{ background: 'rgba(0,0,0,0.5)' }}
         onClick={onClose}
         aria-hidden="true"
@@ -1102,6 +1118,11 @@ function FloatingDesignSheet({
       </div>
     </>
   )
+
+  // Desktop or pre-hydration: keep the sheet inline so the static markup
+  // matches the client's first render and tools render in flow on lg+.
+  if (!mounted || !isMobile) return sheet
+  return createPortal(sheet, document.body)
 }
 
 /**
