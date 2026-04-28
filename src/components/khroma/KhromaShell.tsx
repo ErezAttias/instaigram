@@ -232,7 +232,10 @@ export function KhromaShell({ children, preview, paused = false, rightContent, b
           right: 0;
           bottom: 0;
           z-index: 70;
-          max-height: 75vh;
+          /* Cap at ~half the viewport so the carousel preview above stays
+             visible while the user edits. The sheet's own body scrolls
+             when content is taller than this. */
+          max-height: 48vh;
           overflow-y: auto;
           border-top-left-radius: 22px;
           border-top-right-radius: 22px;

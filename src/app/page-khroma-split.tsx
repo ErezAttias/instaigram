@@ -1079,10 +1079,20 @@ function FloatingDesignSheet({
   }, [])
 
   // Lock body scroll while the sheet is open on mobile so the carousel
-  // preview behind doesn't move under the user's finger.
+  // preview behind doesn't move under the user's finger. Also scroll the
+  // IG card into view at the top of the viewport so it stays visible
+  // above the sheet (the sheet caps at 48vh — top half is the card).
   useEffect(() => {
     if (!open || !isMobile) return
     if (typeof document === 'undefined') return
+    const card = document.querySelector('.carousel-float') as HTMLElement | null
+    if (card) {
+      // Wait one frame so the sheet's transform animation has started and
+      // the browser knows where the sheet will land.
+      requestAnimationFrame(() => {
+        card.scrollIntoView({ block: 'start', behavior: 'smooth' })
+      })
+    }
     const prev = document.body.style.overflow
     document.body.style.overflow = 'hidden'
     return () => { document.body.style.overflow = prev }
