@@ -235,7 +235,7 @@ export function KhromaShell({ children, preview, paused = false, rightContent, b
           /* Cap at ~half the viewport so the carousel preview above stays
              visible while the user edits. The sheet's own body scrolls
              when content is taller than this. */
-          max-height: 48vh;
+          max-height: 50vh;
           overflow-y: auto;
           border-top-left-radius: 22px;
           border-top-right-radius: 22px;
@@ -259,6 +259,41 @@ export function KhromaShell({ children, preview, paused = false, rightContent, b
             background: transparent !important;
             transition: none;
           }
+        }
+
+        /* When the floating sheet is open on mobile, pin the carousel
+           preview to the top of the viewport so the user can see edits
+           live alongside the design tools. The card scales itself to fit
+           the available top half of the viewport (50vh - chrome). */
+        @media (max-width: 1023.98px) {
+          body.sheet-open .carousel-float {
+            position: fixed;
+            top: env(safe-area-inset-top, 0);
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 65;
+            max-height: 50vh;
+            width: auto;
+            margin: 0;
+          }
+          body.sheet-open .carousel-float-width {
+            /* Override the column-width rule above when pinned: scale the
+               card by viewport height instead so it always fits. The IG
+               card itself is aspect 4:5 so width follows from height. */
+            width: auto !important;
+            height: 50vh;
+            max-width: min(28rem, 100vw - 2rem);
+          }
+          body.sheet-open .carousel-float > div:first-of-type {
+            height: 100%;
+            width: auto;
+            aspect-ratio: 4 / 5;
+          }
+          /* Hide the slide-rail scaffolding (Download button, Start
+             another, etc.) under the pinned carousel — the user can
+             access these by closing the sheet. */
+          body.sheet-open .right-col,
+          body.sheet-open section { /* restored on close */ }
         }
         .slide-swap-next, .slide-swap-prev {
           will-change: transform, opacity;
