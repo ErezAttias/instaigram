@@ -1994,11 +1994,11 @@ function ImageDesignPanel({
           Prompt
         </span>
         <AutoTextarea value={prompt} onChange={setPrompt} onBlur={() => { /* commit on action */ }} style={fieldStyle} />
-        <div className="mt-3 flex items-center gap-2 flex-wrap">
+        <div className="mt-3 flex flex-col gap-2">
         <div
           role="radiogroup"
           aria-label="Image provider"
-          className="inline-flex rounded-lg overflow-hidden"
+          className="grid grid-cols-2 rounded-lg overflow-hidden w-full"
         >
           <button
             type="button"
@@ -2040,7 +2040,7 @@ function ImageDesignPanel({
           type="button"
           onClick={reRollWithPrompt}
           disabled={disabled || prompt.trim().length === 0}
-          className="inline-flex items-center gap-2 h-10 px-4 rounded-lg text-[13px] font-medium transition-all hover:brightness-110 disabled:opacity-60 disabled:cursor-not-allowed"
+          className="w-full inline-flex items-center justify-center gap-2 h-10 px-4 rounded-lg text-[13px] font-medium transition-all hover:brightness-110 disabled:opacity-60 disabled:cursor-not-allowed"
           style={buttonStyle}
         >
           {disabled ? (
