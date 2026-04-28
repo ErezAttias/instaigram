@@ -1384,28 +1384,6 @@ function SlideEditor({
               </label>
             )}
 
-            {/* Quick-access design shortcuts */}
-            <div className="flex flex-wrap gap-2 mt-1">
-              <button
-                type="button"
-                onClick={() => setEditTarget('textbg')}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium transition-all hover:opacity-100 opacity-70"
-                style={{
-                  border: `1px solid ${isLight ? 'rgba(0,0,0,0.15)' : 'rgba(255,255,255,0.15)'}`,
-                  background: 'transparent',
-                  color: textMain,
-                  fontFamily: SANS,
-                }}
-              >
-                {/* Gradient swatch icon */}
-                <span style={{
-                  display: 'inline-block', width: 14, height: 14, borderRadius: 3, flexShrink: 0,
-                  background: `linear-gradient(to bottom right, transparent, ${themeOverrides.textBgColor ?? themeBase.bg})`,
-                  border: `1px solid ${isLight ? 'rgba(0,0,0,0.15)' : 'rgba(255,255,255,0.2)'}`,
-                }} />
-                Gradient color
-              </button>
-            </div>
           </>
         )}
 

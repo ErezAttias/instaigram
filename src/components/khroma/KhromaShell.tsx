@@ -71,7 +71,7 @@ export function KhromaShell({ children, preview, paused = false, rightContent, b
       style={{ background: pageBg }}
     >
       {/* Left column */}
-      <section className="relative z-10 flex flex-col justify-center px-8 sm:px-14 lg:px-20 py-16">
+      <section className="relative z-10 flex flex-col justify-start lg:justify-center px-8 sm:px-14 lg:px-20 py-6 lg:py-16">
         <div className="max-w-[36rem] w-full mx-auto">
           {/* Logo: light-grey monochrome wordmark. No accent — the hero and
               submit pill carry the color; the logo stays quiet. Links home. */}
@@ -84,7 +84,7 @@ export function KhromaShell({ children, preview, paused = false, rightContent, b
           <a
             href="/"
             aria-label="instaigram — back to home"
-            className="mb-10 w-fit text-2xl leading-none inline-block transition-opacity hover:opacity-80 focus:outline-none focus-visible:opacity-80"
+            className="mb-6 lg:mb-10 w-fit text-2xl leading-none inline-block transition-opacity hover:opacity-80 focus:outline-none focus-visible:opacity-80"
             style={{
               color: textMain,
               fontFamily: SANS,
