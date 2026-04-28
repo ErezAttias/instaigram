@@ -1713,15 +1713,21 @@ function TextDesignPanel({
   const sizeRange = SIZE_RANGES[sizeKey]
   const pillStyle = (active: boolean): React.CSSProperties => ({
     padding: '6px 10px',
-    borderRadius: 8,
     fontFamily: SANS,
     fontSize: 12,
+    height: 36,
     border: `1px solid ${active ? (isLight ? '#0a0a0a' : '#ffffff') : (isLight ? 'rgba(0,0,0,0.12)' : 'rgba(255,255,255,0.12)')}`,
     background: active ? (isLight ? '#0a0a0a' : '#ffffff') : 'transparent',
     color: active ? (isLight ? '#ffffff' : '#0a0a0a') : textMain,
     cursor: 'pointer',
     transition: 'all 180ms',
   })
+  // Friendly label for the collapsed title — `currentFont` is the full
+  // CSS font-family stack (e.g. `'Inter', system-ui, sans-serif`); show
+  // only the human name.
+  const currentFontLabel =
+    HEADLINE_FONTS.find(f => f.value === currentFont)?.label
+    ?? (currentFont || '').split(',')[0].replace(/['"]/g, '').trim()
 
   return (
     <div>
@@ -1733,13 +1739,14 @@ function TextDesignPanel({
       </div>
 
       <CollapsibleGroup>
-      <MobileCollapsible id="font" title={`Font · ${currentFont}`} textMuted={textMuted}>
-        <div className="flex flex-wrap gap-2">
+      <MobileCollapsible id="font" title={`Font · ${currentFontLabel}`} textMuted={textMuted}>
+        <div className="grid grid-cols-2 gap-2">
           {HEADLINE_FONTS.map(f => (
             <button
               key={f.value}
               type="button"
               onClick={() => setOverrides(o => ({ ...o, [fontKey]: f.value }))}
+              className="rounded-lg flex items-center justify-center"
               style={{ ...pillStyle(currentFont === f.value), fontFamily: f.value }}
             >
               {f.label}
@@ -1749,12 +1756,13 @@ function TextDesignPanel({
       </MobileCollapsible>
 
       <MobileCollapsible id="weight" title={`Weight · ${currentWeight}`} textMuted={textMuted}>
-        <div className="flex flex-wrap gap-2">
+        <div className="grid grid-cols-4 gap-2">
           {HEADLINE_WEIGHTS.map(w => (
             <button
               key={w}
               type="button"
               onClick={() => setOverrides(o => ({ ...o, [weightKey]: w }))}
+              className="rounded-lg flex items-center justify-center"
               style={{ ...pillStyle(currentWeight === w), fontWeight: w }}
             >
               {w}
@@ -1769,11 +1777,11 @@ function TextDesignPanel({
             type="button"
             onClick={() => setOverrides(o => ({ ...o, [sizeKey]: Math.max(sizeRange.min, (o[sizeKey] ?? SIZE_DEFAULTS[sizeKey]) - sizeRange.step) }))}
             disabled={currentSize <= sizeRange.min}
+            className="rounded-lg flex items-center justify-center shrink-0"
             style={{
-              width: 32, height: 32, borderRadius: 8, border: `1px solid ${isLight ? 'rgba(0,0,0,0.12)' : 'rgba(255,255,255,0.12)'}`,
+              width: 36, height: 36, borderRadius: 8, border: `1px solid ${isLight ? 'rgba(0,0,0,0.12)' : 'rgba(255,255,255,0.12)'}`,
               background: 'transparent', color: textMain, fontFamily: SANS, fontSize: 18,
               cursor: currentSize <= sizeRange.min ? 'not-allowed' : 'pointer', opacity: currentSize <= sizeRange.min ? 0.3 : 1,
-              display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
             }}
           >−</button>
           <input
@@ -1789,24 +1797,35 @@ function TextDesignPanel({
             type="button"
             onClick={() => setOverrides(o => ({ ...o, [sizeKey]: Math.min(sizeRange.max, (o[sizeKey] ?? SIZE_DEFAULTS[sizeKey]) + sizeRange.step) }))}
             disabled={currentSize >= sizeRange.max}
+            className="rounded-lg flex items-center justify-center shrink-0"
             style={{
-              width: 32, height: 32, borderRadius: 8, border: `1px solid ${isLight ? 'rgba(0,0,0,0.12)' : 'rgba(255,255,255,0.12)'}`,
+              width: 36, height: 36, borderRadius: 8, border: `1px solid ${isLight ? 'rgba(0,0,0,0.12)' : 'rgba(255,255,255,0.12)'}`,
               background: 'transparent', color: textMain, fontFamily: SANS, fontSize: 18,
               cursor: currentSize >= sizeRange.max ? 'not-allowed' : 'pointer', opacity: currentSize >= sizeRange.max ? 0.3 : 1,
-              display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
             }}
           >+</button>
         </div>
       </MobileCollapsible>
 
       <MobileCollapsible id="style" title={`Style · ${currentItalic ? 'Italic' : 'Regular'}`} textMuted={textMuted}>
-        <button
-          type="button"
-          onClick={() => setOverrides(o => ({ ...o, [italicKey]: !o[italicKey] }))}
-          style={{ ...pillStyle(!!currentItalic), fontStyle: 'italic' }}
-        >
-          Italic
-        </button>
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={() => setOverrides(o => ({ ...o, [italicKey]: false }))}
+            className="rounded-lg flex items-center justify-center"
+            style={pillStyle(!currentItalic)}
+          >
+            Regular
+          </button>
+          <button
+            type="button"
+            onClick={() => setOverrides(o => ({ ...o, [italicKey]: true }))}
+            className="rounded-lg flex items-center justify-center"
+            style={{ ...pillStyle(!!currentItalic), fontStyle: 'italic' }}
+          >
+            Italic
+          </button>
+        </div>
       </MobileCollapsible>
 
       <MobileCollapsible id="color" title="Color" textMuted={textMuted}>
