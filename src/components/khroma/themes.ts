@@ -60,7 +60,6 @@ export const THEMES: CarouselTheme[] = [
     headlineWeight: 400,
     headlineSizePx: 42,
     ctaSizePx: 13,
-    italic: true,
   },
   {
     username: 'coffeegeek',
@@ -100,7 +99,6 @@ export const THEMES: CarouselTheme[] = [
     headlineFont: SERIF,
     headlineWeight: 400,
     headlineSizePx: 42,
-    italic: true,
   },
   {
     username: 'studio.sunday',
@@ -117,7 +115,6 @@ export const THEMES: CarouselTheme[] = [
     headlineFont: SERIF,
     headlineWeight: 400,
     headlineSizePx: 42,
-    italic: true,
   },
 ]
 
