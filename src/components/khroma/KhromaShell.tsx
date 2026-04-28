@@ -297,6 +297,15 @@ export function KhromaShell({ children, preview, paused = false, rightContent, b
           body.sheet-open .ig-chrome {
             display: none !important;
           }
+          /* The persistent BG-color chip is only shown when the sheet
+             is open — closed state still uses the cursor-tracking chip
+             from TrackingEditZone. */
+          .bg-color-chip {
+            display: none;
+          }
+          body.sheet-open .bg-color-chip {
+            display: inline-flex;
+          }
         }
         .slide-swap-next, .slide-swap-prev {
           will-change: transform, opacity;
