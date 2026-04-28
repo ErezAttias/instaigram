@@ -191,7 +191,7 @@ export function LiveCarousel({
                   onClick={() => onEditElement?.('headline')}
                 >
                   <h3
-                    className="fc-headline whitespace-pre-line leading-[1.05] tracking-tight"
+                    className="fc-headline whitespace-pre-line leading-[1.2] tracking-tight"
                     style={{
                       color: theme.fg,
                       fontFamily: theme.headlineFont ?? SERIF,
