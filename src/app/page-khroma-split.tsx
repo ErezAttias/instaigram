@@ -2006,7 +2006,7 @@ function ImageDesignPanel({
             aria-checked={provider === 'gemini'}
             onClick={() => setProvider('gemini')}
             disabled={disabled}
-            className="h-10 px-3 text-[12px] font-medium transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+            className="h-10 px-3 rounded-none text-[12px] font-medium transition-all disabled:opacity-60 disabled:cursor-not-allowed"
             style={{
               background: provider === 'gemini'
                 ? (isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.12)')
@@ -2023,7 +2023,7 @@ function ImageDesignPanel({
             aria-checked={provider === 'openai'}
             onClick={() => setProvider('openai')}
             disabled={disabled}
-            className="h-10 px-3 text-[12px] font-medium transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+            className="h-10 px-3 rounded-none text-[12px] font-medium transition-all disabled:opacity-60 disabled:cursor-not-allowed"
             style={{
               background: provider === 'openai'
                 ? (isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.12)')
