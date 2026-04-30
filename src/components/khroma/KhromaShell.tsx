@@ -41,9 +41,16 @@ type Props = {
   /** Hide the right column on mobile (below lg). Use when the left column is
    *  already showing the preview so the stacked duplicate is unnecessary. */
   hideRightOnMobile?: boolean
+  /**
+   * Optional content rendered immediately under the right column on mobile
+   * only. Used for primary CTAs (download / start over) so they sit beneath
+   * the carousel preview instead of pushing it down the page. Hidden on lg+
+   * since the same CTAs already live inline in the left column.
+   */
+  mobileFooter?: ReactNode
 }
 
-export function KhromaShell({ children, preview, paused = false, rightContent, bareRight = false, hideRightOnMobile = false }: Props) {
+export function KhromaShell({ children, preview, paused = false, rightContent, bareRight = false, hideRightOnMobile = false, mobileFooter }: Props) {
   const { theme, toggle } = useTheme()
   const isLight = theme === 'light'
   const [themeIdx, setThemeIdx] = useState(0)
@@ -100,7 +107,7 @@ export function KhromaShell({ children, preview, paused = false, rightContent, b
 
       {/* Right column */}
       <div
-        className={`right-col relative overflow-visible lg:overflow-hidden min-h-[60vh] lg:min-h-0 mt-8 lg:mt-0${hideRightOnMobile ? ' hidden lg:block' : ''}`}
+        className={`right-col relative overflow-visible lg:overflow-hidden lg:min-h-0 mt-0 lg:mt-0${hideRightOnMobile ? ' hidden lg:block' : ''}`}
         style={{
           // Mobile-only feather at the top blends the aurora into whichever
           // top-section bg is live (black in dark mode, cream in light).
@@ -109,9 +116,14 @@ export function KhromaShell({ children, preview, paused = false, rightContent, b
       >
         {!bareRight && <AuroraBackdrop theme={current} isLight={isLight} />}
         {/* z-10 keeps the carousel card above the mobile feather overlay
-            (which sits at z-2 to dissolve the aurora edge). */}
-        <div className="absolute inset-0 flex items-center justify-center px-8 py-4 sm:px-14 lg:p-8 z-10">
+            (which sits at z-2 to dissolve the aurora edge). On desktop the
+            content is absolute-centered; on mobile it flows in a column
+            (carousel above CTAs) so the CTAs land on the aurora background. */}
+        <div className="relative lg:absolute lg:inset-0 z-10 flex flex-col lg:flex-row items-center justify-center gap-5 px-8 pt-0 pb-4 sm:px-14 lg:p-8">
           {rightContent ?? <FloatingCarousel theme={current} nonce={previewKey} isLight={isLight} />}
+          {mobileFooter && (
+            <div className="lg:hidden w-full pb-8 pt-2">{mobileFooter}</div>
+          )}
         </div>
       </div>
 
@@ -174,6 +186,12 @@ export function KhromaShell({ children, preview, paused = false, rightContent, b
           0%, 100% { transform: translateY(0); }
           50%      { transform: translateY(-10px); }
         }
+        /* Mobile keeps the card still — the floating motion competes with
+           the slide-nav pill and CTAs that sit just above and below the
+           preview, and those need a stable visual anchor. */
+        @media (max-width: 1023.98px) {
+          .carousel-float { animation: none; transform: none; }
+        }
         .carousel-morph {
           animation: morph-in 800ms cubic-bezier(0.22, 1, 0.36, 1) both;
         }
@@ -214,6 +232,9 @@ export function KhromaShell({ children, preview, paused = false, rightContent, b
            hold it (12cqi ≈ 12% of the IG card width). */
         .carousel-float { container-type: inline-size; }
         .fc-headline { font-size: min(var(--h-size), 12cqi); }
+        @media (max-width: 1023.98px) {
+          .fc-headline { font-size: min(var(--h-size-mobile, var(--h-size)), 12cqi); }
+        }
         .fc-support  { font-size: min(var(--s-size), 5.5cqi); }
         .fc-cta      { font-size: min(var(--cta-size), 5.5cqi); }
 

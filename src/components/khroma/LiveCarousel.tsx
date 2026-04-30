@@ -48,6 +48,11 @@ type Props = {
    * so the parent can swap its design panel to the relevant tool.
    */
   onEditElement?: (which: 'image' | 'headline' | 'support' | 'textbg') => void
+  /**
+   * Which element (if any) is currently being edited. Drives the dashed
+   * "selected" outline drawn around the matching slot in the slide preview.
+   */
+  activeEditTarget?: 'overview' | 'headline' | 'support' | 'image' | 'textbg'
   /** When true, render Instagram chrome (header, dots row, footer) in light mode. */
   isLight?: boolean
 }
@@ -63,6 +68,7 @@ export function LiveCarousel({
   onRegenerateSlide,
   regeneratingSet,
   onEditElement,
+  activeEditTarget,
   isLight = false,
 }: Props) {
   const [internalIndex, setInternalIndex] = useState(0)
@@ -178,16 +184,18 @@ export function LiveCarousel({
               <TrackingEditZone
                 label="Change gradient color"
                 enabled={!!onEditElement}
+                active={activeEditTarget === 'textbg'}
                 onClick={() => onEditElement?.('textbg')}
                 chipOffset={{ x: 0, y: -8 }}
                 className="absolute inset-x-0 bottom-0 h-[55%] pointer-events-auto"
               />
 
               {/* Headline + support text */}
-              <div className="px-5 pb-10 pt-16">
+              <div className="px-5 pb-5 pt-16">
                 <TrackingEditZone
                   label="Edit headline"
                   enabled={!!onEditElement}
+                  active={activeEditTarget === 'headline'}
                   onClick={() => onEditElement?.('headline')}
                 >
                   <h3
@@ -198,6 +206,7 @@ export function LiveCarousel({
                       fontWeight: theme.headlineWeight ?? 400,
                       fontStyle: theme.italic ? 'italic' : 'normal',
                       ['--h-size' as string]: `${theme.headlineSizePx ?? 28}px`,
+                      ['--h-size-mobile' as string]: `${theme.headlineSizePx ?? 20}px`,
                     }}
                   >
                     {current?.displayTitle || current?.headline || '—'}
@@ -207,6 +216,7 @@ export function LiveCarousel({
                   <TrackingEditZone
                     label={current.role === 'OPENER' || current.role === 'CTA' ? 'Edit Call to Action' : 'Edit paragraph'}
                     enabled={!!onEditElement}
+                    active={activeEditTarget === 'support'}
                     onClick={() => onEditElement?.('support')}
                     className="mt-2"
                   >
@@ -321,6 +331,7 @@ export function LiveCarousel({
 function TrackingEditZone({
   label,
   enabled,
+  active = false,
   onClick,
   children,
   className = '',
@@ -328,6 +339,7 @@ function TrackingEditZone({
 }: {
   label: string
   enabled: boolean
+  active?: boolean
   onClick: () => void
   children?: React.ReactNode
   className?: string
@@ -356,8 +368,24 @@ function TrackingEditZone({
         setPos({ x: e.clientX - rect.left, y: e.clientY - rect.top })
       }}
     >
+      {/* Dashed selection outline — drawn around the slot when this element
+          is the current edit target so the user can see what their tweaks
+          will affect. Inset slightly + extra padding so the dashes ride
+          just outside the text rather than clipping it. */}
+      {active && (
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute z-30"
+          style={{
+            inset: '-8px -10px',
+            border: '1.5px dashed rgba(160, 175, 255, 0.95)',
+            borderRadius: 10,
+            boxShadow: '0 0 0 1px rgba(0,0,0,0.15)',
+          }}
+        />
+      )}
       {children}
-      {hovered && pos && (
+      {!active && hovered && pos && (
         <div
           className="pointer-events-none absolute z-30"
           style={{ left: pos.x + ox, top: pos.y + oy, transform: 'translate(0, -50%)' }}

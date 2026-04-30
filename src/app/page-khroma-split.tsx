@@ -441,6 +441,7 @@ export default function HomeKhromaSplit({ initialJobId }: { initialJobId?: strin
       slideDirection={slideDir}
       onRegenerateSlide={phase === 'done' ? regenerateSlideImage : undefined}
       onEditElement={phase === 'done' ? (which) => setEditTarget(which) : undefined}
+      activeEditTarget={editTarget}
       regeneratingSet={regeneratingSet}
       isLight={isLight}
     />
@@ -449,11 +450,44 @@ export default function HomeKhromaSplit({ initialJobId }: { initialJobId?: strin
   const renderedCount = slides.filter(s => !!s.imageUrl).length
   const totalCount = slides.length
 
+  // Primary CTAs for the "done" phase. Rendered inline on desktop and via
+  // KhromaShell's mobile footer slot on mobile so they sit under the
+  // carousel preview instead of above it.
+  const doneCtas = phase === 'done' && jobId ? (
+    <div className="flex items-center justify-center lg:justify-start gap-5 flex-wrap">
+      <button
+        type="button"
+        onClick={downloadCarousel}
+        disabled={downloading}
+        className="h-12 px-8 text-white font-medium rounded-full text-[15px] transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed inline-flex items-center gap-2"
+        style={{ backgroundImage: IG_GRADIENT, fontFamily: SANS, boxShadow: '0 4px 14px rgba(220,39,67,0.35)' }}
+      >
+        {downloading ? (
+          <>
+            <span className="w-3.5 h-3.5 border-[1.5px] border-white/40 border-t-white rounded-full animate-spin" />
+            Preparing…
+          </>
+        ) : (
+          <>Download carousel ↓</>
+        )}
+      </button>
+      <button
+        type="button"
+        onClick={resetToIdle}
+        className="text-sm font-medium underline-offset-4 hover:underline"
+        style={{ color: textMuted, fontFamily: SANS }}
+      >
+        Start another
+      </button>
+    </div>
+  ) : null
+
   return (
     <KhromaShell
       preview={preview}
       rightContent={rightContent}
       hideRightOnMobile={false}
+      mobileFooter={doneCtas}
     >
       <div key={phase} className="phase-panel">
         {phase === 'idle' && (
@@ -861,22 +895,22 @@ export default function HomeKhromaSplit({ initialJobId }: { initialJobId?: strin
             {/* Mobile preview lives in the right column above this section, so
                 no tab switcher is needed — Edit panel is always shown here. */}
             <div>
-              <p className="mb-4 uppercase tracking-[0.22em] text-[11px]" style={{ color: textMuted, fontFamily: SANS, fontWeight: 600 }}>
-                Carousel ready — edit freely
-              </p>
               <h1
-                className="mb-6"
+                className="mb-3"
                 style={{
                   fontFamily: SERIF,
                   fontWeight: 400,
                   color: textMain,
-                  fontSize: 'clamp(2rem, 3vw, 2.75rem)',
+                  fontSize: 'clamp(2.75rem, 8vw, 3.5rem)',
                   lineHeight: 1.05,
                   letterSpacing: '-0.015em',
                 }}
               >
                 Your <span style={{ fontStyle: 'italic' }}>{submittedTopic}</span> carousel.
               </h1>
+              <p className="mb-6 uppercase tracking-[0.22em] text-[11px]" style={{ color: textMuted, fontFamily: SANS, fontWeight: 600 }}>
+                Tap anything on the slide to tweak it
+              </p>
 
               <SlideEditor
                 jobId={jobId}
@@ -944,32 +978,7 @@ export default function HomeKhromaSplit({ initialJobId }: { initialJobId?: strin
                 </div>
               )}
 
-              <div className="flex items-center gap-5 flex-wrap">
-                <button
-                  type="button"
-                  onClick={downloadCarousel}
-                  disabled={downloading}
-                  className="h-12 px-8 text-white font-medium rounded-full text-[15px] transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed inline-flex items-center gap-2"
-                  style={{ backgroundImage: IG_GRADIENT, fontFamily: SANS, boxShadow: '0 4px 14px rgba(220,39,67,0.35)' }}
-                >
-                  {downloading ? (
-                    <>
-                      <span className="w-3.5 h-3.5 border-[1.5px] border-white/40 border-t-white rounded-full animate-spin" />
-                      Preparing…
-                    </>
-                  ) : (
-                    <>Download carousel ↓</>
-                  )}
-                </button>
-                <button
-                  type="button"
-                  onClick={resetToIdle}
-                  className="text-sm font-medium underline-offset-4 hover:underline"
-                  style={{ color: textMuted, fontFamily: SANS }}
-                >
-                  Start another
-                </button>
-              </div>
+              <div className="hidden lg:block">{doneCtas}</div>
               {error && (
                 <div className="mt-4 px-4 py-2.5 bg-danger/15 border border-danger/30 rounded-md max-w-[34rem]">
                   <p className="text-sm text-danger">{error}</p>
@@ -1115,15 +1124,7 @@ function FloatingDesignSheet({
         role="dialog"
         aria-modal="true"
       >
-        {/* Drag handle / dismiss tap target — mobile only */}
-        <button
-          type="button"
-          onClick={onClose}
-          className="lg:hidden block mx-auto mt-2 mb-3 w-10 h-1.5 rounded-full"
-          style={{ background: isLight ? 'rgba(0,0,0,0.18)' : 'rgba(255,255,255,0.22)' }}
-          aria-label="Close design panel"
-        />
-        <div className="design-sheet-body">{children}</div>
+        <div className="design-sheet-body pt-3 lg:pt-0">{children}</div>
       </div>
     </>
   )
@@ -1150,8 +1151,16 @@ const CollapsibleGroupContext = React.createContext<{
   setActiveId: (id: string | null) => void
 } | null>(null)
 
-function CollapsibleGroup({ children }: { children: React.ReactNode }) {
-  const [activeId, setActiveId] = useState<string | null>(null)
+function CollapsibleGroup({
+  children,
+  defaultActiveId = null,
+}: {
+  children: React.ReactNode
+  /** Section id that should start expanded on mount. Use to land the user
+   *  on the most-relevant control (e.g. font picker for text panels). */
+  defaultActiveId?: string | null
+}) {
+  const [activeId, setActiveId] = useState<string | null>(defaultActiveId)
   return (
     <CollapsibleGroupContext.Provider value={{ activeId, setActiveId }}>
       {children}
@@ -1294,6 +1303,21 @@ function SlideEditor({
   const [support, setSupport] = useState(current?.displaySupport ?? '')
   const [justSaved, setJustSaved] = useState(false)
   const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // Mirrors `editTarget` but lags behind on close so the sheet's slide-out
+  // animation can run with its previous panel still painted underneath.
+  // Without this, snapping editTarget to 'overview' would unmount the panel
+  // body before the 320ms transform transition has a chance to play.
+  const [displayedTarget, setDisplayedTarget] = useState(editTarget)
+  const isSheetTarget = (t: typeof editTarget) =>
+    t === 'headline' || t === 'support' || t === 'image' || t === 'textbg'
+  useEffect(() => {
+    if (isSheetTarget(editTarget)) {
+      setDisplayedTarget(editTarget)
+      return
+    }
+    const t = setTimeout(() => setDisplayedTarget(editTarget), 320)
+    return () => clearTimeout(t)
+  }, [editTarget])
 
   useEffect(() => {
     setTitle(current?.displayTitle ?? current?.headline ?? '')
@@ -1332,70 +1356,62 @@ function SlideEditor({
   }
 
   return (
-    <div className="mb-6 max-w-[34rem]">
-      <div className="flex items-center gap-3 mb-5">
-        <button
-          type="button"
-          onClick={() => setActiveSlide((clamped - 1 + slides.length) % slides.length)}
-          aria-label="Previous slide"
-          className="w-8 h-8 rounded-full inline-flex items-center justify-center text-[15px] transition-colors"
+    <div className="mb-0 lg:mb-6 max-w-[34rem] lg:max-w-[34rem] w-full">
+      <div className="mb-0 lg:mb-5 flex justify-center lg:justify-start">
+        <div
+          className="flex items-center justify-between w-full lg:w-auto lg:inline-flex rounded-full"
           style={{
-            background: isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.06)',
-            color: textMain,
-            fontFamily: SANS,
+            background: isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.05)',
+            border: `1px solid ${isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.08)'}`,
+            padding: '4px',
           }}
         >
-          ←
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveSlide((clamped + 1) % slides.length)}
-          aria-label="Next slide"
-          className="w-8 h-8 rounded-full inline-flex items-center justify-center text-[15px] transition-colors"
-          style={{
-            background: isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.06)',
-            color: textMain,
-            fontFamily: SANS,
-          }}
-        >
-          →
-        </button>
-        <span className="text-[12px] uppercase tracking-[0.18em] opacity-70" style={{ color: textMuted, fontFamily: SANS }}>
-          Slide {clamped + 1} of {slides.length}
-        </span>
+          <button
+            type="button"
+            onClick={() => setActiveSlide((clamped - 1 + slides.length) % slides.length)}
+            aria-label="Previous slide"
+            className="w-8 h-8 rounded-full inline-flex items-center justify-center transition-colors"
+            style={{ background: 'transparent', color: textMain, fontFamily: SANS }}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
+          </button>
+          <span
+            className="px-3 text-[11px] uppercase tracking-[0.18em] select-none"
+            style={{ color: textMuted, fontFamily: SANS, fontWeight: 600 }}
+          >
+            Slide {clamped + 1} of {slides.length}
+          </span>
+          <button
+            type="button"
+            onClick={() => setActiveSlide((clamped + 1) % slides.length)}
+            aria-label="Next slide"
+            className="w-8 h-8 rounded-full inline-flex items-center justify-center transition-colors"
+            style={{ background: 'transparent', color: textMain, fontFamily: SANS }}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="9 18 15 12 9 6" />
+            </svg>
+          </button>
+        </div>
       </div>
 
-      <div key={`panel-${editTarget}-${current.slideIndex}`} className="crossfade">
-        {editTarget === 'overview' && (
-          <>
-            <label className="block mb-4">
-              <span className="block text-[11px] uppercase tracking-[0.16em] mb-1.5 opacity-70" style={{ color: textMuted, fontFamily: SANS }}>
-                Headline
-              </span>
-              <AutoTextarea value={title} onChange={setTitle} onBlur={commit} style={fieldStyle} />
-            </label>
-
-            {current.role !== 'OPENER' && current.role !== 'CTA' && (
-              <label className="block mb-4">
-                <span className="block text-[11px] uppercase tracking-[0.16em] mb-1.5 opacity-70" style={{ color: textMuted, fontFamily: SANS }}>
-                  Supporting text
-                </span>
-                <AutoTextarea value={support} onChange={setSupport} onBlur={commit} style={fieldStyle} />
-              </label>
-            )}
-
-          </>
-        )}
-
-        {(editTarget === 'headline' || editTarget === 'support' || editTarget === 'image' || editTarget === 'textbg') && (
-          <FloatingDesignSheet
-            open
-            onClose={() => setEditTarget('overview')}
-            isLight={isLight}
-          >
-            {editTarget === 'headline' && (
+      {/* Sheet stays mounted across opens/closes so the translateY
+          transition can play in both directions. Kept OUTSIDE any keyed
+          wrapper so changing edit targets doesn't remount it (a remount
+          would land already-open and skip the slide-in). The body renders
+          against `displayedTarget` (lags `editTarget` on close) so the
+          panel content is still painted while the sheet slides out. */}
+      <div>
+        <FloatingDesignSheet
+          open={isSheetTarget(editTarget)}
+          onClose={() => setEditTarget('overview')}
+          isLight={isLight}
+        >
+            {displayedTarget === 'headline' && (
               <TextDesignPanel
-                title="Headline — design"
+                title="Edit Headline"
                 fontKey="headlineFont"
                 weightKey="headlineWeight"
                 sizeKey="headlineSizePx"
@@ -1411,9 +1427,9 @@ function SlideEditor({
               />
             )}
 
-            {editTarget === 'support' && (
+            {displayedTarget === 'support' && (
               <TextDesignPanel
-                title={current.role === 'OPENER' || current.role === 'CTA' ? 'Call to action — design' : 'Paragraph — design'}
+                title={current.role === 'OPENER' || current.role === 'CTA' ? 'Edit Call to Action' : 'Edit Paragraph'}
                 fontKey="supportFont"
                 weightKey="supportWeight"
                 sizeKey="supportSizePx"
@@ -1429,7 +1445,7 @@ function SlideEditor({
               />
             )}
 
-            {editTarget === 'image' && (
+            {displayedTarget === 'image' && (
               <ImageDesignPanel
                 jobId={jobId}
                 slide={current}
@@ -1442,7 +1458,7 @@ function SlideEditor({
               />
             )}
 
-            {editTarget === 'textbg' && (
+            {displayedTarget === 'textbg' && (
               <TextBgColorPanel
                 overrides={themeOverrides}
                 setOverrides={setThemeOverrides}
@@ -1453,8 +1469,7 @@ function SlideEditor({
                 textMuted={textMuted}
               />
             )}
-          </FloatingDesignSheet>
-        )}
+        </FloatingDesignSheet>
       </div>
 
       <div className="mt-2 text-[11px] h-4 transition-opacity duration-300" style={{ color: textMuted, fontFamily: SANS, opacity: saving || justSaved ? 1 : 0 }}>
@@ -1465,7 +1480,6 @@ function SlideEditor({
 }
 
 const HEADLINE_FONTS = [
-  { label: 'Instrument Serif', value: "'Instrument Serif', 'Times New Roman', serif" },
   { label: 'Playfair Display', value: "'Playfair Display', Georgia, serif" },
   { label: 'Roboto Slab', value: "'Roboto Slab', Georgia, serif" },
   { label: 'Montserrat', value: "'Montserrat', system-ui, sans-serif" },
@@ -1711,14 +1725,41 @@ function TextDesignPanel({
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-4">
-        <span className="text-[11px] uppercase tracking-[0.16em] opacity-70" style={{ color: textMuted, fontFamily: SANS }}>
+      <div className="sheet-header relative flex items-center justify-between mb-5 lg:mb-4">
+        <button
+          type="button"
+          onClick={onBack}
+          aria-label="Back"
+          className="lg:!hidden inline-flex items-center justify-center -ml-2 w-9 h-9 rounded-full"
+          style={{ color: textMain, background: 'transparent' }}
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="15 18 9 12 15 6" />
+          </svg>
+        </button>
+        <span
+          className="lg:hidden absolute left-1/2 -translate-x-1/2 text-[15px] font-semibold tracking-tight"
+          style={{ color: textMain, fontFamily: SANS }}
+        >
           {title}
         </span>
-        <BackButton onClick={onBack} textMuted={textMuted} />
+        <span className="hidden lg:inline text-[11px] uppercase tracking-[0.16em] opacity-70" style={{ color: textMuted, fontFamily: SANS }}>
+          {title}
+        </span>
+        <button
+          type="button"
+          onClick={onBack}
+          className="lg:hidden text-[13px] font-semibold tracking-[0.08em] uppercase px-2"
+          style={{ color: '#7c5cff', fontFamily: SANS, background: 'transparent', border: 'none' }}
+        >
+          Done
+        </button>
+        <span className="hidden lg:block">
+          <BackButton onClick={onBack} textMuted={textMuted} />
+        </span>
       </div>
 
-      <CollapsibleGroup>
+      <CollapsibleGroup defaultActiveId="font">
       <MobileCollapsible id="font" title={`Font · ${currentFontLabel}`} textMuted={textMuted}>
         <div className="grid grid-cols-2 gap-2">
           {HEADLINE_FONTS.map(f => (
@@ -1727,7 +1768,7 @@ function TextDesignPanel({
               type="button"
               onClick={() => setOverrides(o => ({ ...o, [fontKey]: f.value }))}
               className="rounded-lg flex items-center justify-center"
-              style={{ ...pillStyle(currentFont === f.value), fontFamily: f.value }}
+              style={{ ...pillStyle(currentFont === f.value), fontFamily: f.value, fontSize: 16, height: 44 }}
             >
               {f.label}
             </button>
