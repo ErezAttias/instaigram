@@ -113,13 +113,28 @@ export function LiveCarousel({
     const dx = t.clientX - start.x
     const dy = t.clientY - start.y
     if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy)) return
-    if (dx < 0 && activeIndex < slides.length - 1) setActive(activeIndex + 1)
-    else if (dx > 0 && activeIndex > 0) setActive(activeIndex - 1)
+    let moved = false
+    if (dx < 0 && activeIndex < slides.length - 1) {
+      setActive(activeIndex + 1)
+      moved = true
+    } else if (dx > 0 && activeIndex > 0) {
+      setActive(activeIndex - 1)
+      moved = true
+    }
+    // Light haptic confirmation for the slide change. Respect
+    // prefers-reduced-motion so we don't surprise users who have opted
+    // out of motion / sensory feedback.
+    if (moved && typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+      const reduce =
+        typeof window !== 'undefined' &&
+        window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+      if (!reduce) navigator.vibrate(8)
+    }
   }
 
   return (
     <div
-      className="relative select-none carousel-float carousel-float-width flex flex-col items-center gap-3"
+      className={`relative select-none carousel-float carousel-float-width flex flex-col items-center gap-3 ${onEditElement ? 'lc-editing' : ''}`}
       onTouchStart={onTouchStart}
       onTouchEnd={onTouchEnd}
     >

@@ -366,6 +366,15 @@ export function KhromaShell({ children, preview, paused = false, rightContent, b
           .bg-color-chip {
             display: inline-flex;
           }
+
+          /* During edit on mobile the simulated Instagram chrome (header
+             avatar, dot row, like/comment/share/save footer) is decorative
+             noise — the user is editing the slide, not previewing the
+             feed card. Keep it for desktop and the homepage demo, but
+             hide on the live editor on mobile. */
+          .lc-editing .ig-chrome {
+            display: none !important;
+          }
         }
         .slide-swap-next, .slide-swap-prev {
           will-change: transform, opacity;
