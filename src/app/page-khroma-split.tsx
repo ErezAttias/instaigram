@@ -1068,6 +1068,24 @@ export default function HomeKhromaSplit({ initialJobId }: { initialJobId?: strin
             0 0 18px 4px rgba(240, 148, 51, 0.22);
           transition-duration: 90ms;
         }
+
+        /* Mobile design-panel collapsible rhythm. On mobile each section
+           gets a 52px tap-target header plus a hairline divider so
+           collapsed rows form a clean stack. Desktop falls back to the
+           pre-existing inline layout (mb-5 stack, no dividers). */
+        @media (max-width: 1023.98px) {
+          .mc-section + .mc-section {
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
+          }
+          .mc-header {
+            min-height: 52px;
+            padding-top: 14px;
+            padding-bottom: 14px;
+          }
+          .mc-body {
+            padding-bottom: 18px;
+          }
+        }
       `}</style>
     </KhromaShell>
   )
@@ -1206,11 +1224,13 @@ function MobileCollapsible({
   title,
   children,
   textMuted,
+  textMain = 'inherit',
 }: {
   id: string
   title: string
   children: React.ReactNode
   textMuted: string
+  textMain?: string
 }) {
   const ctx = React.useContext(CollapsibleGroupContext)
   // Stand-alone fallback (no group): keep prior single-instance behavior.
@@ -1220,19 +1240,40 @@ function MobileCollapsible({
     if (ctx) ctx.setActiveId(open ? null : id)
     else setLocalOpen(o => !o)
   }
+  // Title arrives as "Label · Value" (e.g. "Size · 28px"). Split for a
+  // two-tone treatment on mobile so the label reads as the section name
+  // and the current value reads as a secondary detail.
+  const [labelPart, valuePart] = (() => {
+    const idx = title.indexOf(' · ')
+    if (idx === -1) return [title, '']
+    return [title.slice(0, idx), title.slice(idx + 3)]
+  })()
   return (
-    <div className="mb-5">
+    <div className="mc-section lg:mb-5">
       <button
         type="button"
         onClick={toggle}
-        className="w-full flex items-center justify-between mb-2 lg:pointer-events-none"
+        className="mc-header w-full flex items-center justify-between gap-3 lg:pointer-events-none"
         aria-expanded={open}
       >
-        <span className="text-[14px] lg:text-[11px] uppercase tracking-[0.14em] opacity-80 lg:opacity-60" style={{ color: textMuted, fontFamily: SANS }}>
-          {title}
+        <span className="flex items-baseline gap-2 min-w-0">
+          <span
+            className="text-[15px] lg:text-[11px] lg:uppercase lg:tracking-[0.14em] font-semibold lg:font-medium lg:opacity-60"
+            style={{ color: textMain, fontFamily: SANS }}
+          >
+            {labelPart}
+          </span>
+          {valuePart && (
+            <span
+              className="lg:hidden text-[13px] truncate"
+              style={{ color: textMuted, fontFamily: SANS }}
+            >
+              {valuePart}
+            </span>
+          )}
         </span>
         <span
-          className="lg:hidden inline-flex items-center transition-transform"
+          className="lg:hidden inline-flex items-center justify-center w-6 h-6 rounded-full transition-transform duration-200"
           style={{ color: textMuted, transform: open ? 'rotate(180deg)' : 'rotate(0deg)' }}
           aria-hidden="true"
         >
@@ -1241,7 +1282,7 @@ function MobileCollapsible({
           </svg>
         </span>
       </button>
-      <div className={open ? 'block' : 'hidden lg:block'}>{children}</div>
+      <div className={`mc-body ${open ? 'block' : 'hidden lg:block'}`}>{children}</div>
     </div>
   )
 }
@@ -1752,40 +1793,8 @@ function TextDesignPanel({
         </span>
       </div>
 
-      <CollapsibleGroup defaultActiveId="font">
-      <MobileCollapsible id="font" title={`Font · ${currentFontLabel}`} textMuted={textMuted}>
-        <div className="grid grid-cols-2 gap-2">
-          {HEADLINE_FONTS.map(f => (
-            <button
-              key={f.value}
-              type="button"
-              onClick={() => setOverrides(o => ({ ...o, [fontKey]: f.value }))}
-              className="rounded-lg flex items-center justify-center"
-              style={{ ...pillStyle(currentFont === f.value), fontFamily: f.value, fontSize: 16, height: 44 }}
-            >
-              {f.label}
-            </button>
-          ))}
-        </div>
-      </MobileCollapsible>
-
-      <MobileCollapsible id="weight" title={`Weight · ${currentWeight}`} textMuted={textMuted}>
-        <div className="grid grid-cols-4 gap-2">
-          {HEADLINE_WEIGHTS.map(w => (
-            <button
-              key={w}
-              type="button"
-              onClick={() => setOverrides(o => ({ ...o, [weightKey]: w }))}
-              className="rounded-lg flex items-center justify-center"
-              style={{ ...pillStyle(currentWeight === w), fontWeight: w }}
-            >
-              {w}
-            </button>
-          ))}
-        </div>
-      </MobileCollapsible>
-
-      <MobileCollapsible id="size" title={`Size · ${currentSize}px`} textMuted={textMuted}>
+      <CollapsibleGroup defaultActiveId="size">
+      <MobileCollapsible id="size" title={`Size · ${currentSize}px`} textMuted={textMuted} textMain={textMain}>
         <div className="flex items-center gap-2">
           <button
             type="button"
@@ -1821,7 +1830,39 @@ function TextDesignPanel({
         </div>
       </MobileCollapsible>
 
-      <MobileCollapsible id="style" title={`Style · ${currentItalic ? 'Italic' : 'Regular'}`} textMuted={textMuted}>
+      <MobileCollapsible id="font" title={`Font · ${currentFontLabel}`} textMuted={textMuted} textMain={textMain}>
+        <div className="grid grid-cols-2 gap-2">
+          {HEADLINE_FONTS.map(f => (
+            <button
+              key={f.value}
+              type="button"
+              onClick={() => setOverrides(o => ({ ...o, [fontKey]: f.value }))}
+              className="rounded-lg flex items-center justify-center"
+              style={{ ...pillStyle(currentFont === f.value), fontFamily: f.value, fontSize: 16, height: 44 }}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+      </MobileCollapsible>
+
+      <MobileCollapsible id="weight" title={`Weight · ${currentWeight}`} textMuted={textMuted} textMain={textMain}>
+        <div className="grid grid-cols-4 gap-2">
+          {HEADLINE_WEIGHTS.map(w => (
+            <button
+              key={w}
+              type="button"
+              onClick={() => setOverrides(o => ({ ...o, [weightKey]: w }))}
+              className="rounded-lg flex items-center justify-center"
+              style={{ ...pillStyle(currentWeight === w), fontWeight: w }}
+            >
+              {w}
+            </button>
+          ))}
+        </div>
+      </MobileCollapsible>
+
+      <MobileCollapsible id="style" title={`Style · ${currentItalic ? 'Italic' : 'Regular'}`} textMuted={textMuted} textMain={textMain}>
         <div className="grid grid-cols-2 gap-2">
           <button
             type="button"
@@ -1842,7 +1883,7 @@ function TextDesignPanel({
         </div>
       </MobileCollapsible>
 
-      <MobileCollapsible id="color" title="Color" textMuted={textMuted}>
+      <MobileCollapsible id="color" title="Color" textMuted={textMuted} textMain={textMain}>
         <div className="flex items-center gap-2 flex-wrap">
           {TEXT_COLOR_SWATCHES.map(c => {
             const active = currentColor.toLowerCase() === c.toLowerCase()
