@@ -199,23 +199,35 @@ export function LiveCarousel({
                 />
               )}
             </div>
-            {/* Text-scrim gradient — spans the full card so the lower
-                quarter (below the 1:1 image) flows seamlessly into the
-                solid textbg color, with no white band.
+            {/* Text-scrim gradient — the transparent-to-solid fade is
+                computed against the image area (top 80% of the 4:5 card,
+                since the image is 1:1 and pinned to the top), then the
+                bottom 20% holds the solid textbg color so the headline
+                area reads as one continuous surface with no hard seam
+                where the image meets the band below.
                 spread 0 = harsh (starts at 65%), spread 100 = soft (starts at 0%).
-                Default spread 50 → starts at ~20%. */}
+                Default spread 50 → starts at ~20% of image. */}
             {(() => {
               const spread     = theme.textBgSpread ?? 50
               const height     = theme.textBgHeight ?? 50
               const solidPct   = Math.round(98 - height * 0.38)
               const startPct   = Math.min(Math.round(65 - spread * 0.65), solidPct - 10)
               const midPct     = Math.round(startPct + (solidPct - startPct) * 0.55)
-              const scrimColor = theme.textBgColor ?? theme.bg
+              // Slide is 4:5 with a 1:1 image at the top, so the image
+              // occupies 4/5 = 80% of card height. Scale the gradient
+              // stops into that band so the fade still lives over the
+              // image (matching the prior visual). After 80% the solid
+              // color carries through to the bottom of the card.
+              const IMG_PCT     = 80
+              const startCard   = (startPct * IMG_PCT) / 100
+              const midCard     = (midPct * IMG_PCT) / 100
+              const solidCard   = (solidPct * IMG_PCT) / 100
+              const scrimColor  = theme.textBgColor ?? theme.bg
               return (
                 <div
                   className="absolute inset-0 pointer-events-none"
                   style={{
-                    background: `linear-gradient(to bottom, transparent ${startPct}%, ${withAlpha(scrimColor, 0.4)} ${midPct}%, ${withAlpha(scrimColor, 0.97)} ${solidPct}%)`,
+                    background: `linear-gradient(to bottom, transparent ${startCard}%, ${withAlpha(scrimColor, 0.4)} ${midCard}%, ${withAlpha(scrimColor, 0.97)} ${solidCard}%, ${scrimColor} ${IMG_PCT}%)`,
                   }}
                 />
               )
