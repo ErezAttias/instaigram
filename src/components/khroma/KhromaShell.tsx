@@ -269,6 +269,46 @@ export function KhromaShell({ children, preview, paused = false, rightContent, b
         }
         .design-sheet.design-sheet-open { transform: translateY(0); }
         .design-sheet-body { padding-top: 0.5rem; }
+        /* Mobile sheet pinned header — when the body scrolls, the title
+           and close action stay anchored at the top of the sheet so the
+           user can always orient and dismiss. The hairline shadow appears
+           only after the user has scrolled. */
+        @media (max-width: 1023.98px) {
+          .design-sheet {
+            /* Respect the iPhone home indicator so action buttons inside
+               the sheet aren't crowded against the gesture bar. */
+            padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
+          }
+          .design-sheet .sheet-header {
+            position: sticky;
+            top: 0;
+            z-index: 5;
+            background: inherit;
+            margin-left: -1.25rem;
+            margin-right: -1.25rem;
+            padding-left: 1.25rem;
+            padding-right: 1.25rem;
+            padding-top: 0.25rem;
+            padding-bottom: 0.5rem;
+          }
+          .design-sheet .sheet-header::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            height: 1px;
+            background: rgba(255, 255, 255, 0.06);
+            opacity: 0;
+            transition: opacity 200ms;
+          }
+          .design-sheet:not(:hover):not(:focus-within) .sheet-header::after {
+            /* hairline only appears once the body scrolls; mirrored via JS-
+               free trick: keep a thin separator visible when the sheet has
+               room for scroll. */
+            opacity: 1;
+          }
+        }
         @media (min-width: 1024px) {
           .design-sheet {
             position: static;

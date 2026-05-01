@@ -906,8 +906,11 @@ export default function HomeKhromaSplit({ initialJobId }: { initialJobId?: strin
             {/* Mobile preview lives in the right column above this section, so
                 no tab switcher is needed — Edit panel is always shown here. */}
             <div>
+              {/* On mobile the slide is the focus — drop the page-level hero
+                  so the user lands on the editable carousel itself. The hero
+                  still shows on lg+ as part of the split layout. */}
               <h1
-                className="mt-6 lg:mt-0 mb-2 lg:mb-3"
+                className="hidden lg:block mt-6 lg:mt-0 mb-2 lg:mb-3"
                 style={{
                   fontFamily: SERIF,
                   fontWeight: 400,
@@ -919,7 +922,7 @@ export default function HomeKhromaSplit({ initialJobId }: { initialJobId?: strin
               >
                 Your <span style={{ fontStyle: 'italic' }}>{submittedTopic}</span> carousel.
               </h1>
-              <p className="mb-1 lg:mb-6 uppercase tracking-[0.22em] text-[11px] whitespace-nowrap" style={{ color: textMuted, fontFamily: SANS, fontWeight: 600 }}>
+              <p className="hidden lg:block mb-1 lg:mb-6 uppercase tracking-[0.22em] text-[11px] whitespace-nowrap" style={{ color: textMuted, fontFamily: SANS, fontWeight: 600 }}>
                 Tap anything on the slide to tweak it
               </p>
 
@@ -1175,7 +1178,23 @@ function FloatingDesignSheet({
         role="dialog"
         aria-modal="true"
       >
-        <div className="design-sheet-body pt-3 lg:pt-0">{children}</div>
+        {/* iOS-style drag indicator (mobile only) — communicates that the
+            sheet is dismissible by swiping down. */}
+        <div
+          aria-hidden="true"
+          className="lg:hidden flex justify-center pt-2 pb-1"
+          onClick={onClose}
+        >
+          <span
+            className="block rounded-full"
+            style={{
+              width: 36,
+              height: 4,
+              background: isLight ? 'rgba(0,0,0,0.18)' : 'rgba(255,255,255,0.22)',
+            }}
+          />
+        </div>
+        <div className="design-sheet-body pt-2 lg:pt-0">{children}</div>
       </div>
     </>
   )
