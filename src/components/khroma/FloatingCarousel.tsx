@@ -19,8 +19,8 @@ export function FloatingCarousel({ theme, nonce, isLight = false }: { theme: Car
   return (
     <div
       key={nonce}
-      className="relative select-none carousel-float"
-      style={{ width: 'min(380px, 80%)', aspectRatio: '9 / 14' }}
+      className="relative select-none carousel-float carousel-float-width"
+      style={{ aspectRatio: '9 / 14' }}
     >
       <div
         className="relative flex flex-col rounded-[22px] overflow-hidden w-full h-full carousel-morph"
@@ -81,6 +81,7 @@ export function FloatingCarousel({ theme, nonce, isLight = false }: { theme: Car
             // down on mobile without overriding inline styles.
             style={{
               ['--h-size' as string]: `${theme.headlineSizePx ?? 28}px`,
+              ['--h-size-mobile' as string]: `${Math.round((theme.headlineSizePx ?? 28) * 0.66)}px`,
               ['--cta-size' as string]: `${theme.ctaSizePx ?? 12}px`,
             }}
           >

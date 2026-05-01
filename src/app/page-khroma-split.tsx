@@ -459,12 +459,12 @@ export default function HomeKhromaSplit({ initialJobId }: { initialJobId?: strin
   // KhromaShell's mobile footer slot on mobile so they sit under the
   // carousel preview instead of above it.
   const doneCtas = phase === 'done' && jobId ? (
-    <div className="flex items-center justify-center lg:justify-start gap-5 flex-wrap">
+    <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-center lg:justify-start gap-3 lg:gap-5 w-full lg:w-auto">
       <button
         type="button"
         onClick={downloadCarousel}
         disabled={downloading}
-        className="h-12 px-8 text-white font-medium rounded-full text-[15px] transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed inline-flex items-center gap-2"
+        className="tap-pulse h-[68px] lg:h-12 px-10 lg:px-8 text-white font-medium rounded-full text-base lg:text-[15px] transition-all hover:brightness-110 active:scale-[0.96] disabled:opacity-60 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2 w-full lg:w-auto"
         style={{ backgroundImage: IG_GRADIENT, fontFamily: SANS, boxShadow: '0 4px 14px rgba(220,39,67,0.35)' }}
       >
         {downloading ? (
@@ -479,7 +479,7 @@ export default function HomeKhromaSplit({ initialJobId }: { initialJobId?: strin
       <button
         type="button"
         onClick={resetToIdle}
-        className="text-sm font-medium underline-offset-4 hover:underline"
+        className="tap-pulse h-[68px] lg:h-auto rounded-full lg:rounded-none text-base lg:text-sm font-medium underline-offset-4 hover:underline transition-transform active:scale-[0.97] inline-flex items-center justify-center w-full lg:w-auto"
         style={{ color: textMuted, fontFamily: SANS }}
       >
         Start another
@@ -498,7 +498,7 @@ export default function HomeKhromaSplit({ initialJobId }: { initialJobId?: strin
         {phase === 'idle' && (
           <>
             <h1
-              className="mb-8"
+              className="mt-8 lg:mt-0 mb-8"
               style={{
                 fontFamily: SERIF,
                 fontWeight: 400,
@@ -526,7 +526,7 @@ export default function HomeKhromaSplit({ initialJobId }: { initialJobId?: strin
                 action ("type here, send") instead of two stacked elements.
                 Hover (C4): IG-gradient border appears via a masked pseudo-
                 element, plus a subtle warm-tint wash on the pill bg. */}
-            <form onSubmit={handleTopicSubmit} className="flex flex-col gap-3 items-start">
+            <form onSubmit={handleTopicSubmit} className="flex flex-col gap-3 items-start mb-8 lg:mb-0">
               <div
                 className="search-pill group relative w-full max-w-[28rem] flex items-center rounded-full"
                 style={{
@@ -565,7 +565,7 @@ export default function HomeKhromaSplit({ initialJobId }: { initialJobId?: strin
                   data-bwignore="true"
                   data-form-type="other"
                   aria-label="Carousel topic"
-                  className="flex-1 min-w-0 bg-transparent pl-2 pr-2 py-3.5 text-base focus:outline-none"
+                  className="flex-1 min-w-0 bg-transparent pl-2 pr-2 py-[22px] text-base focus:outline-none"
                   style={{
                     fontFamily: SANS,
                     color: textMain,
@@ -583,7 +583,7 @@ export default function HomeKhromaSplit({ initialJobId }: { initialJobId?: strin
                   disabled={!topic.trim()}
                   aria-label="Preview carousel"
                   title="Preview"
-                  className="mr-1.5 h-10 w-10 shrink-0 rounded-full inline-flex items-center justify-center text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all hover:brightness-110 active:scale-[0.96]"
+                  className="mr-1.5 h-12 w-12 shrink-0 rounded-full inline-flex items-center justify-center text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all hover:brightness-110 active:scale-[0.96]"
                   style={{
                     backgroundImage: IG_GRADIENT,
                     boxShadow: topic.trim() ? '0 6px 18px rgba(220,39,67,0.35)' : 'none',
@@ -676,11 +676,11 @@ export default function HomeKhromaSplit({ initialJobId }: { initialJobId?: strin
               ))}
             </ul>
 
-            <div className="mt-10 flex items-center gap-5 flex-wrap">
+            <div className="mt-10 flex flex-col lg:flex-row items-stretch lg:items-center gap-3 lg:gap-5 w-full lg:w-auto">
               <button
                 type="button"
                 onClick={startCarousel}
-                className="h-12 px-8 text-white font-medium rounded-full text-[15px] transition-all hover:brightness-110 active:scale-[0.98]"
+                className="tap-pulse h-[68px] lg:h-12 px-10 lg:px-8 text-white font-medium rounded-full text-base lg:text-[15px] transition-all hover:brightness-110 active:scale-[0.96] inline-flex items-center justify-center w-full lg:w-auto"
                 style={{ backgroundImage: IG_GRADIENT, fontFamily: SANS, boxShadow: '0 4px 14px rgba(220,39,67,0.35)' }}
               >
                 Generate carousel →
@@ -688,7 +688,7 @@ export default function HomeKhromaSplit({ initialJobId }: { initialJobId?: strin
               <button
                 type="button"
                 onClick={resetToIdle}
-                className="text-sm font-medium underline-offset-4 hover:underline"
+                className="tap-pulse h-[68px] lg:h-auto rounded-full lg:rounded-none text-base lg:text-sm font-medium underline-offset-4 hover:underline transition-transform active:scale-[0.97] inline-flex items-center justify-center w-full lg:w-auto"
                 style={{ color: textMuted, fontFamily: SANS }}
               >
                 Change topic
@@ -1039,6 +1039,28 @@ export default function HomeKhromaSplit({ initialJobId }: { initialJobId?: strin
           box-shadow: none !important;
           border-color: transparent !important;
           outline: none !important;
+        }
+
+        /* Quick tap feedback — a soft IG-gradient halo grows ~6px out
+           from the button edge on press, then fades on release. Lives on
+           an outset ::after so it never tints the button fill. */
+        .tap-pulse {
+          position: relative;
+        }
+        .tap-pulse::after {
+          content: '';
+          position: absolute;
+          inset: 0;
+          border-radius: inherit;
+          pointer-events: none;
+          box-shadow: 0 0 0 0 rgba(220, 39, 67, 0);
+          transition: box-shadow 360ms cubic-bezier(0.22, 1, 0.36, 1);
+        }
+        .tap-pulse:active::after {
+          box-shadow:
+            0 0 0 6px rgba(220, 39, 67, 0.30),
+            0 0 18px 4px rgba(240, 148, 51, 0.22);
+          transition-duration: 90ms;
         }
       `}</style>
     </KhromaShell>
