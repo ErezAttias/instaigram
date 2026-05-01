@@ -1565,55 +1565,87 @@ function TextBgColorPanel({
     transition: 'all 180ms',
   })
 
+  const heightLabel = currentHeight < 20 ? 'Minimal' : currentHeight < 45 ? 'Short' : currentHeight < 70 ? 'Medium' : 'Tall'
+  const softnessLabel = currentSpread < 20 ? 'Harsh' : currentSpread < 45 ? 'Sharp' : currentSpread < 70 ? 'Natural' : 'Soft'
+
   return (
     <div>
-      <div className="flex items-center justify-between mb-4">
-        <span className="text-[11px] uppercase tracking-[0.16em] opacity-70" style={{ color: textMuted, fontFamily: SANS }}>
+      <div className="sheet-header relative flex items-center justify-between mb-5 lg:mb-4">
+        <button
+          type="button"
+          onClick={onBack}
+          aria-label="Back"
+          className="lg:!hidden inline-flex items-center justify-center -ml-2 w-9 h-9 rounded-full"
+          style={{ color: textMain, background: 'transparent' }}
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="15 18 9 12 15 6" />
+          </svg>
+        </button>
+        <span
+          className="lg:hidden absolute left-1/2 -translate-x-1/2 text-[15px] font-semibold tracking-tight"
+          style={{ color: textMain, fontFamily: SANS }}
+        >
+          Background Gradient
+        </span>
+        <span className="hidden lg:inline text-[11px] uppercase tracking-[0.16em] opacity-70" style={{ color: textMuted, fontFamily: SANS }}>
           Gradient color
         </span>
-        <BackButton onClick={onBack} textMuted={textMuted} />
+        <button
+          type="button"
+          onClick={onBack}
+          className="lg:hidden text-[13px] font-semibold tracking-[0.08em] uppercase px-2"
+          style={{ color: '#7c5cff', fontFamily: SANS, background: 'transparent', border: 'none' }}
+        >
+          Done
+        </button>
+        <span className="hidden lg:block">
+          <BackButton onClick={onBack} textMuted={textMuted} />
+        </span>
       </div>
 
-      <p className="text-[12px] mb-4 opacity-60 leading-relaxed" style={{ color: textMuted, fontFamily: SANS }}>
+      <p className="text-[13px] lg:text-[12px] mb-5 lg:mb-4 opacity-70 lg:opacity-60 leading-relaxed" style={{ color: textMuted, fontFamily: SANS }}>
         Sets the solid end of the gradient that blends the image into your text.
       </p>
 
-      {/* Swatch grid */}
-      <div className="flex flex-wrap gap-2 mb-5">
-        {GRADIENT_COLOR_SWATCHES.map(s => {
-          const active = current.toLowerCase() === s.hex.toLowerCase()
-          return (
-            <button
-              key={s.hex}
-              type="button"
-              onClick={() => setOverrides(o => ({ ...o, textBgColor: s.hex }))}
-              title={s.label}
-              style={{
-                width: 36, height: 36, borderRadius: 10,
-                background: s.hex,
-                border: `2px solid ${active ? (isLight ? '#0a0a0a' : '#ffffff') : 'rgba(127,127,127,0.25)'}`,
-                boxShadow: active ? '0 0 0 2px rgba(255,255,255,0.15)' : 'none',
-                cursor: 'pointer',
-                transition: 'all 180ms',
-                transform: active ? 'scale(1.12)' : 'scale(1)',
-              }}
-            />
-          )
-        })}
-      </div>
-
-      {/* Custom hex input */}
-      <div className="mb-5">
-        <span className="block text-[11px] uppercase tracking-[0.14em] mb-2 opacity-60" style={{ color: textMuted, fontFamily: SANS }}>
-          Custom
+      {/* Color section */}
+      <div className="mb-7 lg:mb-5">
+        <span className="block text-[15px] lg:text-[11px] font-semibold lg:font-medium lg:uppercase lg:tracking-[0.14em] mb-3 lg:opacity-60" style={{ color: textMain, fontFamily: SANS }}>
+          Color
         </span>
+
+        <div className="flex flex-wrap gap-2.5 lg:gap-2 mb-4">
+          {GRADIENT_COLOR_SWATCHES.map(s => {
+            const active = current.toLowerCase() === s.hex.toLowerCase()
+            return (
+              <button
+                key={s.hex}
+                type="button"
+                onClick={() => setOverrides(o => ({ ...o, textBgColor: s.hex }))}
+                title={s.label}
+                aria-label={`Color ${s.label}`}
+                style={{
+                  width: 44, height: 44, borderRadius: 12,
+                  background: s.hex,
+                  border: `2px solid ${active ? (isLight ? '#0a0a0a' : '#ffffff') : 'rgba(127,127,127,0.25)'}`,
+                  boxShadow: active ? '0 0 0 2px rgba(255,255,255,0.15)' : 'none',
+                  cursor: 'pointer',
+                  transition: 'all 180ms',
+                  transform: active ? 'scale(1.08)' : 'scale(1)',
+                }}
+              />
+            )
+          })}
+        </div>
+
         <div className="flex items-center gap-2">
           <input
             type="color"
             value={current}
             onChange={e => setOverrides(o => ({ ...o, textBgColor: e.target.value }))}
-            className="w-9 h-9 rounded-lg cursor-pointer border-0 p-0.5"
+            className="w-11 h-11 lg:w-9 lg:h-9 rounded-lg cursor-pointer border-0 p-0.5"
             style={{ background: 'transparent' }}
+            aria-label="Custom color"
           />
           <input
             type="text"
@@ -1622,28 +1654,29 @@ function TextBgColorPanel({
               const v = e.target.value.trim()
               if (/^#[0-9a-fA-F]{6}$/.test(v)) setOverrides(o => ({ ...o, textBgColor: v }))
             }}
-            className="flex-1 rounded-lg px-3 py-1.5 text-[12px] font-mono outline-none"
+            className="flex-1 rounded-lg px-3 h-11 lg:h-9 text-[13px] lg:text-[12px] font-mono outline-none"
             style={{
               background: isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.06)',
               border: `1px solid ${isLight ? 'rgba(0,0,0,0.12)' : 'rgba(255,255,255,0.12)'}`,
               color: textMain,
             }}
+            aria-label="Custom hex"
           />
         </div>
       </div>
 
       {/* Height slider */}
-      <div className="mb-4">
-        <div className="flex items-center justify-between mb-2">
-          <span className="block text-[11px] uppercase tracking-[0.14em] opacity-60" style={{ color: textMuted, fontFamily: SANS }}>
+      <div className="mb-5">
+        <div className="flex items-baseline justify-between mb-2">
+          <span className="text-[15px] lg:text-[11px] font-semibold lg:font-medium lg:uppercase lg:tracking-[0.14em] lg:opacity-60" style={{ color: textMain, fontFamily: SANS }}>
             Height
           </span>
-          <span className="text-[11px] opacity-50 tabular-nums" style={{ color: textMuted, fontFamily: SANS }}>
-            {currentHeight < 20 ? 'Minimal' : currentHeight < 45 ? 'Short' : currentHeight < 70 ? 'Medium' : 'Tall'}
+          <span className="text-[13px] lg:text-[11px] tabular-nums" style={{ color: textMuted, fontFamily: SANS }}>
+            {heightLabel}
           </span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-[10px] opacity-40" style={{ color: textMuted, fontFamily: SANS }}>Short</span>
+          <span className="text-[11px] lg:text-[10px] opacity-50 lg:opacity-40 w-9 lg:w-auto" style={{ color: textMuted, fontFamily: SANS }}>Short</span>
           <input
             type="range"
             min={0}
@@ -1652,23 +1685,24 @@ function TextBgColorPanel({
             value={currentHeight}
             onChange={e => setOverrides(o => ({ ...o, textBgHeight: Number(e.target.value) }))}
             style={{ flex: 1, accentColor: isLight ? '#0a0a0a' : '#ffffff' }}
+            aria-label="Height"
           />
-          <span className="text-[10px] opacity-40" style={{ color: textMuted, fontFamily: SANS }}>Tall</span>
+          <span className="text-[11px] lg:text-[10px] opacity-50 lg:opacity-40 w-9 lg:w-auto text-right" style={{ color: textMuted, fontFamily: SANS }}>Tall</span>
         </div>
       </div>
 
       {/* Softness slider */}
-      <div className="mb-5">
-        <div className="flex items-center justify-between mb-2">
-          <span className="block text-[11px] uppercase tracking-[0.14em] opacity-60" style={{ color: textMuted, fontFamily: SANS }}>
+      <div className="mb-7 lg:mb-5">
+        <div className="flex items-baseline justify-between mb-2">
+          <span className="text-[15px] lg:text-[11px] font-semibold lg:font-medium lg:uppercase lg:tracking-[0.14em] lg:opacity-60" style={{ color: textMain, fontFamily: SANS }}>
             Softness
           </span>
-          <span className="text-[11px] opacity-50 tabular-nums" style={{ color: textMuted, fontFamily: SANS }}>
-            {currentSpread < 20 ? 'Harsh' : currentSpread < 45 ? 'Sharp' : currentSpread < 70 ? 'Natural' : 'Soft'}
+          <span className="text-[13px] lg:text-[11px] tabular-nums" style={{ color: textMuted, fontFamily: SANS }}>
+            {softnessLabel}
           </span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-[10px] opacity-40" style={{ color: textMuted, fontFamily: SANS }}>Harsh</span>
+          <span className="text-[11px] lg:text-[10px] opacity-50 lg:opacity-40 w-9 lg:w-auto" style={{ color: textMuted, fontFamily: SANS }}>Harsh</span>
           <input
             type="range"
             min={0}
@@ -1677,15 +1711,17 @@ function TextBgColorPanel({
             value={currentSpread}
             onChange={e => setOverrides(o => ({ ...o, textBgSpread: Number(e.target.value) }))}
             style={{ flex: 1, accentColor: isLight ? '#0a0a0a' : '#ffffff' }}
+            aria-label="Softness"
           />
-          <span className="text-[10px] opacity-40" style={{ color: textMuted, fontFamily: SANS }}>Soft</span>
+          <span className="text-[11px] lg:text-[10px] opacity-50 lg:opacity-40 w-9 lg:w-auto text-right" style={{ color: textMuted, fontFamily: SANS }}>Soft</span>
         </div>
       </div>
 
       <button
         type="button"
         onClick={() => setOverrides(o => { const next = { ...o }; delete next.textBgColor; delete next.textBgSpread; delete next.textBgHeight; return next })}
-        style={{ ...pillStyle(false), opacity: 0.7 }}
+        className="tap-pulse w-full lg:w-auto h-12 lg:h-auto rounded-lg lg:rounded-md text-[14px] lg:text-[12px] font-medium transition-all active:scale-[0.98] inline-flex items-center justify-center"
+        style={{ ...pillStyle(false), padding: undefined }}
       >
         Reset to theme default
       </button>
