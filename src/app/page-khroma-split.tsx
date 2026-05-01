@@ -1614,7 +1614,7 @@ function TextBgColorPanel({
           type="button"
           onClick={onBack}
           className="lg:hidden text-[13px] font-semibold tracking-[0.08em] uppercase px-2"
-          style={{ color: '#7c5cff', fontFamily: SANS, background: 'transparent', border: 'none' }}
+          style={{ color: '#dc2743', fontFamily: SANS, background: 'transparent', border: 'none' }}
         >
           Done
         </button>
@@ -1839,7 +1839,7 @@ function TextDesignPanel({
           type="button"
           onClick={onBack}
           className="lg:hidden text-[13px] font-semibold tracking-[0.08em] uppercase px-2"
-          style={{ color: '#7c5cff', fontFamily: SANS, background: 'transparent', border: 'none' }}
+          style={{ color: '#dc2743', fontFamily: SANS, background: 'transparent', border: 'none' }}
         >
           Done
         </button>
@@ -2133,7 +2133,7 @@ function ImageDesignPanel({
           type="button"
           onClick={onBack}
           className="lg:hidden text-[13px] font-semibold tracking-[0.08em] uppercase px-2"
-          style={{ color: '#7c5cff', fontFamily: SANS, background: 'transparent', border: 'none' }}
+          style={{ color: '#dc2743', fontFamily: SANS, background: 'transparent', border: 'none' }}
         >
           Done
         </button>
