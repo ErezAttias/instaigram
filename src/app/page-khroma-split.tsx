@@ -434,7 +434,13 @@ export default function HomeKhromaSplit({ initialJobId }: { initialJobId?: strin
   const showLiveCarousel =
     (phase === 'copy-review' || phase === 'rendering' || phase === 'done') && slides.length > 0
   const baseLiveTheme = preview ?? pickThemeForTopic(previewSeed)
-  const livePreviewTheme = { ...baseLiveTheme, ...themeOverrides }
+  // Real generated carousels default to a 20px headline regardless of the
+  // demo theme's preset — strip the inherited size so LiveCarousel's
+  // fallback (20) takes over unless the user explicitly resized via the
+  // size slider (themeOverrides.headlineSizePx).
+  const { headlineSizePx: _ignored, ...baseThemeNoHeadlineSize } = baseLiveTheme
+  void _ignored
+  const livePreviewTheme = { ...baseThemeNoHeadlineSize, ...themeOverrides }
   const rightContent = showLiveCarousel ? (
     <LiveCarousel
       slides={slides}
@@ -1222,7 +1228,7 @@ function MobileCollapsible({
         className="w-full flex items-center justify-between mb-2 lg:pointer-events-none"
         aria-expanded={open}
       >
-        <span className="text-[11px] uppercase tracking-[0.14em] opacity-60" style={{ color: textMuted, fontFamily: SANS }}>
+        <span className="text-[14px] lg:text-[11px] uppercase tracking-[0.14em] opacity-80 lg:opacity-60" style={{ color: textMuted, fontFamily: SANS }}>
           {title}
         </span>
         <span
