@@ -901,7 +901,7 @@ export default function HomeKhromaSplit({ initialJobId }: { initialJobId?: strin
                 no tab switcher is needed — Edit panel is always shown here. */}
             <div>
               <h1
-                className="mb-3"
+                className="mt-6 lg:mt-0 mb-2 lg:mb-3"
                 style={{
                   fontFamily: SERIF,
                   fontWeight: 400,
@@ -913,7 +913,7 @@ export default function HomeKhromaSplit({ initialJobId }: { initialJobId?: strin
               >
                 Your <span style={{ fontStyle: 'italic' }}>{submittedTopic}</span> carousel.
               </h1>
-              <p className="mb-6 uppercase tracking-[0.22em] text-[11px]" style={{ color: textMuted, fontFamily: SANS, fontWeight: 600 }}>
+              <p className="mb-1 lg:mb-6 uppercase tracking-[0.22em] text-[11px] whitespace-nowrap" style={{ color: textMuted, fontFamily: SANS, fontWeight: 600 }}>
                 Tap anything on the slide to tweak it
               </p>
 
@@ -1362,46 +1362,6 @@ function SlideEditor({
 
   return (
     <div className="mb-0 lg:mb-6 max-w-[34rem] lg:max-w-[34rem] w-full">
-      <div className="mb-0 lg:mb-5 flex justify-center lg:justify-start">
-        <div
-          className="flex items-center justify-between w-full lg:w-auto lg:inline-flex rounded-full"
-          style={{
-            background: isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.05)',
-            border: `1px solid ${isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.08)'}`,
-            padding: '4px',
-          }}
-        >
-          <button
-            type="button"
-            onClick={() => setActiveSlide((clamped - 1 + slides.length) % slides.length)}
-            aria-label="Previous slide"
-            className="w-8 h-8 rounded-full inline-flex items-center justify-center transition-colors"
-            style={{ background: 'transparent', color: textMain, fontFamily: SANS }}
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="15 18 9 12 15 6" />
-            </svg>
-          </button>
-          <span
-            className="px-3 text-[11px] uppercase tracking-[0.18em] select-none"
-            style={{ color: textMuted, fontFamily: SANS, fontWeight: 600 }}
-          >
-            Slide {clamped + 1} of {slides.length}
-          </span>
-          <button
-            type="button"
-            onClick={() => setActiveSlide((clamped + 1) % slides.length)}
-            aria-label="Next slide"
-            className="w-8 h-8 rounded-full inline-flex items-center justify-center transition-colors"
-            style={{ background: 'transparent', color: textMain, fontFamily: SANS }}
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="9 18 15 12 9 6" />
-            </svg>
-          </button>
-        </div>
-      </div>
-
       {/* Sheet stays mounted across opens/closes so the translateY
           transition can play in both directions. Kept OUTSIDE any keyed
           wrapper so changing edit targets doesn't remount it (a remount

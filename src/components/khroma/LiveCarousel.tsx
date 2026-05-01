@@ -98,9 +98,30 @@ export function LiveCarousel({
   const currentIsRegenerating = current ? !!regeneratingSet?.has(current.slideIndex) : false
   const currentImageUrl = currentIsRegenerating ? null : current?.imageUrl
 
+  // Touch swipe — match Instagram's carousel feel. Horizontal drag of >50px
+  // (and clearly more horizontal than vertical) advances/rewinds a slide.
+  const touchStart = useRef<{ x: number; y: number } | null>(null)
+  const onTouchStart = (e: React.TouchEvent) => {
+    const t = e.touches[0]
+    touchStart.current = { x: t.clientX, y: t.clientY }
+  }
+  const onTouchEnd = (e: React.TouchEvent) => {
+    const start = touchStart.current
+    touchStart.current = null
+    if (!start || slides.length <= 1) return
+    const t = e.changedTouches[0]
+    const dx = t.clientX - start.x
+    const dy = t.clientY - start.y
+    if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy)) return
+    if (dx < 0 && activeIndex < slides.length - 1) setActive(activeIndex + 1)
+    else if (dx > 0 && activeIndex > 0) setActive(activeIndex - 1)
+  }
+
   return (
     <div
       className="relative select-none carousel-float carousel-float-width flex flex-col items-center gap-3"
+      onTouchStart={onTouchStart}
+      onTouchEnd={onTouchEnd}
     >
       <div
         className="relative flex flex-col rounded-[22px] overflow-hidden w-full"
