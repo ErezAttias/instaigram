@@ -2053,15 +2053,42 @@ function ImageDesignPanel({
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-4">
-        <span className="text-[11px] uppercase tracking-[0.16em] opacity-70" style={{ color: textMuted, fontFamily: SANS }}>
+      <div className="sheet-header relative flex items-center justify-between mb-5 lg:mb-4">
+        <button
+          type="button"
+          onClick={onBack}
+          aria-label="Back"
+          className="lg:!hidden inline-flex items-center justify-center -ml-2 w-9 h-9 rounded-full"
+          style={{ color: textMain, background: 'transparent' }}
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="15 18 9 12 15 6" />
+          </svg>
+        </button>
+        <span
+          className="lg:hidden absolute left-1/2 -translate-x-1/2 text-[15px] font-semibold tracking-tight"
+          style={{ color: textMain, fontFamily: SANS }}
+        >
+          Edit Image
+        </span>
+        <span className="hidden lg:inline text-[11px] uppercase tracking-[0.16em] opacity-70" style={{ color: textMuted, fontFamily: SANS }}>
           Image — design
         </span>
-        <BackButton onClick={onBack} textMuted={textMuted} />
+        <button
+          type="button"
+          onClick={onBack}
+          className="lg:hidden text-[13px] font-semibold tracking-[0.08em] uppercase px-2"
+          style={{ color: '#7c5cff', fontFamily: SANS, background: 'transparent', border: 'none' }}
+        >
+          Done
+        </button>
+        <span className="hidden lg:block">
+          <BackButton onClick={onBack} textMuted={textMuted} />
+        </span>
       </div>
 
-      <div className="mb-6">
-        <span className="block text-[11px] uppercase tracking-[0.14em] mb-2 opacity-60" style={{ color: textMuted, fontFamily: SANS }}>
+      <div className="mb-7 lg:mb-6">
+        <span className="block text-[15px] lg:text-[11px] font-semibold lg:font-medium lg:uppercase lg:tracking-[0.14em] mb-2 lg:opacity-60" style={{ color: textMain, fontFamily: SANS }}>
           Prompt
         </span>
         <AutoTextarea value={prompt} onChange={setPrompt} onBlur={() => { /* commit on action */ }} style={fieldStyle} />
@@ -2077,7 +2104,7 @@ function ImageDesignPanel({
             aria-checked={provider === 'gemini'}
             onClick={() => setProvider('gemini')}
             disabled={disabled}
-            className="h-10 px-3 rounded-none text-[12px] font-medium transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+            className="h-12 lg:h-10 px-3 rounded-none text-[14px] lg:text-[12px] font-medium transition-all disabled:opacity-60 disabled:cursor-not-allowed"
             style={{
               background: provider === 'gemini'
                 ? (isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.12)')
@@ -2094,7 +2121,7 @@ function ImageDesignPanel({
             aria-checked={provider === 'openai'}
             onClick={() => setProvider('openai')}
             disabled={disabled}
-            className="h-10 px-3 rounded-none text-[12px] font-medium transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+            className="h-12 lg:h-10 px-3 rounded-none text-[14px] lg:text-[12px] font-medium transition-all disabled:opacity-60 disabled:cursor-not-allowed"
             style={{
               background: provider === 'openai'
                 ? (isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.12)')
@@ -2111,7 +2138,7 @@ function ImageDesignPanel({
           type="button"
           onClick={reRollWithPrompt}
           disabled={disabled || prompt.trim().length === 0}
-          className="w-full inline-flex items-center justify-center gap-2 h-10 px-4 rounded-lg text-[13px] font-medium transition-all hover:brightness-110 disabled:opacity-60 disabled:cursor-not-allowed"
+          className="tap-pulse w-full inline-flex items-center justify-center gap-2 h-12 lg:h-10 px-4 rounded-lg text-[14px] lg:text-[13px] font-medium transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed"
           style={buttonStyle}
         >
           {disabled ? (
@@ -2133,7 +2160,7 @@ function ImageDesignPanel({
       </div>
 
       <div>
-        <span className="block text-[11px] uppercase tracking-[0.14em] mb-2 opacity-60" style={{ color: textMuted, fontFamily: SANS }}>
+        <span className="block text-[15px] lg:text-[11px] font-semibold lg:font-medium lg:uppercase lg:tracking-[0.14em] mb-2 lg:opacity-60" style={{ color: textMain, fontFamily: SANS }}>
           Wikipedia image
         </span>
         <div className="flex items-center gap-2">
@@ -2143,13 +2170,13 @@ function ImageDesignPanel({
             onChange={e => setWikiQuery(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); searchWiki() } }}
             placeholder="Search Wikipedia…"
-            style={{ ...fieldStyle, padding: '8px 12px' }}
+            style={{ ...fieldStyle, padding: '12px 14px', fontSize: 14 }}
           />
           <button
             type="button"
             onClick={searchWiki}
             disabled={wikiLoading || wikiQuery.trim().length === 0}
-            className="h-10 px-4 rounded-lg text-[13px] font-medium transition-all hover:brightness-110 disabled:opacity-60 disabled:cursor-not-allowed"
+            className="tap-pulse h-12 lg:h-10 px-4 rounded-lg text-[14px] lg:text-[13px] font-medium transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed"
             style={buttonStyle}
           >
             {wikiLoading ? '…' : 'Search'}
@@ -2182,7 +2209,7 @@ function ImageDesignPanel({
                 type="button"
                 onClick={useWikiImage}
                 disabled={disabled}
-                className="self-start mt-2 inline-flex items-center gap-2 h-8 px-3 rounded-lg text-[12px] font-medium transition-all hover:brightness-110 disabled:opacity-60 disabled:cursor-not-allowed"
+                className="tap-pulse self-start mt-2 inline-flex items-center gap-2 h-10 lg:h-8 px-4 lg:px-3 rounded-lg text-[13px] lg:text-[12px] font-medium transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed"
                 style={buttonStyle}
               >
                 Use this image
