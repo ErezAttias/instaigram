@@ -1127,6 +1127,7 @@ function FloatingDesignSheet({
 }) {
   const [mounted, setMounted] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
+  const sheetRef = useRef<HTMLDivElement>(null)
 
   // Detect mobile-vs-desktop on the client and keep it in sync. The desktop
   // path renders inline; the mobile path portals to <body> so no ancestor
@@ -1157,6 +1158,21 @@ function FloatingDesignSheet({
     }
   }, [open, isMobile])
 
+  // Toggle a `data-scrolled` flag on the sheet so the sticky header's
+  // hairline separator only paints once the body has actually scrolled.
+  // Using a scroll listener keeps it CSS-only otherwise.
+  useEffect(() => {
+    if (!open || !isMobile) return
+    const el = sheetRef.current
+    if (!el) return
+    const update = () => {
+      el.dataset.scrolled = el.scrollTop > 4 ? 'true' : 'false'
+    }
+    update()
+    el.addEventListener('scroll', update, { passive: true })
+    return () => el.removeEventListener('scroll', update)
+  }, [open, isMobile])
+
   const sheet = (
     <>
       {/* Mobile-only dismiss layer — covers ONLY the strip between the
@@ -1171,6 +1187,8 @@ function FloatingDesignSheet({
       />
       {/* Sheet — fixed at bottom on mobile, inline on lg+ */}
       <div
+        ref={sheetRef}
+        data-scrolled="false"
         className={`design-sheet ${open ? 'design-sheet-open' : ''}`}
         style={{
           background: isLight ? '#ffffff' : '#0d0d0d',

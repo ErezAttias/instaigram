@@ -298,14 +298,13 @@ export function KhromaShell({ children, preview, paused = false, rightContent, b
             right: 0;
             bottom: 0;
             height: 1px;
-            background: rgba(255, 255, 255, 0.06);
+            background: rgba(255, 255, 255, 0.08);
             opacity: 0;
             transition: opacity 200ms;
           }
-          .design-sheet:not(:hover):not(:focus-within) .sheet-header::after {
-            /* hairline only appears once the body scrolls; mirrored via JS-
-               free trick: keep a thin separator visible when the sheet has
-               room for scroll. */
+          /* Hairline appears only after the user has scrolled the sheet
+             body. Toggled by a JS effect that watches scrollTop. */
+          .design-sheet[data-scrolled="true"] .sheet-header::after {
             opacity: 1;
           }
         }
