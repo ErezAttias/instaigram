@@ -217,7 +217,10 @@ export default function HomeKhromaSplit({ initialJobId }: { initialJobId?: strin
   // can keep re-rolling from the 'done' state without leaving the shell.
   const regenPollRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const regenPrevUrlsRef = useRef<Map<number, string | null>>(new Map())
-  async function regenerateSlideImage(slideIndex: number) {
+  async function regenerateSlideImage(
+    slideIndex: number,
+    opts?: { skipPost?: boolean; body?: Record<string, unknown> },
+  ) {
     if (!jobId) return
     // Stash the current imageUrl so we can tell when it swaps.
     const prev = slides.find(s => s.slideIndex === slideIndex)?.imageUrl ?? null
@@ -228,11 +231,13 @@ export default function HomeKhromaSplit({ initialJobId }: { initialJobId?: strin
       return next
     })
     try {
-      await fetch(`/api/carousel/${jobId}/regenerate-slide`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ slideIndex, mode: 'image' }),
-      })
+      if (!opts?.skipPost) {
+        await fetch(`/api/carousel/${jobId}/regenerate-slide`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(opts?.body ?? { slideIndex, mode: 'image' }),
+        })
+      }
     } catch {
       // Treat failure as "done" so the user isn't stuck — they can retry.
       setRegeneratingSet(prev => {
@@ -1288,7 +1293,7 @@ function SlideEditor({
   saving: boolean
   editTarget: 'overview' | 'headline' | 'support' | 'image' | 'textbg'
   setEditTarget: (t: 'overview' | 'headline' | 'support' | 'image' | 'textbg') => void
-  onRegenerateSlide: (slideIndex: number) => void
+  onRegenerateSlide: (slideIndex: number, opts?: { skipPost?: boolean; body?: Record<string, unknown> }) => void
   regeneratingSet: Set<number>
   themeOverrides: ThemeOverrides
   setThemeOverrides: React.Dispatch<React.SetStateAction<ThemeOverrides>>
@@ -1905,7 +1910,7 @@ function ImageDesignPanel({
   jobId: string
   slide: Slide
   regenerating: boolean
-  onRegenerateSlide: (slideIndex: number) => void
+  onRegenerateSlide: (slideIndex: number, opts?: { skipPost?: boolean; body?: Record<string, unknown> }) => void
   onBack: () => void
   isLight: boolean
   textMain: string
@@ -1979,18 +1984,15 @@ function ImageDesignPanel({
     if (!wikiResult) return
     setBusy(true)
     try {
-      await fetch(`/api/carousel/${jobId}/regenerate-slide`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      onRegenerateSlide(slide.slideIndex, {
+        body: {
           slideIndex: slide.slideIndex,
           mode: 'image',
           imageSource: 'wikipedia',
           wikipediaImageUrl: wikiResult.imageUrl,
           wikipediaQuery: wikiQuery.trim(),
-        }),
+        },
       })
-      onRegenerateSlide(slide.slideIndex)
     } finally {
       setBusy(false)
     }

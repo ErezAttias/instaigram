@@ -318,13 +318,11 @@ export function KhromaShell({ children, preview, paused = false, rightContent, b
           body.sheet-open .ig-chrome {
             display: none !important;
           }
-          /* The persistent BG-color chip is only shown when the sheet
-             is open — closed state still uses the cursor-tracking chip
-             from TrackingEditZone. */
+          /* The persistent BG-color chip stays visible on mobile —
+             touch devices can't trigger the cursor-tracking chip in
+             TrackingEditZone, so this button is the only entry point
+             to the textbg picker. */
           .bg-color-chip {
-            display: none;
-          }
-          body.sheet-open .bg-color-chip {
             display: inline-flex;
           }
         }
