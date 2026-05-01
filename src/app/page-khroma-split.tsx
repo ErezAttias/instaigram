@@ -1581,7 +1581,7 @@ function TextBgColorPanel({
     background: active ? (isLight ? '#0a0a0a' : '#ffffff') : 'transparent',
     color: active ? (isLight ? '#ffffff' : '#0a0a0a') : textMain,
     cursor: 'pointer',
-    transition: 'all 180ms',
+    transition: 'background-color 180ms, border-color 180ms, color 180ms',
   })
 
   const heightLabel = currentHeight < 20 ? 'Minimal' : currentHeight < 45 ? 'Short' : currentHeight < 70 ? 'Medium' : 'Tall'
@@ -1817,7 +1817,7 @@ function TextDesignPanel({
     background: active ? (isLight ? '#0a0a0a' : '#ffffff') : 'transparent',
     color: active ? (isLight ? '#ffffff' : '#0a0a0a') : textMain,
     cursor: 'pointer',
-    transition: 'all 180ms',
+    transition: 'background-color 180ms, border-color 180ms, color 180ms',
   })
   // Friendly label for the collapsed title — `currentFont` is the full
   // CSS font-family stack (e.g. `'Inter', system-ui, sans-serif`); show
@@ -2254,6 +2254,12 @@ function ImageDesignPanel({
 
         {wikiError && (
           <p className="mt-2 text-[12px]" style={{ color: '#f87171', fontFamily: SANS }}>{wikiError}</p>
+        )}
+
+        {!wikiError && !wikiResult && !wikiLoading && (
+          <p className="mt-2 text-[12px] lg:text-[11px] leading-relaxed opacity-70" style={{ color: textMuted, fontFamily: SANS }}>
+            Try a noun the slide is about — e.g. <span style={{ color: textMain }}>Jim Carrey</span>, <span style={{ color: textMain }}>Great white shark</span>, <span style={{ color: textMain }}>Eiffel Tower</span>. We&apos;ll grab a clean editorial photo.
+          </p>
         )}
 
         {wikiResult && (
