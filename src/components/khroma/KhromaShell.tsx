@@ -376,6 +376,20 @@ export function KhromaShell({ children, preview, paused = false, rightContent, b
             display: none !important;
           }
         }
+
+        /* IG-gradient selection ring used by TrackingEditZone when an
+           element is the active edit target. Masked so only the 2px
+           border paints, then the ring is layered over a dark inner
+           stop to stay visible on bright and dark images alike. */
+        .selection-ring {
+          background: linear-gradient(135deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);
+          -webkit-mask:
+            linear-gradient(#000 0 0) content-box,
+            linear-gradient(#000 0 0);
+          -webkit-mask-composite: xor;
+                  mask-composite: exclude;
+          padding: 2px;
+        }
         .slide-swap-next, .slide-swap-prev {
           will-change: transform, opacity;
         }

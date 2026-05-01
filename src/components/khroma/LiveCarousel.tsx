@@ -293,7 +293,11 @@ export function LiveCarousel({
                     className="inline-block w-3 h-3 rounded-full"
                     style={{
                       background: theme.textBgColor ?? theme.bg,
-                      border: '1px solid rgba(255,255,255,0.4)',
+                      // Two-tone ring stays visible regardless of the
+                      // swatch color: outer dark hairline reads on light
+                      // swatches, inner light hairline reads on dark ones.
+                      boxShadow:
+                        'inset 0 0 0 1px rgba(255,255,255,0.6), 0 0 0 1px rgba(0,0,0,0.45)',
                     }}
                   />
                   BG color
@@ -409,16 +413,29 @@ function TrackingEditZone({
           will affect. Inset slightly + extra padding so the dashes ride
           just outside the text rather than clipping it. */}
       {active && (
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute z-30"
-          style={{
-            inset: '-8px -10px',
-            border: '1.5px dashed rgba(160, 175, 255, 0.95)',
-            borderRadius: 10,
-            boxShadow: '0 0 0 1px rgba(0,0,0,0.15)',
-          }}
-        />
+        <>
+          {/* Dark inner stop so the gradient ring stays visible against
+              both bright and dark imagery without tinting the text. */}
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute z-30"
+            style={{
+              inset: '-8px -10px',
+              borderRadius: 10,
+              boxShadow:
+                '0 0 0 1.5px rgba(0,0,0,0.55), 0 0 0 3px rgba(255,255,255,0.10)',
+            }}
+          />
+          {/* IG-gradient selection ring — masked so only the border paints. */}
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute z-30 selection-ring"
+            style={{
+              inset: '-9px -11px',
+              borderRadius: 11,
+            }}
+          />
+        </>
       )}
       {children}
       {!active && hovered && pos && (

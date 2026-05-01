@@ -485,7 +485,7 @@ export default function HomeKhromaSplit({ initialJobId }: { initialJobId?: strin
       <button
         type="button"
         onClick={resetToIdle}
-        className="tap-pulse h-[68px] lg:h-auto rounded-full lg:rounded-none text-base lg:text-sm font-medium underline-offset-4 hover:underline transition-transform active:scale-[0.97] inline-flex items-center justify-center w-full lg:w-auto"
+        className="h-9 lg:h-auto text-[13px] lg:text-sm font-medium underline-offset-4 hover:underline transition-opacity hover:opacity-100 opacity-70 inline-flex items-center justify-center w-full lg:w-auto"
         style={{ color: textMuted, fontFamily: SANS }}
       >
         Start another
@@ -1633,7 +1633,7 @@ function TextBgColorPanel({
           Color
         </span>
 
-        <div className="flex flex-wrap gap-2.5 lg:gap-2 mb-4">
+        <div className="grid grid-cols-4 gap-2.5 lg:gap-2 mb-4">
           {GRADIENT_COLOR_SWATCHES.map(s => {
             const active = current.toLowerCase() === s.hex.toLowerCase()
             return (
@@ -1643,14 +1643,14 @@ function TextBgColorPanel({
                 onClick={() => setOverrides(o => ({ ...o, textBgColor: s.hex }))}
                 title={s.label}
                 aria-label={`Color ${s.label}`}
+                className="w-full aspect-square rounded-xl"
                 style={{
-                  width: 44, height: 44, borderRadius: 12,
                   background: s.hex,
                   border: `2px solid ${active ? (isLight ? '#0a0a0a' : '#ffffff') : 'rgba(127,127,127,0.25)'}`,
                   boxShadow: active ? '0 0 0 2px rgba(255,255,255,0.15)' : 'none',
                   cursor: 'pointer',
-                  transition: 'all 180ms',
-                  transform: active ? 'scale(1.08)' : 'scale(1)',
+                  transition: 'transform 180ms cubic-bezier(0.22, 1, 0.36, 1), border-color 180ms, box-shadow 180ms',
+                  transform: active ? 'scale(1.04)' : 'scale(1)',
                 }}
               />
             )
@@ -1686,16 +1686,23 @@ function TextBgColorPanel({
 
       {/* Height slider */}
       <div className="mb-5">
-        <div className="flex items-baseline justify-between mb-2">
+        <div className="flex items-center justify-between mb-2">
           <span className="text-[15px] lg:text-[11px] font-semibold lg:font-medium lg:uppercase lg:tracking-[0.14em] lg:opacity-60" style={{ color: textMain, fontFamily: SANS }}>
             Height
           </span>
-          <span className="text-[13px] lg:text-[11px] tabular-nums" style={{ color: textMuted, fontFamily: SANS }}>
+          <span
+            className="text-[12px] lg:text-[11px] font-medium tabular-nums px-2 py-0.5 rounded-full"
+            style={{
+              color: textMain,
+              background: isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.06)',
+              fontFamily: SANS,
+            }}
+          >
             {heightLabel}
           </span>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="text-[11px] lg:text-[10px] opacity-50 lg:opacity-40 w-9 lg:w-auto" style={{ color: textMuted, fontFamily: SANS }}>Short</span>
+        <div className="flex items-center gap-3">
+          <span className="text-[12px] lg:text-[10px] opacity-60 lg:opacity-40 w-10 lg:w-auto" style={{ color: textMuted, fontFamily: SANS }}>Short</span>
           <input
             type="range"
             min={0}
@@ -1706,22 +1713,29 @@ function TextBgColorPanel({
             style={{ flex: 1, accentColor: isLight ? '#0a0a0a' : '#ffffff' }}
             aria-label="Height"
           />
-          <span className="text-[11px] lg:text-[10px] opacity-50 lg:opacity-40 w-9 lg:w-auto text-right" style={{ color: textMuted, fontFamily: SANS }}>Tall</span>
+          <span className="text-[12px] lg:text-[10px] opacity-60 lg:opacity-40 w-10 lg:w-auto text-right" style={{ color: textMuted, fontFamily: SANS }}>Tall</span>
         </div>
       </div>
 
       {/* Softness slider */}
       <div className="mb-7 lg:mb-5">
-        <div className="flex items-baseline justify-between mb-2">
+        <div className="flex items-center justify-between mb-2">
           <span className="text-[15px] lg:text-[11px] font-semibold lg:font-medium lg:uppercase lg:tracking-[0.14em] lg:opacity-60" style={{ color: textMain, fontFamily: SANS }}>
             Softness
           </span>
-          <span className="text-[13px] lg:text-[11px] tabular-nums" style={{ color: textMuted, fontFamily: SANS }}>
+          <span
+            className="text-[12px] lg:text-[11px] font-medium tabular-nums px-2 py-0.5 rounded-full"
+            style={{
+              color: textMain,
+              background: isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.06)',
+              fontFamily: SANS,
+            }}
+          >
             {softnessLabel}
           </span>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="text-[11px] lg:text-[10px] opacity-50 lg:opacity-40 w-9 lg:w-auto" style={{ color: textMuted, fontFamily: SANS }}>Harsh</span>
+        <div className="flex items-center gap-3">
+          <span className="text-[12px] lg:text-[10px] opacity-60 lg:opacity-40 w-10 lg:w-auto" style={{ color: textMuted, fontFamily: SANS }}>Harsh</span>
           <input
             type="range"
             min={0}
@@ -1732,7 +1746,7 @@ function TextBgColorPanel({
             style={{ flex: 1, accentColor: isLight ? '#0a0a0a' : '#ffffff' }}
             aria-label="Softness"
           />
-          <span className="text-[11px] lg:text-[10px] opacity-50 lg:opacity-40 w-9 lg:w-auto text-right" style={{ color: textMuted, fontFamily: SANS }}>Soft</span>
+          <span className="text-[12px] lg:text-[10px] opacity-60 lg:opacity-40 w-10 lg:w-auto text-right" style={{ color: textMuted, fontFamily: SANS }}>Soft</span>
         </div>
       </div>
 
