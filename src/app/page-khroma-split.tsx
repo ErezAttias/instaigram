@@ -1238,6 +1238,11 @@ function FloatingDesignSheet({
         className={`design-sheet ${open ? 'design-sheet-open' : ''}`}
         style={{
           background: isLight ? '#ffffff' : '#0d0d0d',
+          // Mirror onto a CSS variable so the sticky sheet-header can
+          // paint the same solid color (background: inherit on the
+          // shorthand isn't reliable across browsers when the parent's
+          // bg is set via inline style).
+          ['--sheet-bg' as string]: isLight ? '#ffffff' : '#0d0d0d',
         }}
         role="dialog"
         aria-modal="true"

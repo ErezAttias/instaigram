@@ -168,14 +168,19 @@ export function LiveCarousel({
           </div>
         </div>
 
-        {/* Photo / headline slot — matches the exported 4:5 (1080×1350) slide dimensions. */}
-        <div className="relative overflow-hidden w-full" style={{ background: theme.bg, aspectRatio: '4 / 5' }}>
+        {/* Slide composition: 4:5 outer (matches the exported 1080×1350
+            dimensions) with a 1:1 image pinned to the top, plus a
+            gradient + text region that spans the full card so the empty
+            band below the image is filled with the textbg color and the
+            slide reads as one continuous surface. */}
+        <div className="lc-slot relative overflow-hidden w-full" style={{ background: theme.bg, aspectRatio: '4 / 5' }}>
           <div
             key={`slide-${current?.slideIndex}`}
             className={`absolute inset-0 ${slideDirection === 'prev' ? 'slide-swap-prev' : 'slide-swap-next'}`}
           >
-            {/* Image layer with hover-edit */}
-            <div className="absolute inset-0 group/image">
+            {/* Image layer — locked to 1:1 at the top of the slide so
+                generated 1080×1080 imagery stays uncropped. */}
+            <div className="absolute top-0 inset-x-0 group/image" style={{ aspectRatio: '1 / 1' }}>
               {currentImageUrl ? (
                 <img
                   src={currentImageUrl}
@@ -194,14 +199,16 @@ export function LiveCarousel({
                 />
               )}
             </div>
-            {/* Text-scrim gradient — blends image into the text area.
+            {/* Text-scrim gradient — spans the full card so the lower
+                quarter (below the 1:1 image) flows seamlessly into the
+                solid textbg color, with no white band.
                 spread 0 = harsh (starts at 65%), spread 100 = soft (starts at 0%).
                 Default spread 50 → starts at ~20%. */}
             {(() => {
-              const spread     = theme.textBgSpread ?? 50            // 0–100
-              const height     = theme.textBgHeight ?? 50            // 0–100
-              const solidPct   = Math.round(98 - height * 0.38)     // 98% (short) → 60% (tall)
-              const startPct   = Math.min(Math.round(65 - spread * 0.65), solidPct - 10) // can't exceed solidPct
+              const spread     = theme.textBgSpread ?? 50
+              const height     = theme.textBgHeight ?? 50
+              const solidPct   = Math.round(98 - height * 0.38)
+              const startPct   = Math.min(Math.round(65 - spread * 0.65), solidPct - 10)
               const midPct     = Math.round(startPct + (solidPct - startPct) * 0.55)
               const scrimColor = theme.textBgColor ?? theme.bg
               return (
@@ -214,7 +221,10 @@ export function LiveCarousel({
               )
             })()}
 
-            {/* Bottom zone: text + hoverable scrim-color chip */}
+            {/* Bottom zone: text + hoverable scrim-color chip — anchored
+                to the bottom of the full 4:5 card, not just the image,
+                so the headline naturally lives in the area below the
+                square image. */}
             <div className="absolute bottom-0 inset-x-0 z-10">
               {/* Scrim color edit — hover the gradient area to reveal chip */}
               <TrackingEditZone
@@ -293,9 +303,6 @@ export function LiveCarousel({
                     className="inline-block w-3 h-3 rounded-full"
                     style={{
                       background: theme.textBgColor ?? theme.bg,
-                      // Two-tone ring stays visible regardless of the
-                      // swatch color: outer dark hairline reads on light
-                      // swatches, inner light hairline reads on dark ones.
                       boxShadow:
                         'inset 0 0 0 1px rgba(255,255,255,0.6), 0 0 0 1px rgba(0,0,0,0.45)',
                     }}

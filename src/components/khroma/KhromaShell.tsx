@@ -302,7 +302,11 @@ export function KhromaShell({ children, preview, paused = false, rightContent, b
             position: sticky;
             top: 0;
             z-index: 5;
-            background: inherit;
+            /* Explicit background — the shorthand 'background: inherit'
+               isn't reliable across browsers when the parent's bg comes
+               from an inline style, so body content scrolled under the
+               header showed through and produced text-on-text. */
+            background-color: var(--sheet-bg, #0d0d0d);
             margin-left: -1.25rem;
             margin-right: -1.25rem;
             padding-left: 1.25rem;
