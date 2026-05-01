@@ -809,11 +809,11 @@ export default function HomeKhromaSplit({ initialJobId }: { initialJobId?: strin
               ))}
             </ul>
 
-            <div className="mt-6 flex items-center gap-5 flex-wrap">
+            <div className="mt-6 flex flex-col lg:flex-row items-stretch lg:items-center gap-3 lg:gap-5 w-full lg:w-auto">
               <button
                 type="button"
                 onClick={approveCopy}
-                className="h-12 px-8 text-white font-medium rounded-full text-[15px] transition-all hover:brightness-110 active:scale-[0.98]"
+                className="tap-pulse h-[68px] lg:h-12 px-10 lg:px-8 text-white font-medium rounded-full text-base lg:text-[15px] transition-all hover:brightness-110 active:scale-[0.96] inline-flex items-center justify-center w-full lg:w-auto"
                 style={{ backgroundImage: IG_GRADIENT, fontFamily: SANS, boxShadow: '0 4px 14px rgba(220,39,67,0.35)' }}
               >
                 Approve copy →
@@ -821,7 +821,7 @@ export default function HomeKhromaSplit({ initialJobId }: { initialJobId?: strin
               <button
                 type="button"
                 onClick={regenerateCopy}
-                className="text-sm font-medium underline-offset-4 hover:underline"
+                className="tap-pulse h-[68px] lg:h-auto rounded-full lg:rounded-none text-base lg:text-sm font-medium underline-offset-4 hover:underline transition-transform active:scale-[0.97] inline-flex items-center justify-center w-full lg:w-auto"
                 style={{ color: textMuted, fontFamily: SANS }}
               >
                 Regenerate
@@ -829,7 +829,7 @@ export default function HomeKhromaSplit({ initialJobId }: { initialJobId?: strin
               <button
                 type="button"
                 onClick={goBackToSampleFacts}
-                className="text-sm font-medium underline-offset-4 hover:underline opacity-70"
+                className="tap-pulse h-[68px] lg:h-auto rounded-full lg:rounded-none text-base lg:text-sm font-medium underline-offset-4 hover:underline opacity-70 transition-transform active:scale-[0.97] inline-flex items-center justify-center w-full lg:w-auto"
                 style={{ color: textMuted, fontFamily: SANS }}
               >
                 ← Back

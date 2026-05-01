@@ -148,11 +148,12 @@ export function KhromaShell({ children, preview, paused = false, rightContent, b
 
       <style jsx global>{`
         .phase-panel {
-          animation: phase-in 550ms cubic-bezier(0.22, 1, 0.36, 1) both;
+          animation: phase-in 720ms cubic-bezier(0.22, 1, 0.36, 1) both;
         }
         @keyframes phase-in {
-          0%   { opacity: 0; transform: translateY(8px); filter: blur(3px); }
-          100% { opacity: 1; transform: translateY(0);   filter: blur(0); }
+          0%   { opacity: 0; transform: translateY(2px); }
+          40%  { opacity: 0.05; }
+          100% { opacity: 1; transform: translateY(0); }
         }
         /* dots-anchor reserves a fixed-width slot so the animated dots
            never reflow the surrounding headline text. */
