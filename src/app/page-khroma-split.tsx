@@ -500,6 +500,7 @@ export default function HomeKhromaSplit({ initialJobId }: { initialJobId?: strin
       hideRightOnMobile={false}
       mobileFooter={doneCtas}
     >
+      <PhaseCrossFade phase={phase}>
       <div key={phase} className="phase-panel">
         {phase === 'idle' && (
           <>
@@ -1002,6 +1003,7 @@ export default function HomeKhromaSplit({ initialJobId }: { initialJobId?: strin
           </>
         )}
       </div>
+      </PhaseCrossFade>
       <style jsx global>{`
         /* Hover style C4: an IG-gradient border appears via a masked
            pseudo-element (border-image trick), and the pill bg picks up a
@@ -1091,6 +1093,57 @@ export default function HomeKhromaSplit({ initialJobId }: { initialJobId?: strin
         }
       `}</style>
     </KhromaShell>
+  )
+}
+
+/**
+ * Cross-fades the active phase panel with the previously-rendered one
+ * during a brief overlap window. Without this the leaving phase just
+ * unmounts and the new one fades in on its own — readable as a "page
+ * load." With overlap (~220ms) the swap reads as a single continuous
+ * gesture. Both layers stack absolutely so the surrounding layout
+ * doesn't jump as content changes height.
+ */
+function PhaseCrossFade({ phase, children }: { phase: string; children: React.ReactNode }) {
+  const [layers, setLayers] = useState<{ key: string; node: React.ReactNode; leaving: boolean }[]>([
+    { key: phase, node: children, leaving: false },
+  ])
+  const lastPhase = useRef(phase)
+  useEffect(() => {
+    if (phase === lastPhase.current) {
+      // Same phase — just refresh the latest layer's children so live
+      // updates within a phase don't get stuck on a stale snapshot.
+      setLayers(prev => {
+        if (!prev.length) return prev
+        const next = prev.slice()
+        next[next.length - 1] = { ...next[next.length - 1], node: children }
+        return next
+      })
+      return
+    }
+    lastPhase.current = phase
+    // Start a transition: mark the prior layer as leaving and push the
+    // new layer on top of it. Drop the leaving layer after the fade
+    // completes (matches the .phase-cross-leaving CSS duration).
+    setLayers(prev => {
+      const next = prev.map(l => ({ ...l, leaving: true }))
+      next.push({ key: `${phase}-${Date.now()}`, node: children, leaving: false })
+      return next
+    })
+    const t = setTimeout(() => {
+      setLayers(prev => prev.filter(l => !l.leaving))
+    }, 280)
+    return () => clearTimeout(t)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase])
+  return (
+    <div className="phase-cross-stack">
+      {layers.map(l => (
+        <div key={l.key} className={`phase-cross-layer ${l.leaving ? 'phase-cross-leaving' : ''}`}>
+          {l.node}
+        </div>
+      ))}
+    </div>
   )
 }
 

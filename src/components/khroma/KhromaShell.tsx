@@ -155,6 +155,25 @@ export function KhromaShell({ children, preview, paused = false, rightContent, b
           40%  { opacity: 0.05; }
           100% { opacity: 1; transform: translateY(0); }
         }
+        /* Cross-fade stack: leaving layer paints under the entering one
+           during ~220ms so the swap reads as a single fluid gesture
+           instead of an unmount-then-mount flash. Layers don't need to
+           be absolutely positioned — they sit in normal flow stacked
+           via grid so the overall container takes the max content size
+           while both layers occupy the same cell. */
+        .phase-cross-stack {
+          display: grid;
+          grid-template-areas: 'stack';
+        }
+        .phase-cross-stack > .phase-cross-layer {
+          grid-area: stack;
+          min-width: 0;
+          transition: opacity 220ms cubic-bezier(0.22, 1, 0.36, 1);
+        }
+        .phase-cross-leaving {
+          opacity: 0;
+          pointer-events: none;
+        }
         /* dots-anchor reserves a fixed-width slot so the animated dots
            never reflow the surrounding headline text. */
         .dots-anchor {
