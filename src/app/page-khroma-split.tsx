@@ -1098,51 +1098,40 @@ export default function HomeKhromaSplit({ initialJobId }: { initialJobId?: strin
 
 /**
  * Cross-fades the active phase panel with the previously-rendered one
- * during a brief overlap window. Without this the leaving phase just
- * unmounts and the new one fades in on its own — readable as a "page
- * load." With overlap (~220ms) the swap reads as a single continuous
- * gesture. Both layers stack absolutely so the surrounding layout
- * doesn't jump as content changes height.
+ * during a brief overlap window. The leaving phase is rendered from a
+ * snapshot captured at phase-change time, while the entering phase
+ * always renders live children from props so React state inside the
+ * active phase keeps updating normally. Layers stack via a single
+ * grid cell so layout takes the larger of the two layer heights.
  */
 function PhaseCrossFade({ phase, children }: { phase: string; children: React.ReactNode }) {
-  const [layers, setLayers] = useState<{ key: string; node: React.ReactNode; leaving: boolean }[]>([
-    { key: phase, node: children, leaving: false },
-  ])
-  const lastPhase = useRef(phase)
+  const prevRef = useRef<{ phase: string; node: React.ReactNode }>({ phase, node: children })
+  const [leaving, setLeaving] = useState<{ key: string; node: React.ReactNode } | null>(null)
+
+  // Detect phase change at render time so we can snapshot the OLD
+  // children before they're replaced by the new ones.
+  const phaseChanged = prevRef.current.phase !== phase
+  const leavingNodeForThisRender = phaseChanged ? prevRef.current.node : null
+  // Persist the latest seen render so the next phase-change has access
+  // to the correct previous tree.
+  prevRef.current = { phase, node: children }
+
   useEffect(() => {
-    if (phase === lastPhase.current) {
-      // Same phase — just refresh the latest layer's children so live
-      // updates within a phase don't get stuck on a stale snapshot.
-      setLayers(prev => {
-        if (!prev.length) return prev
-        const next = prev.slice()
-        next[next.length - 1] = { ...next[next.length - 1], node: children }
-        return next
-      })
-      return
-    }
-    lastPhase.current = phase
-    // Start a transition: mark the prior layer as leaving and push the
-    // new layer on top of it. Drop the leaving layer after the fade
-    // completes (matches the .phase-cross-leaving CSS duration).
-    setLayers(prev => {
-      const next = prev.map(l => ({ ...l, leaving: true }))
-      next.push({ key: `${phase}-${Date.now()}`, node: children, leaving: false })
-      return next
-    })
-    const t = setTimeout(() => {
-      setLayers(prev => prev.filter(l => !l.leaving))
-    }, 280)
+    if (!leavingNodeForThisRender) return
+    setLeaving({ key: `leaving-${Date.now()}`, node: leavingNodeForThisRender })
+    const t = setTimeout(() => setLeaving(null), 280)
     return () => clearTimeout(t)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase])
+
   return (
     <div className="phase-cross-stack">
-      {layers.map(l => (
-        <div key={l.key} className={`phase-cross-layer ${l.leaving ? 'phase-cross-leaving' : ''}`}>
-          {l.node}
+      {leaving && (
+        <div key={leaving.key} className="phase-cross-layer phase-cross-leaving">
+          {leaving.node}
         </div>
-      ))}
+      )}
+      <div key={phase} className="phase-cross-layer">{children}</div>
     </div>
   )
 }
@@ -1152,10 +1141,14 @@ function BackButton({ onClick, textMuted }: { onClick: () => void; textMuted: st
     <button
       type="button"
       onClick={onClick}
-      className="text-[11px] font-medium underline-offset-4 hover:underline opacity-70 hover:opacity-100 transition-opacity"
+      aria-label="Back"
+      className="inline-flex items-center gap-1 text-[11px] font-medium underline-offset-4 hover:underline opacity-70 hover:opacity-100 transition-opacity"
       style={{ color: textMuted, fontFamily: SANS }}
     >
-      ← Back
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+        <polyline points="15 18 9 12 15 6" />
+      </svg>
+      Back
     </button>
   )
 }
@@ -2144,12 +2137,19 @@ function ImageDesignPanel({
   textMuted: string
 }) {
   const [prompt, setPrompt] = useState('')
+  const [serverPrompt, setServerPrompt] = useState('')
   const [wikiQuery, setWikiQuery] = useState('')
   const [wikiResult, setWikiResult] = useState<WikiResult | null>(null)
   const [wikiError, setWikiError] = useState<string | null>(null)
   const [wikiLoading, setWikiLoading] = useState(false)
   const [busy, setBusy] = useState(false)
   const [provider, setProvider] = useState<'gemini' | 'openai'>('gemini')
+
+  // Per-slide draft persistence: when the user types but doesn't re-roll,
+  // dismissing the sheet would otherwise drop the typed prompt. Hydrate
+  // any saved draft on mount and write back on every change so the user
+  // can return to it later in the same browser.
+  const draftKey = `instaigram:image-prompt-draft:${jobId}:${slide.slideIndex}`
 
   useEffect(() => {
     let cancelled = false
@@ -2159,10 +2159,15 @@ function ImageDesignPanel({
         const data = await res.json().catch(() => ({}))
         if (cancelled) return
         const hit = (data?.previews ?? []).find((p: { slideIndex: number }) => p.slideIndex === slide.slideIndex)
-        if (hit) {
-          setPrompt(hit.imagePrompt ?? '')
-          setWikiQuery(hit.wikipediaQuery ?? '')
+        const serverValue = hit?.imagePrompt ?? ''
+        setServerPrompt(serverValue)
+        let initial = serverValue
+        if (typeof window !== 'undefined') {
+          const draft = window.localStorage.getItem(draftKey)
+          if (draft != null && draft !== '') initial = draft
         }
+        setPrompt(initial)
+        if (hit?.wikipediaQuery) setWikiQuery(hit.wikipediaQuery)
       } catch {
         // no-op
       }
@@ -2170,7 +2175,20 @@ function ImageDesignPanel({
     return () => {
       cancelled = true
     }
-  }, [jobId, slide.slideIndex])
+  }, [jobId, slide.slideIndex, draftKey])
+
+  // Persist draft on each change. Clear when it matches the server value
+  // so we don't keep stale entries.
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    if (prompt === serverPrompt || prompt === '') {
+      window.localStorage.removeItem(draftKey)
+    } else {
+      window.localStorage.setItem(draftKey, prompt)
+    }
+  }, [prompt, serverPrompt, draftKey])
+
+  const promptDirty = prompt.trim() !== serverPrompt.trim() && prompt.trim().length > 0
 
   async function reRollWithPrompt() {
     setBusy(true)
@@ -2180,6 +2198,10 @@ function ImageDesignPanel({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ slideIndex: slide.slideIndex, mode: 'image', promptOverride: prompt, imageSource: 'generated', provider }),
       })
+      // Promote the draft to the new server prompt — it's been applied,
+      // so it's no longer "Modified."
+      setServerPrompt(prompt)
+      if (typeof window !== 'undefined') window.localStorage.removeItem(draftKey)
       onRegenerateSlide(slide.slideIndex)
     } finally {
       setBusy(false)
@@ -2286,9 +2308,25 @@ function ImageDesignPanel({
       </div>
 
       <div className="mb-7 lg:mb-6">
-        <span className="block text-[15px] lg:text-[11px] font-semibold lg:font-medium lg:uppercase lg:tracking-[0.14em] mb-2 lg:opacity-60" style={{ color: textMain, fontFamily: SANS }}>
-          Prompt
-        </span>
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-[15px] lg:text-[11px] font-semibold lg:font-medium lg:uppercase lg:tracking-[0.14em] lg:opacity-60" style={{ color: textMain, fontFamily: SANS }}>
+            Prompt
+          </span>
+          {promptDirty && (
+            <span
+              className="text-[11px] font-medium px-2 py-0.5 rounded-full"
+              style={{
+                color: '#dc2743',
+                background: 'rgba(220,39,67,0.10)',
+                border: '1px solid rgba(220,39,67,0.30)',
+                fontFamily: SANS,
+              }}
+              aria-label="Prompt has unsaved changes"
+            >
+              Modified · re-roll to apply
+            </span>
+          )}
+        </div>
         <AutoTextarea value={prompt} onChange={setPrompt} onBlur={() => { /* commit on action */ }} style={fieldStyle} />
         <div className="mt-3 flex flex-col gap-2">
         <div
