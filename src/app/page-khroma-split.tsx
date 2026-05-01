@@ -1590,6 +1590,19 @@ function TextBgColorPanel({
   const current = overrides.textBgColor ?? themeBase.bg
   const currentSpread = overrides.textBgSpread ?? 50
   const currentHeight = overrides.textBgHeight ?? 50
+  // After Reset, snapshot the previous gradient overrides so the user can
+  // undo within ~5s. The snapshot stays mounted as a small pill above the
+  // Reset button; tapping Undo restores it and clears the snapshot.
+  const [resetSnapshot, setResetSnapshot] = useState<{
+    textBgColor?: string
+    textBgSpread?: number
+    textBgHeight?: number
+  } | null>(null)
+  useEffect(() => {
+    if (!resetSnapshot) return
+    const t = setTimeout(() => setResetSnapshot(null), 5000)
+    return () => clearTimeout(t)
+  }, [resetSnapshot])
   const pillStyle = (active: boolean): React.CSSProperties => ({
     padding: '6px 10px',
     borderRadius: 8,
@@ -1770,12 +1783,57 @@ function TextBgColorPanel({
 
       <button
         type="button"
-        onClick={() => setOverrides(o => { const next = { ...o }; delete next.textBgColor; delete next.textBgSpread; delete next.textBgHeight; return next })}
-        className="tap-pulse w-full lg:w-auto h-12 lg:h-auto rounded-lg lg:rounded-md text-[14px] lg:text-[12px] font-medium transition-all active:scale-[0.98] inline-flex items-center justify-center"
+        onClick={() => {
+          setResetSnapshot({
+            textBgColor: overrides.textBgColor,
+            textBgSpread: overrides.textBgSpread,
+            textBgHeight: overrides.textBgHeight,
+          })
+          setOverrides(o => { const next = { ...o }; delete next.textBgColor; delete next.textBgSpread; delete next.textBgHeight; return next })
+        }}
+        className="tap-pulse w-full lg:w-auto h-12 lg:h-auto rounded-lg lg:rounded-md text-[14px] lg:text-[12px] font-medium active:scale-[0.98] inline-flex items-center justify-center"
         style={{ ...pillStyle(false), padding: undefined }}
       >
         Reset to theme default
       </button>
+
+      {resetSnapshot && (
+        <div
+          className="mt-3 flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl"
+          style={{
+            background: isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.06)',
+            border: `1px solid ${isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.10)'}`,
+            fontFamily: SANS,
+          }}
+          role="status"
+          aria-live="polite"
+        >
+          <span className="text-[13px]" style={{ color: textMain }}>
+            Reset · {' '}
+            <span className="opacity-70" style={{ color: textMuted }}>auto-clears in 5s</span>
+          </span>
+          <button
+            type="button"
+            onClick={() => {
+              setOverrides(o => ({
+                ...o,
+                ...(resetSnapshot.textBgColor !== undefined ? { textBgColor: resetSnapshot.textBgColor } : {}),
+                ...(resetSnapshot.textBgSpread !== undefined ? { textBgSpread: resetSnapshot.textBgSpread } : {}),
+                ...(resetSnapshot.textBgHeight !== undefined ? { textBgHeight: resetSnapshot.textBgHeight } : {}),
+              }))
+              setResetSnapshot(null)
+            }}
+            className="tap-pulse h-9 px-3 rounded-lg text-[13px] font-semibold"
+            style={{
+              color: '#dc2743',
+              background: 'transparent',
+              fontFamily: SANS,
+            }}
+          >
+            Undo
+          </button>
+        </div>
+      )}
     </div>
   )
 }
